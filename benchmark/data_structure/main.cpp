@@ -388,11 +388,14 @@ double benchmark_view_of_arrays_raw(
       KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
         const int i = team.league_rank();
 
-        const type pix = pos_x(i);
-        const type piy = pos_y(i);
-        const type piz = pos_z(i);
+        const type pix = positions(i, 0);
+        const type piy = positions(i, 1);
+        const type piz = positions(i, 2);
 
-        type fix = type(0), fiy = type(0), fiz = type(0);
+        type fix = type(0);
+        type fiy = type(0);
+        type fiz = type(0);
+
         Kokkos::parallel_reduce(
           Kokkos::TeamThreadRange(team, n_agents),
           [&](const int j, type& local_x, type& local_y, type& local_z) {
@@ -401,7 +404,7 @@ double benchmark_view_of_arrays_raw(
 
             pairwise_force(
               pix, piy, piz,
-              pos_x(j), pos_y(j), pos_z(j),
+              positions(j, 0), positions(j, 1), positions(j, 2),
               local_x, local_y, local_z
             );
           },
@@ -409,9 +412,9 @@ double benchmark_view_of_arrays_raw(
         );
 
         Kokkos::single(Kokkos::PerTeam(team), [&]() {
-          force_x(i) = fix;
-          force_y(i) = fiy;
-          force_z(i) = fiz;
+          forces(i, 0) = fix;
+          forces(i, 1) = fiy;
+          forces(i, 2) = fiz;
         });
       }
     );
