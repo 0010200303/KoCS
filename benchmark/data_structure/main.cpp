@@ -283,27 +283,33 @@ double benchmark_view_of_arrays(
       KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
         const int i = team.league_rank();
 
-        const type pi[3] = {positions(i, 0), positions(i, 1), positions(i, 2)};
-        type fix = type(0);
-        type fiy = type(0);
-        type fiz = type(0);
+        const Vector pi(
+          positions(i, 0),
+          positions(i, 1),
+          positions(i, 2)
+        );
+        Vector fi(type(0), type(0), type(0));
 
         Kokkos::parallel_reduce(
           Kokkos::TeamThreadRange(team, n_agents),
-          [&](const int j, type& local_x, type& local_y, type& local_z) {
+          [&](const int j, Vector& local) {
             if (j == i)
               return;
 
-            const type pj[3] = {positions(j, 0), positions(j, 1), positions(j, 2)};
-            pairwise_force(pi, pj, local_x, local_y, local_z);
+            const Vector pj(
+              positions(j, 0),
+              positions(j, 1),
+              positions(j, 2)
+            );
+            pairwise_force(pi, pj, local);
           },
-          fix, fiy, fiz
+          fi
         );
 
         Kokkos::single(Kokkos::PerTeam(team), [&]() {
-          forces(i, 0) = fix;
-          forces(i, 1) = fiy;
-          forces(i, 2) = fiz;
+          forces(i, 0) = fi.x;
+          forces(i, 1) = fi.y;
+          forces(i, 2) = fi.z;
         });
       }
     );
@@ -475,23 +481,15 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, Benchmar
         host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
       );
     } else if (bench == BenchmarkType::ViewOfArrays) {
-      auto pairwise_force = KOKKOS_LAMBDA(
-        const type pi[3], const type pj[3],
-        type& local_x, type& local_y, type& local_z
-      ) {
-        const type rx = pj[0] - pi[0];
-        const type ry = pj[1] - pi[1];
-        const type rz = pj[2] - pi[2];
-
-        const type dist_squared = rx * rx + ry * ry + rz * rz;
+      auto pairwise_force = KOKKOS_LAMBDA(const Vector& pi, const Vector& pj, Vector& local) {
+        const Vector r = pj - pi;
+        const type dist_squared = r.norm_squared();
         if (dist_squared == type(0))
           return;
 
         const type inv_dist = type(1) / sqrt(dist_squared);
         const type inv_dist3 = inv_dist * inv_dist * inv_dist;
-        local_x += rx * inv_dist3;
-        local_y += ry * inv_dist3;
-        local_z += rz * inv_dist3;
+        local += r * inv_dist3;
       };
 
       total_time += benchmark_view_of_arrays(
