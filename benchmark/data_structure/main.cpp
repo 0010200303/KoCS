@@ -180,40 +180,62 @@ double benchmark_view_of_vectors(
       KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
         const int i = team.league_rank();
 
-        Vector pi = positions(i);
-        Vector fi(0,0,0);
+        const Vector pi = positions(i);
+        const type pix = pi.x;
+        const type piy = pi.y;
+        const type piz = pi.z;
+
+        type fix = type(0);
+        type fiy = type(0);
+        type fiz = type(0);
 
         Kokkos::parallel_reduce(
           Kokkos::TeamThreadRange(team, n_agents),
-          [&](const int j, Vector& local_sum) {
+          [&](const int j, type& local_x, type& local_y, type& local_z) {
             if (j == i)
               return;
 
-            Vector pj = positions(j);
-            Vector r = pj - pi;
+            const Vector pj = positions(j);
+            const type rx = pj.x - pix;
+            const type ry = pj.y - piy;
+            const type rz = pj.z - piz;
 
-            type dist_squared = r.norm_squared();
+            const type dist_squared = rx * rx + ry * ry + rz * rz;
             if (dist_squared == type(0))
               return;
 
-            type inv_dist = type(1) / sqrt(dist_squared);
-            type inv_dist3 = inv_dist * inv_dist * inv_dist;
+            const type inv_dist = type(1) / sqrt(dist_squared);
+            const type inv_dist3 = inv_dist * inv_dist * inv_dist;
 
-            local_sum += r * inv_dist3;
+            local_x += rx * inv_dist3;
+            local_y += ry * inv_dist3;
+            local_z += rz * inv_dist3;
           },
-          fi
+          fix, fiy, fiz
         );
 
         Kokkos::single(Kokkos::PerTeam(team), [&]() {
-          forces(i) = fi;
+          forces(i) = Vector(fix, fiy, fiz);
         });
       }
     );
 
     // integrate (explicit Euler)
     Kokkos::parallel_for("euler_update", n_agents, KOKKOS_LAMBDA(const int i) {
-      velocities(i) += forces(i) * dt;
-      positions(i) += velocities(i) * dt;
+      Vector v = velocities(i);
+      Vector p = positions(i);
+      const Vector f = forces(i);
+
+      v.x += f.x * dt;
+      v.y += f.y * dt;
+      v.z += f.z * dt;
+
+      p.x += v.x * dt;
+      p.y += v.y * dt;
+      p.z += v.z * dt;
+
+      velocities(i) = v;
+      positions(i) = p;
     });
   }
 
@@ -493,7 +515,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, Benchmar
 }
 
 int main() {
-  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096};
+  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768};
   const int steps = 100;
   const int repetitions = 10;
 

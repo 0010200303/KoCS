@@ -14,10 +14,6 @@ set(Kokkos_BACKEND "" CACHE STRING
   "Choose Kokkos backend: SERIAL, OPENMP, THREADS, HPX, CUDA, HIP, SYCL, OPENMPTARGET, OPENACC"
 )
 
-foreach(backend OPENMP THREADS HPX CUDA HIP SYCL OPENMPTARGET OPENACC SERIAL)
-  set(Kokkos_ENABLE_${backend} OFF CACHE BOOL "" FORCE)
-endforeach()
-
 # TODO: error if backend is unknown
 if (Kokkos_BACKEND STREQUAL "OPENMP")
   set(Kokkos_ENABLE_OPENMP ON CACHE BOOL "" FORCE)
