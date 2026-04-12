@@ -133,13 +133,15 @@ inline const char* benchmark_name(BenchmarkType b) {
   return "UNKNOWN";
 }
 
+template<typename ForceFn>
 double benchmark_view_of_vectors(
   const std::vector<Vector>& host_pos,
   const std::vector<Vector>& host_vel,
   const int steps,
   const type dt,
   double& checksum_out,
-  int n_agents
+  int n_agents,
+  ForceFn&& pairwise_force
 ) {
   auto checksum = [&](const ViewOfVectors& positions) {
     auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
@@ -190,16 +192,7 @@ double benchmark_view_of_vectors(
               return;
 
             const Vector pj = positions(j);
-            const Vector r = pj - pi;
-
-            const type dist_squared = r.norm_squared();
-            if (dist_squared == type(0))
-              return;
-
-            const type inv_dist = type(1) / sqrt(dist_squared);
-            const type inv_dist3 = inv_dist * inv_dist * inv_dist;
-
-            local += r * inv_dist3;
+            pairwise_force(pi, pj, local);
           },
           fi
         );
@@ -235,13 +228,15 @@ double benchmark_view_of_vectors(
   return time;
 }
 
+template<typename ForceFn>
 double benchmark_view_of_arrays(
   const std::vector<Vector>& host_pos,
   const std::vector<Vector>& host_vel,
   const int steps,
   const type dt,
   double& checksum_out,
-  int n_agents
+  int n_agents,
+  ForceFn&& pairwise_force
 ) {
   auto checksum = [&](const ViewOfArrays& positions) {
     auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
@@ -288,9 +283,7 @@ double benchmark_view_of_arrays(
       KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
         const int i = team.league_rank();
 
-        type pi[3] = {positions(i, 0), positions(i, 1), positions(i, 2)};
-        type fi[3] = {type(0), type(0), type(0)};
-
+        const type pi[3] = {positions(i, 0), positions(i, 1), positions(i, 2)};
         type fix = type(0);
         type fiy = type(0);
         type fiz = type(0);
@@ -301,22 +294,8 @@ double benchmark_view_of_arrays(
             if (j == i)
               return;
 
-            type pjx = positions(j, 0);
-            type pjy = positions(j, 1);
-            type pjz = positions(j, 2);
-            type rx = pjx - pi[0];
-            type ry = pjy - pi[1];
-            type rz = pjz - pi[2];
-
-            type dist_squared = rx*rx + ry*ry + rz*rz;
-            if (dist_squared == type(0))
-              return;
-
-            type inv_dist = type(1) / sqrt(dist_squared);
-            type inv_dist3 = inv_dist * inv_dist * inv_dist;
-            local_x += rx * inv_dist3;
-            local_y += ry * inv_dist3;
-            local_z += rz * inv_dist3;
+            const type pj[3] = {positions(j, 0), positions(j, 1), positions(j, 2)};
+            pairwise_force(pi, pj, local_x, local_y, local_z);
           },
           fix, fiy, fiz
         );
@@ -346,13 +325,15 @@ double benchmark_view_of_arrays(
   return time;
 }
 
+template<typename ForceFn>
 double benchmark_view_of_scalars(
   const std::vector<Vector>& host_pos,
   const std::vector<Vector>& host_vel,
   const int steps,
   const type dt,
   double& checksum_out,
-  int n_agents
+  int n_agents,
+  ForceFn&& pairwise_force
 ) {
   auto checksum = [&](const ViewOfScalars& pos_x,
                       const ViewOfScalars& pos_y,
@@ -425,20 +406,11 @@ double benchmark_view_of_scalars(
             if (j == i)
               return;
 
-            const type rx = pos_x(j) - pix;
-            const type ry = pos_y(j) - piy;
-            const type rz = pos_z(j) - piz;
-
-            const type dist_squared = rx * rx + ry * ry + rz * rz;
-            if (dist_squared == type(0))
-              return;
-
-            const type inv_dist = type(1) / sqrt(dist_squared);
-            const type inv_dist3 = inv_dist * inv_dist * inv_dist;
-
-            local_x += rx * inv_dist3;
-            local_y += ry * inv_dist3;
-            local_z += rz * inv_dist3;
+            pairwise_force(
+              pix, piy, piz,
+              pos_x(j), pos_y(j), pos_z(j),
+              local_x, local_y, local_z
+            );
           },
           fix, fiy, fiz
         );
@@ -487,12 +459,69 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, Benchmar
   double checksum = 0.0;
   double total_time = 0.0;
   for (int i = 0; i < n_reps; ++i) {
-    if (bench == BenchmarkType::ViewOfVectors)
-      total_time += benchmark_view_of_vectors(host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents);
-    else if (bench == BenchmarkType::ViewOfArrays)
-      total_time += benchmark_view_of_arrays(host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents);
-    else if (bench == BenchmarkType::ViewOfScalars)
-      total_time += benchmark_view_of_scalars(host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents);
+    if (bench == BenchmarkType::ViewOfVectors) {
+      auto pairwise_force = KOKKOS_LAMBDA(const Vector& pi, const Vector& pj, Vector& local) {
+        const Vector r = pj - pi;
+        const type dist_squared = r.norm_squared();
+        if (dist_squared == type(0))
+          return;
+
+        const type inv_dist = type(1) / sqrt(dist_squared);
+        const type inv_dist3 = inv_dist * inv_dist * inv_dist;
+        local += r * inv_dist3;
+      };
+
+      total_time += benchmark_view_of_vectors(
+        host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
+      );
+    } else if (bench == BenchmarkType::ViewOfArrays) {
+      auto pairwise_force = KOKKOS_LAMBDA(
+        const type pi[3], const type pj[3],
+        type& local_x, type& local_y, type& local_z
+      ) {
+        const type rx = pj[0] - pi[0];
+        const type ry = pj[1] - pi[1];
+        const type rz = pj[2] - pi[2];
+
+        const type dist_squared = rx * rx + ry * ry + rz * rz;
+        if (dist_squared == type(0))
+          return;
+
+        const type inv_dist = type(1) / sqrt(dist_squared);
+        const type inv_dist3 = inv_dist * inv_dist * inv_dist;
+        local_x += rx * inv_dist3;
+        local_y += ry * inv_dist3;
+        local_z += rz * inv_dist3;
+      };
+
+      total_time += benchmark_view_of_arrays(
+        host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
+      );
+    } else if (bench == BenchmarkType::ViewOfScalars) {
+      auto pairwise_force = KOKKOS_LAMBDA(
+        const type pix, const type piy, const type piz,
+        const type pjx, const type pjy, const type pjz,
+        type& local_x, type& local_y, type& local_z
+      ) {
+        const type rx = pjx - pix;
+        const type ry = pjy - piy;
+        const type rz = pjz - piz;
+
+        const type dist_squared = rx * rx + ry * ry + rz * rz;
+        if (dist_squared == type(0))
+          return;
+
+        const type inv_dist = type(1) / sqrt(dist_squared);
+        const type inv_dist3 = inv_dist * inv_dist * inv_dist;
+        local_x += rx * inv_dist3;
+        local_y += ry * inv_dist3;
+        local_z += rz * inv_dist3;
+      };
+
+      total_time += benchmark_view_of_scalars(
+        host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
+      );
+    }
   }
   double avg = total_time / static_cast<double>(n_reps);
   double time_per_step_ms = (avg / static_cast<double>(n_steps)) * 1e3;
@@ -505,7 +534,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, Benchmar
 }
 
 int main() {
-  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768};
+  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
   const int steps = 100;
   const int repetitions = 10;
 
