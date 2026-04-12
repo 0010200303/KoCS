@@ -181,41 +181,31 @@ double benchmark_view_of_vectors(
         const int i = team.league_rank();
 
         const Vector pi = positions(i);
-        const type pix = pi.x;
-        const type piy = pi.y;
-        const type piz = pi.z;
-
-        type fix = type(0);
-        type fiy = type(0);
-        type fiz = type(0);
+        Vector fi = Vector(type(0), type(0), type(0));
 
         Kokkos::parallel_reduce(
           Kokkos::TeamThreadRange(team, n_agents),
-          [&](const int j, type& local_x, type& local_y, type& local_z) {
+          [&](const int j, Vector& local) {
             if (j == i)
               return;
 
             const Vector pj = positions(j);
-            const type rx = pj.x - pix;
-            const type ry = pj.y - piy;
-            const type rz = pj.z - piz;
+            const Vector r = pj - pi;
 
-            const type dist_squared = rx * rx + ry * ry + rz * rz;
+            const type dist_squared = r.norm_squared();
             if (dist_squared == type(0))
               return;
 
             const type inv_dist = type(1) / sqrt(dist_squared);
             const type inv_dist3 = inv_dist * inv_dist * inv_dist;
 
-            local_x += rx * inv_dist3;
-            local_y += ry * inv_dist3;
-            local_z += rz * inv_dist3;
+            local += r * inv_dist3;
           },
-          fix, fiy, fiz
+          fi
         );
 
         Kokkos::single(Kokkos::PerTeam(team), [&]() {
-          forces(i) = Vector(fix, fiy, fiz);
+          forces(i) = fi;
         });
       }
     );
