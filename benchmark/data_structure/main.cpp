@@ -119,7 +119,7 @@ using ViewOfVectors = Kokkos::View<Vector*>;
 using ViewOfArrays = Kokkos::View<type*[3]>;
 using ViewOfScalars = Kokkos::View<type*>;
 
-enum class BenchmarkType { ViewOfVectors, ViewOfArrays, ViewOfScalars };
+enum class BenchmarkType { ViewOfVectors, ViewOfArrays, ViewOfArraysRaw, ViewOfScalars };
 
 inline const char* benchmark_name(BenchmarkType b) {
   switch (b) {
@@ -127,6 +127,8 @@ inline const char* benchmark_name(BenchmarkType b) {
       return "ViewOfVectors";
     case BenchmarkType::ViewOfArrays:
       return "ViewOfArrays";
+    case BenchmarkType::ViewOfArraysRaw:
+      return "ViewOfArraysRaw";
     case BenchmarkType::ViewOfScalars:
       return "ViewOfScalars";
   }
@@ -332,6 +334,106 @@ double benchmark_view_of_arrays(
 }
 
 template<typename ForceFn>
+double benchmark_view_of_arrays_raw(
+  const std::vector<Vector>& host_pos,
+  const std::vector<Vector>& host_vel,
+  const int steps,
+  const type dt,
+  double& checksum_out,
+  int n_agents,
+  ForceFn&& pairwise_force
+) {
+  auto checksum = [&](const ViewOfArrays& positions) {
+    auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
+    double sum = 0.0f;
+    for (int i = 0; i < host_pos.extent(0); ++i)
+      sum += host_pos(i, 0) + host_pos(i, 1) + host_pos(i, 2);
+    return sum;
+  };
+
+  auto positions = ViewOfArrays("pos", n_agents);
+  auto velocities = ViewOfArrays("vel", n_agents);
+  auto forces = ViewOfArrays("for", n_agents);
+
+  auto host_pos_mirror = Kokkos::create_mirror_view(positions);
+  auto host_vel_mirror = Kokkos::create_mirror_view(velocities);
+
+  for (int i = 0; i < host_pos.size(); ++i) {
+    host_pos_mirror(i, 0) = host_pos[i].x;
+    host_pos_mirror(i, 1) = host_pos[i].y;
+    host_pos_mirror(i, 2) = host_pos[i].z;
+    host_vel_mirror(i, 0) = host_vel[i].x;
+    host_vel_mirror(i, 1) = host_vel[i].y;
+    host_vel_mirror(i, 2) = host_vel[i].z;
+  }
+
+  Kokkos::deep_copy(positions, host_pos_mirror);
+  Kokkos::deep_copy(velocities, host_vel_mirror);
+
+  Kokkos::fence();
+  Kokkos::Timer timer;
+
+  for (int step = 0; step < steps; ++step) {
+    // zero forces
+    Kokkos::parallel_for("zero_forces", n_agents, KOKKOS_LAMBDA(const int i) {
+      forces(i, 0) = type(0);
+      forces(i, 1) = type(0);
+      forces(i, 2) = type(0);
+    });
+
+    // compute pairwise forces
+    Kokkos::parallel_for(
+      "compute_forces",
+      Kokkos::TeamPolicy<>(n_agents, Kokkos::AUTO),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+        const int i = team.league_rank();
+
+        const type pix = pos_x(i);
+        const type piy = pos_y(i);
+        const type piz = pos_z(i);
+
+        type fix = type(0), fiy = type(0), fiz = type(0);
+        Kokkos::parallel_reduce(
+          Kokkos::TeamThreadRange(team, n_agents),
+          [&](const int j, type& local_x, type& local_y, type& local_z) {
+            if (j == i)
+              return;
+
+            pairwise_force(
+              pix, piy, piz,
+              pos_x(j), pos_y(j), pos_z(j),
+              local_x, local_y, local_z
+            );
+          },
+          fix, fiy, fiz
+        );
+
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
+          force_x(i) = fix;
+          force_y(i) = fiy;
+          force_z(i) = fiz;
+        });
+      }
+    );
+
+    // integrate (explicit Euler)
+    Kokkos::parallel_for("euler_update", n_agents, KOKKOS_LAMBDA(const int i) {
+      velocities(i, 0) += forces(i, 0) * dt;
+      velocities(i, 1) += forces(i, 1) * dt;
+      velocities(i, 2) += forces(i, 2) * dt;
+      positions(i, 0) += velocities(i, 0) * dt;
+      positions(i, 1) += velocities(i, 1) * dt;
+      positions(i, 2) += velocities(i, 2) * dt;
+    });
+  }
+
+  Kokkos::fence();
+  double time = timer.seconds();
+  checksum_out = checksum(positions);
+  return time;
+}
+
+template<typename ForceFn>
 double benchmark_view_of_scalars(
   const std::vector<Vector>& host_pos,
   const std::vector<Vector>& host_vel,
@@ -495,6 +597,30 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, Benchmar
       total_time += benchmark_view_of_arrays(
         host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
       );
+    } else if (bench == BenchmarkType::ViewOfArraysRaw) {
+      auto pairwise_force = KOKKOS_LAMBDA(
+        const type pix, const type piy, const type piz,
+        const type pjx, const type pjy, const type pjz,
+        type& local_x, type& local_y, type& local_z
+      ) {
+        const type rx = pjx - pix;
+        const type ry = pjy - piy;
+        const type rz = pjz - piz;
+
+        const type dist_squared = rx * rx + ry * ry + rz * rz;
+        if (dist_squared == type(0))
+          return;
+
+        const type inv_dist = type(1) / sqrt(dist_squared);
+        const type inv_dist3 = inv_dist * inv_dist * inv_dist;
+        local_x += rx * inv_dist3;
+        local_y += ry * inv_dist3;
+        local_z += rz * inv_dist3;
+      };
+
+      total_time += benchmark_view_of_arrays_raw(
+        host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
+      );
     } else if (bench == BenchmarkType::ViewOfScalars) {
       auto pairwise_force = KOKKOS_LAMBDA(
         const type pix, const type piy, const type piz,
@@ -546,6 +672,8 @@ int main() {
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::ViewOfVectors);
     for (int agents : agent_counts)
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::ViewOfArrays);
+    for (int agents : agent_counts)
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::ViewOfArraysRaw);
     for (int agents : agent_counts)
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::ViewOfScalars);
   }
