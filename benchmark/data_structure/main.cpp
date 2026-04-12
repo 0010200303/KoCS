@@ -7,7 +7,7 @@
 #include <Kokkos_Core.hpp>
 
 // benchmark settings
-using type = double;
+using type = float;
 const type dt = 0.0078125;
 
 #pragma region Vector
