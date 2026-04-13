@@ -5,10 +5,13 @@
 #include <iomanip>
 
 #include <Kokkos_Core.hpp>
+#include "../../include/vector.hpp"
 
 // benchmark settings
 using type = float;
 const type dt = 0.0078125;
+
+using KocsVector = kocs::Vector3<type>;
 
 #pragma region Vector
 template<typename Scalar>
@@ -118,8 +121,9 @@ using Vector = Vector3<type>;
 using ViewOfVectors = Kokkos::View<Vector*>;
 using ViewOfArrays = Kokkos::View<type*[3]>;
 using ViewOfScalars = Kokkos::View<type*>;
+using ViewOfKocsVectors = Kokkos::View<KocsVector*>;
 
-enum class BenchmarkType { ViewOfVectors, ViewOfArrays, ViewOfArraysRaw, ViewOfScalars };
+enum class BenchmarkType { ViewOfVectors, ViewOfArrays, ViewOfArraysRaw, ViewOfScalars, KocsVector };
 
 inline const char* benchmark_name(BenchmarkType b) {
   switch (b) {
@@ -131,6 +135,8 @@ inline const char* benchmark_name(BenchmarkType b) {
       return "ViewOfArraysRaw";
     case BenchmarkType::ViewOfScalars:
       return "ViewOfScalars";
+    case BenchmarkType::KocsVector:
+      return "KocsVector";
   }
   return "UNKNOWN";
 }
@@ -648,6 +654,23 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, Benchmar
       total_time += benchmark_view_of_scalars(
         host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
       );
+    } else if (bench == BenchmarkType::KocsVector) {
+      auto pairwise_force = KOKKOS_LAMBDA(
+        const KocsVector& pi, const KocsVector& pj, KocsVector& local
+      ) {
+        const KocsVector r = pj - pi;
+        const type dist_squared = r.length_squared();
+        if (dist_squared == type(0))
+          return;
+
+        const type inv_dist = type(1) / Kokkos::sqrt(dist_squared);
+        const type inv_dist3 = inv_dist * inv_dist * inv_dist;
+        local += r * inv_dist3;
+      };
+
+      total_time += benchmark_kocs_vector(
+        host_pos, host_vel, n_steps, static_cast<type>(dt_in), checksum, n_agents, pairwise_force
+      );
     }
   }
   double avg = total_time / static_cast<double>(n_reps);
@@ -661,7 +684,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, Benchmar
 }
 
 int main() {
-  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
+  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
   const int steps = 100;
   const int repetitions = 10;
 
@@ -679,6 +702,8 @@ int main() {
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::ViewOfArraysRaw);
     for (int agents : agent_counts)
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::ViewOfScalars);
+    for (int agents : agent_counts)
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::KocsVector);
   }
   Kokkos::finalize();
 
