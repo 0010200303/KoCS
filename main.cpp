@@ -12,26 +12,23 @@ struct SimulationConfig {
   using Vector = VectorN<Scalar, dimensions>;
   using VectorView = Kokkos::View<Vector*>;
 
-  struct PositionField { };
-  struct VelocityField { };
-
   using IntegrationFields = std::tuple<
-    NamedField<PositionField, VectorView>,
-    NamedField<VelocityField, VectorView>
+    VectorView, // positions
+    VectorView  // velocities
   >;
 };
 using Vector = SimulationConfig::Vector;
 
 int main() {
-  // positions, velocities
   Simulation<SimulationConfig> sim(3);
 
   auto force = KOKKOS_LAMBDA(
     const int i,
     const int j,
-    Simulation<SimulationConfig>::DeltaState& delta
+    Vector& position,
+    Vector& velocity
   ) {
-    delta[SimulationConfig::PositionField{}] += Vector(28.0f, 0.0f, 1.0f);
+    position += Vector(28.0f, 0.0f, 1.0f);
   };
 
   sim.take_step(force);

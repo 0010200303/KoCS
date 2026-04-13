@@ -12,116 +12,57 @@
 #include "vector.hpp"
 
 namespace kocs {
-  template<typename...>
-  struct dependent_false : std::false_type { };
-
-  template<typename Name, typename View>
-  struct NamedField {
-    using name = Name;
-    using view_type = View;
-    using value_type = typename View::value_type;
-  };
-
+  // check if every Field is a Kokkos::View
   template<typename T>
-  struct is_named_field : std::false_type { };
+  struct is_kokkos_view : std::false_type { };
 
-  template<typename Name, typename View>
-  struct is_named_field<NamedField<Name, View>> : std::true_type { };
+  template<typename DataType, typename... Args>
+  struct is_kokkos_view<Kokkos::View<DataType, Args...>> : std::true_type { };
 
   template<typename Tuple, std::size_t... I>
-  constexpr bool tuple_all_named_fields_impl(std::index_sequence<I...>) {
-    return (is_named_field<std::tuple_element_t<I, Tuple>>::value && ...);
+  constexpr bool tuple_all_kokkos_views_impl(std::index_sequence<I...>) {
+    return (is_kokkos_view<std::tuple_element_t<I, Tuple>>::value && ...);
   }
 
   template<typename Tuple>
-  constexpr bool all_named_fields_v =
-    tuple_all_named_fields_impl<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
+  constexpr bool all_kokkos_views_v =
+    tuple_all_kokkos_views_impl<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
 
 
 
   template<typename Fields>
   struct ViewsFromFields;
 
-  template<typename... Specs>
-  struct ViewsFromFields<std::tuple<Specs...>> {
-    using type = std::tuple<typename Specs::view_type...>;
+  template<typename... Views>
+  struct ViewsFromFields<std::tuple<Views...>> {
+    using type = std::tuple<Views...>;
   };
-
-  template<typename Name, typename Tuple>
-  struct field_index_by_name;
-
-  template<typename Name>
-  struct field_index_by_name<Name, std::tuple<>> {
-    static_assert(dependent_false<Name>::value, "Unknown field name in DeltaState");
-  };
-
-  template<typename Name, typename View, typename... Rest>
-  struct field_index_by_name<Name, std::tuple<NamedField<Name, View>, Rest...>> {
-    static constexpr std::size_t value = 0;
-  };
-
-  template<typename Name, typename First, typename... Rest>
-  struct field_index_by_name<Name, std::tuple<First, Rest...>> {
-    static constexpr std::size_t value =
-      1 + field_index_by_name<Name, std::tuple<Rest...>>::value;
-  };
-
+    
   template<typename Fields>
-  struct DeltasFromFields;
-
-
+  struct ValuesFromFields;
 
   template<typename... Specs>
-  struct DeltasFromFields<std::tuple<Specs...>> {
+  struct ValuesFromFields<std::tuple<Specs...>> {
     struct type {
-      std::tuple<typename Specs::value_type...> data;
+      public:
+        std::tuple<typename Specs::value_type...> data;
 
-      KOKKOS_INLINE_FUNCTION type() : data{} {}
+        KOKKOS_INLINE_FUNCTION type() : data{} { }
 
-      template<typename... Args,
-        typename = std::enable_if_t<sizeof...(Args) == sizeof...(Specs)>>
-      KOKKOS_INLINE_FUNCTION explicit type(Args... args) : data(args...) {}
+        template<typename... Args,
+          typename = std::enable_if_t<sizeof...(Args) == sizeof...(Specs)>>
+        KOKKOS_INLINE_FUNCTION explicit type(Args... args) : data(args...) { }
 
-      template<std::size_t I>
-      KOKKOS_INLINE_FUNCTION auto& get() {
-        return std::get<I>(data);
-      }
+        KOKKOS_INLINE_FUNCTION type& operator+=(const type& rhs) {
+          add_impl(rhs, std::make_index_sequence<sizeof...(Specs)>{});
+          return *this;
+        }
 
-      template<std::size_t I>
-      KOKKOS_INLINE_FUNCTION const auto& get() const {
-        return std::get<I>(data);
-      }
-
-      template<typename Name>
-      KOKKOS_INLINE_FUNCTION auto& get() {
-        return std::get<field_index_by_name<Name, std::tuple<Specs...>>::value>(data);
-      }
-
-      template<typename Name>
-      KOKKOS_INLINE_FUNCTION const auto& get() const {
-        return std::get<field_index_by_name<Name, std::tuple<Specs...>>::value>(data);
-      }
-
-      template<typename Name>
-      KOKKOS_INLINE_FUNCTION auto& operator[](Name) {
-        return get<Name>();
-      }
-
-      template<typename Name>
-      KOKKOS_INLINE_FUNCTION const auto& operator[](Name) const {
-        return get<Name>();
-      }
-
-      KOKKOS_INLINE_FUNCTION type& operator+=(const type& rhs) {
-        add_impl(rhs, std::make_index_sequence<sizeof...(Specs)>{});
-        return *this;
-      }
-
-    private:
-      template<std::size_t... I>
-      KOKKOS_INLINE_FUNCTION void add_impl(const type& rhs, std::index_sequence<I...>) {
-        ((std::get<I>(data) += std::get<I>(rhs.data)), ...);
-      }
+      private:
+        template<std::size_t... I>
+        KOKKOS_INLINE_FUNCTION void add_impl(const type& rhs, std::index_sequence<I...>) {
+          ((std::get<I>(data) = std::get<I>(data) + std::get<I>(rhs.data)), ...);
+        }
     };
   };
 
@@ -133,21 +74,19 @@ namespace kocs {
       using FieldSpecs = typename Config::IntegrationFields;
       using Fields = typename ViewsFromFields<FieldSpecs>::type;
       using Vector = VectorN<Scalar, dimensions>;
-      using DeltaState = typename DeltasFromFields<FieldSpecs>::type;
+      using LocalValues = typename ValuesFromFields<FieldSpecs>::type;
 
-      static_assert(all_named_fields_v<FieldSpecs>,
-        "Config::IntegrationFields must be a std::tuple of kocs::NamedField types"
+      static_assert(all_kokkos_views_v<FieldSpecs>,
+        "Config::IntegrationFields must be a std::tuple of Kokkos::View types"
       );
 
       Simulation(unsigned int _agent_count) : agent_count(_agent_count) {
         get_runtime_guard();
-
         fields = make_fields<Fields>(agent_count);
       }
 
     private:
       const unsigned int agent_count;
-
       Fields fields;
 
       static RuntimeGuard& get_runtime_guard() {
@@ -167,6 +106,33 @@ namespace kocs {
         return make_fields_impl<Tuple>(n, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
       }
 
+      template<typename ForceFn, typename... Values, std::size_t... I>
+      KOKKOS_INLINE_FUNCTION static void invoke_force_impl(
+        const ForceFn& force,
+        const int i,
+        const int j,
+        std::tuple<Values...>& values,
+        std::index_sequence<I...>
+      ) {
+        force(i, j, std::get<I>(values)...);
+      }
+
+      template<typename ForceFn, typename... Values>
+      KOKKOS_INLINE_FUNCTION static void invoke_force(
+        const ForceFn& force,
+        const int i,
+        const int j,
+        std::tuple<Values...>& values
+      ) {
+        invoke_force_impl(
+          force,
+          i,
+          j,
+          values,
+          std::make_index_sequence<sizeof...(Values)>{}
+        );
+      }
+
     public:
       template<typename ForceFn>
       void take_step(ForceFn force) {
@@ -176,23 +142,22 @@ namespace kocs {
           KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
             const int i = team.league_rank();
 
-            DeltaState ds{};
+            LocalValues local_values{};
 
             Kokkos::parallel_reduce(
               Kokkos::TeamThreadRange(team, agent_count),
-              [&](const int j, DeltaState& local) {
-                if (i == j)
+              [&](const int j, LocalValues& local) {
+                if (i == j) {
                   return;
+                }
 
-                force(i, j, local);
+                invoke_force(force, i, j, local.data);
               },
-              ds
+              local_values
             );
 
-            Kokkos::printf("%f\n", ds.template get<0>().x());
-
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
-
+              Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
             });
           }
         );
