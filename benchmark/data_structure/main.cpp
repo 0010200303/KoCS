@@ -557,6 +557,91 @@ double benchmark_view_of_scalars(
   return time;
 }
 
+template<typename ForceFn>
+double benchmark_kocs_vector(
+  const std::vector<Vector>& host_pos,
+  const std::vector<Vector>& host_vel,
+  const int steps,
+  const type dt,
+  double& checksum_out,
+  int n_agents,
+  ForceFn&& pairwise_force
+) {
+  auto checksum = [&](const ViewOfKocsVectors& positions) {
+    auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
+    double sum = 0.0;
+    for (int i = 0; i < host_pos.extent(0); ++i)
+      sum += host_pos(i).x() + host_pos(i).y() + host_pos(i).z();
+    return sum;
+  };
+
+  auto positions = ViewOfKocsVectors("pos", n_agents);
+  auto velocities = ViewOfKocsVectors("vel", n_agents);
+  auto forces = ViewOfKocsVectors("for", n_agents);
+
+  auto host_pos_mirror = Kokkos::create_mirror_view(positions);
+  auto host_vel_mirror = Kokkos::create_mirror_view(velocities);
+
+  for (int i = 0; i < host_pos.size(); ++i) {
+    host_pos_mirror(i) = KocsVector(host_pos[i].x, host_pos[i].y, host_pos[i].z);
+    host_vel_mirror(i) = KocsVector(host_vel[i].x, host_vel[i].y, host_vel[i].z);
+  }
+
+  Kokkos::deep_copy(positions, host_pos_mirror);
+  Kokkos::deep_copy(velocities, host_vel_mirror);
+
+  Kokkos::fence();
+  Kokkos::Timer timer;
+
+  for (int step = 0; step < steps; ++step) {
+    Kokkos::parallel_for("zero_forces", n_agents, KOKKOS_LAMBDA(const int i) {
+      forces(i) = KocsVector(type(0));
+    });
+
+    Kokkos::parallel_for(
+      "compute_forces",
+      Kokkos::TeamPolicy<>(n_agents, Kokkos::AUTO),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+        const int i = team.league_rank();
+        const KocsVector pi = positions(i);
+        KocsVector fi(type(0));
+
+        Kokkos::parallel_reduce(
+          Kokkos::TeamThreadRange(team, n_agents),
+          [&](const int j, KocsVector& local) {
+            if (j == i)
+              return;
+            const KocsVector pj = positions(j);
+            pairwise_force(pi, pj, local);
+          },
+          fi
+        );
+
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
+          forces(i) = fi;
+        });
+      }
+    );
+
+    Kokkos::parallel_for("euler_update", n_agents, KOKKOS_LAMBDA(const int i) {
+      KocsVector v = velocities(i);
+      KocsVector p = positions(i);
+      const KocsVector f = forces(i);
+
+      v += f * dt; 
+      p += v * dt;
+
+      velocities(i) = v;
+      positions(i) = p;
+    });
+  }
+
+  Kokkos::fence();
+  const double time = timer.seconds();
+  checksum_out = checksum(positions);
+  return time;
+}
+
 template<typename T>
 void run_benchmark_case(int n_agents, int n_steps, int n_reps, T dt_in, BenchmarkType bench) {
   std::vector<Vector> host_pos(n_agents);
