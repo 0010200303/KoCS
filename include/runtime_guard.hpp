@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <mutex>
 
-namespace KoCS {
+namespace kocs {
   class RuntimeGuard {
     public:
       RuntimeGuard() { acquire(); }

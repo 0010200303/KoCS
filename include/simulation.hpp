@@ -7,7 +7,7 @@
 
 #include "runtime_guard.hpp"
 
-namespace KoCS {
+namespace kocs {
   template <typename Scalar, unsigned int dimensions>
   class Simulation {
     public:
@@ -20,6 +20,6 @@ namespace KoCS {
         return guard;
       }
   };
-}
+} // namespace kocs
 
 #endif // KOCS_SIMULATION_HPP
