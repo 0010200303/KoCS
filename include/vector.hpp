@@ -206,8 +206,8 @@ namespace kocs {
     }
 
     KOKKOS_INLINE_FUNCTION
-    auto length() const {
-      return Kokkos::sqrt(length_squared());
+    Scalar length() const {
+      return std::sqrt(length_squared());
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -221,13 +221,13 @@ namespace kocs {
     }
 
     KOKKOS_INLINE_FUNCTION
-    auto distance_to(const VectorN& rhs) const {
-      return Kokkos::sqrt(distance_to_squared(rhs));
+    Scalar distance_to(const VectorN& rhs) const {
+      return std::sqrt(distance_to_squared(rhs));
     }
 
     KOKKOS_INLINE_FUNCTION
     VectorN& normalize() {
-      const auto len = length();
+      const Scalar len = length();
       for (int i = 0; i < dimensions; ++i)
         data[i] /= len;
       return *this;
