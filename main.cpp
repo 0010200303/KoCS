@@ -1,16 +1,40 @@
+#include <string>
 #include <iostream>
 
 #include "include/simulation.hpp"
 #include "include/vector.hpp"
 
 using namespace kocs;
+struct SimulationConfig {
+  using Scalar = float;
+  static constexpr int dimensions = 3;
+
+  using Vector = VectorN<Scalar, dimensions>;
+  using VectorView = Kokkos::View<Vector*>;
+
+  struct PositionField { };
+  struct VelocityField { };
+
+  using IntegrationFields = std::tuple<
+    NamedField<PositionField, VectorView>,
+    NamedField<VelocityField, VectorView>
+  >;
+};
+using Vector = SimulationConfig::Vector;
 
 int main() {
-  Vector3<float> v1{ 0.0f, 0.0f, 0.0f };
-  Vector3<float> v2{ 28.0f, 0.0f, -7.0f };
-  v1 -= v2;
+  // positions, velocities
+  Simulation<SimulationConfig> sim(3);
 
-  std::cout << v1.x() << " " << v1.y() << " " << v1.z() << std::endl;
+  auto force = KOKKOS_LAMBDA(
+    const int i,
+    const int j,
+    Simulation<SimulationConfig>::DeltaState& delta
+  ) {
+    delta[SimulationConfig::PositionField{}] += Vector(28.0f, 0.0f, 1.0f);
+  };
+
+  sim.take_step(force);
 
   return 0;
 }
