@@ -65,6 +65,12 @@ target_link_libraries(KoCS_core INTERFACE
 
 target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/runtime_guard.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/utils.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/vector.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/line.hpp
+
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation.hpp
 )
 

@@ -9,6 +9,7 @@
 #include <Kokkos_Core.hpp>
 
 #include "runtime_guard.hpp"
+#include "utils.hpp"
 #include "vector.hpp"
 
 namespace kocs {
@@ -66,23 +67,43 @@ namespace kocs {
     };
   };
 
-  template <typename Config>
+
+
+  template <typename SimulationConfig>
   class Simulation {
     public:
-      using Scalar = typename Config::Scalar;
-      static constexpr unsigned int dimensions = Config::dimensions;
-      using FieldSpecs = typename Config::IntegrationFields;
+      EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
+
+      using FieldSpecs = typename SimulationConfig::IntegrationFields;
       using Fields = typename ViewsFromFields<FieldSpecs>::type;
-      using Vector = VectorN<Scalar, dimensions>;
       using LocalValues = typename ValuesFromFields<FieldSpecs>::type;
 
       static_assert(all_kokkos_views_v<FieldSpecs>,
-        "Config::IntegrationFields must be a std::tuple of Kokkos::View types"
+        "SimulationConfig::IntegrationFields must be a std::tuple of Kokkos::View types"
       );
 
       Simulation(unsigned int _agent_count) : agent_count(_agent_count) {
         get_runtime_guard();
         fields = make_fields<Fields>(agent_count);
+      }
+
+      // field accessors
+      KOKKOS_INLINE_FUNCTION
+      Fields& get_fields() noexcept { return fields; }
+
+      KOKKOS_INLINE_FUNCTION
+      const Fields& get_fields() const noexcept { return fields; }
+
+      template <std::size_t I>
+      KOKKOS_INLINE_FUNCTION
+      auto& get_field() noexcept {
+        return std::get<I>(fields);
+      }
+
+      template <std::size_t I>
+      KOKKOS_INLINE_FUNCTION
+      const auto& get_field() const noexcept {
+        return std::get<I>(fields);
       }
 
     private:
@@ -108,7 +129,7 @@ namespace kocs {
 
       template<typename ForceFn, typename... Values, std::size_t... I>
       KOKKOS_INLINE_FUNCTION static void invoke_force_impl(
-        const ForceFn& force,
+        ForceFn force,
         const int i,
         const int j,
         std::tuple<Values...>& values,
@@ -119,7 +140,7 @@ namespace kocs {
 
       template<typename ForceFn, typename... Values>
       KOKKOS_INLINE_FUNCTION static void invoke_force(
-        const ForceFn& force,
+        ForceFn force,
         const int i,
         const int j,
         std::tuple<Values...>& values
@@ -134,6 +155,17 @@ namespace kocs {
       }
 
     public:
+      template<typename InitFn>
+      void init(InitFn init) {
+        Kokkos::parallel_for(
+          "init",
+          agent_count,
+          KOKKOS_CLASS_LAMBDA (const unsigned int i) {
+            init(i);
+          }
+        );
+      }
+
       template<typename ForceFn>
       void take_step(ForceFn force) {
         Kokkos::parallel_for(
