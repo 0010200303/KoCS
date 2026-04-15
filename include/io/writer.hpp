@@ -201,11 +201,11 @@ namespace kocs {
 
       template<typename... ExtraViews>
       void write(unsigned int step, const Simulation<SimulationConfig>& simulation, const ExtraViews&... extra_views) {
-        auto fields = simulation.get_fields();
-        auto extra_fields = std::tuple<const ExtraViews&...>(extra_views...);
-        auto all_fields = std::tuple_cat(fields, extra_fields);
+        auto views = simulation.get_views();
+        auto _extra_views = std::tuple<const ExtraViews&...>(extra_views...);
+        auto all_views = std::tuple_cat(views, _extra_views);
 
-        std::apply([this, step](auto&&... args) { write(step, args...); }, all_fields);
+        std::apply([this, step](auto&&... args) { write(step, args...); }, all_views);
       }
   };
 }

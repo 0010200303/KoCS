@@ -1,6 +1,4 @@
-#include <string>
 #include <iostream>
-#include <utility>
 
 #include "include/utils.hpp"
 #include "include/vector.hpp"
@@ -17,9 +15,6 @@ struct SimulationConfig : public DefaultSimulationConfig {
   >;
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
-
-#include <vector>
-#include <highfive/highfive.hpp>
 
 int main() {
   Simulation<SimulationConfig> sim(3);
@@ -41,7 +36,7 @@ int main() {
   sim.take_step(force);
 
   Writer<SimulationConfig> writer("./output/tust");
-  writer.write(0, positions);
+  writer.write(0, sim);
   
   return 0;
 }

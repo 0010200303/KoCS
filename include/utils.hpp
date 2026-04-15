@@ -25,12 +25,13 @@ namespace kocs {
 
 
 
-template<typename Fields>
-struct ValuesFromFields;
+  template<typename Fields>
+  struct ValuesFromFields;
 
-template<typename... Specs>
-struct ValuesFromFields<std::tuple<Specs...>> {
+  template<typename... Specs>
+  struct ValuesFromFields<std::tuple<Specs...>> {
     struct type {
+      public:
         using tuple_type = std::tuple<typename Specs::type::value_type...>;
 
         tuple_type data;
@@ -39,21 +40,20 @@ struct ValuesFromFields<std::tuple<Specs...>> {
         type() = default;
 
         KOKKOS_INLINE_FUNCTION
-        explicit type(const typename Specs::type&... args)
-            : data(args...) {}
+        explicit type(const typename Specs::type&... args) : data(args...) { }
 
         KOKKOS_INLINE_FUNCTION
         type& operator+=(const type& rhs) {
-            add_impl(rhs, std::make_index_sequence<sizeof...(Specs)>{});
-            return *this;
+          add_impl(rhs, std::make_index_sequence<sizeof...(Specs)>{});
+          return *this;
         }
 
     private:
-        template<std::size_t... I>
-        KOKKOS_INLINE_FUNCTION
-        void add_impl(const type& rhs, std::index_sequence<I...>) {
-            ((std::get<I>(data) += std::get<I>(rhs.data)), ...);
-        }
+      template<std::size_t... I>
+      KOKKOS_INLINE_FUNCTION
+      void add_impl(const type& rhs, std::index_sequence<I...>) {
+        ((std::get<I>(data) += std::get<I>(rhs.data)), ...);
+      }
     };
 };
 } // namespace kocs
