@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
 
 #include "runtime_guard.hpp"
 #include "utils.hpp"
@@ -22,9 +23,12 @@ namespace kocs {
         "SimulationConfig::IntegrationFields must be a std::tuple of Kokkos::View types"
       );
 
-      Simulation(unsigned int _agent_count) : agent_count(_agent_count) {
+      Simulation(const unsigned int _agent_count, const uint64_t seed = 2807) 
+        : agent_count(_agent_count) {
         get_runtime_guard();
         fields = make_fields<Fields>(agent_count);
+
+        random_pool = RandomPool(seed);
       }
 
       // field accessors
@@ -49,6 +53,8 @@ namespace kocs {
     private:
       const unsigned int agent_count;
       Fields fields;
+
+      RandomPool random_pool;
 
       static RuntimeGuard& get_runtime_guard() {
         static RuntimeGuard guard;
@@ -94,6 +100,36 @@ namespace kocs {
           std::make_index_sequence<sizeof...(Values)>{}
         );
       }
+      
+      template<typename ForceFn, typename... Values, std::size_t... I>
+      KOKKOS_INLINE_FUNCTION static void invoke_force_impl_rng(
+        ForceFn force,
+        const int i,
+        const int j,
+        auto& generator,
+        std::tuple<Values...>& values,
+        std::index_sequence<I...>
+      ) {
+        force(i, j, generator, std::get<I>(values)...);
+      }
+
+      template<typename ForceFn, typename... Values>
+      KOKKOS_INLINE_FUNCTION static void invoke_force_rng(
+        ForceFn force,
+        const int i,
+        const int j,
+        auto& generator,
+        std::tuple<Values...>& values
+      ) {
+        invoke_force_impl_rng(
+          force,
+          i,
+          j,
+          generator,
+          values,
+          std::make_index_sequence<sizeof...(Values)>{}
+        );
+      }
 
     public:
       template<typename InitFn>
@@ -120,11 +156,42 @@ namespace kocs {
             Kokkos::parallel_reduce(
               Kokkos::TeamThreadRange(team, agent_count),
               [&](const int j, LocalValues& local) {
-                if (i == j) {
+                if (i == j)
                   return;
-                }
 
                 invoke_force(force, i, j, local.data);
+              },
+              local_values
+            );
+
+            Kokkos::single(Kokkos::PerTeam(team), [&]() {
+              Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
+            });
+          }
+        );
+      }
+
+      template<typename ForceFn>
+      void take_step_rng(ForceFn force) {
+        Kokkos::parallel_for(
+          "take_step",
+          Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
+          KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+            const int i = team.league_rank();
+
+            LocalValues local_values{};
+
+            Kokkos::parallel_reduce(
+              Kokkos::TeamThreadRange(team, agent_count),
+              [&](const int j, LocalValues& local) {
+                if (i == j)
+                  return;
+
+                auto generator = random_pool.get_state();
+
+                invoke_force_rng(force, i, j, generator, local.data);
+
+                random_pool.free_state(generator);
               },
               local_values
             );

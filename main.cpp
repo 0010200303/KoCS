@@ -25,7 +25,7 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 #include <highfive/highfive.hpp>
 
 int main() {
-  Simulation<SimulationConfig> sim(10);
+  Simulation<SimulationConfig> sim(3);
   auto positions = sim.get_field<0>();
   LineInitializer<SimulationConfig> init(positions);
   sim.init(init);
@@ -33,27 +33,17 @@ int main() {
   auto force = KOKKOS_LAMBDA(
     const int i,
     const int j,
-    Vector& position
+    auto& rng,
+    Vector& position,
+    Vector& velocity
   ) {
     position += Vector(28.0f, 0.0f, 7.0f);
+    position.x() = rng.drand(0.0f, 28.0f);
   };
-  // sim.take_step(force);
+  sim.take_step_rng(force);
 
-
-
-  std::vector<Scalar[3]> pos(positions.extent(0));
-  for (int i = 0; i < positions.extent(0); ++i) {
-    pos[i][0] = positions(i).x();
-    pos[i][1] = positions(i).y();
-    pos[i][2] = positions(i).z();
-
-    std::cout << positions(i).x() << " "
-      << positions(i).y() << " "
-      << positions(i).z() << std::endl;
-  }
-
-  Writer<SimulationConfig> writer("./output/tust");
-  writer.write(0, sim);
+  // Writer<SimulationConfig> writer("./output/tust");
+  // writer.write(0, sim);
   
   return 0;
 }

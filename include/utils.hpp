@@ -4,6 +4,7 @@
 #include <tuple>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
 
 #include "vector.hpp"
 
@@ -68,7 +69,8 @@ namespace kocs {
   using Scalar = typename __SIMULATION_CONFIG__::Scalar; \
   static constexpr unsigned int dimensions = __SIMULATION_CONFIG__::dimensions; \
   using Vector = kocs::VectorN<Scalar, dimensions>; \
-  using VectorView = Kokkos::View<Vector*>;
+  using VectorView = Kokkos::View<Vector*>; \
+  using RandomPool = __SIMULATION_CONFIG__::__SIMULATION_CONFIG__::RandomPoolT;
 
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
@@ -86,6 +88,8 @@ struct DefaultSimulationConfig {
 
   using Vector = kocs::VectorN<Scalar, dimensions>;
   using VectorView = Kokkos::View<Vector*>;
+
+  using RandomPoolT = Kokkos::Random_XorShift64_Pool<>;
 
   using IntegrationFields = std::tuple<
     VectorView // positions
