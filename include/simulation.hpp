@@ -13,70 +13,10 @@
 #include "vector.hpp"
 
 namespace kocs {
-  // check if every Field is a Kokkos::View
-  template<typename T>
-  struct is_kokkos_view : std::false_type { };
-
-  template<typename DataType, typename... Args>
-  struct is_kokkos_view<Kokkos::View<DataType, Args...>> : std::true_type { };
-
-  template<typename Tuple, std::size_t... I>
-  constexpr bool tuple_all_kokkos_views_impl(std::index_sequence<I...>) {
-    return (is_kokkos_view<std::tuple_element_t<I, Tuple>>::value && ...);
-  }
-
-  template<typename Tuple>
-  constexpr bool all_kokkos_views_v =
-    tuple_all_kokkos_views_impl<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
-
-
-
-  template<typename Fields>
-  struct ViewsFromFields;
-
-  template<typename... Views>
-  struct ViewsFromFields<std::tuple<Views...>> {
-    using type = std::tuple<Views...>;
-  };
-    
-  template<typename Fields>
-  struct ValuesFromFields;
-
-  template<typename... Specs>
-  struct ValuesFromFields<std::tuple<Specs...>> {
-    struct type {
-      public:
-        std::tuple<typename Specs::value_type...> data;
-
-        KOKKOS_INLINE_FUNCTION type() : data{} { }
-
-        template<typename... Args,
-          typename = std::enable_if_t<sizeof...(Args) == sizeof...(Specs)>>
-        KOKKOS_INLINE_FUNCTION explicit type(Args... args) : data(args...) { }
-
-        KOKKOS_INLINE_FUNCTION type& operator+=(const type& rhs) {
-          add_impl(rhs, std::make_index_sequence<sizeof...(Specs)>{});
-          return *this;
-        }
-
-      private:
-        template<std::size_t... I>
-        KOKKOS_INLINE_FUNCTION void add_impl(const type& rhs, std::index_sequence<I...>) {
-          ((std::get<I>(data) = std::get<I>(data) + std::get<I>(rhs.data)), ...);
-        }
-    };
-  };
-
-
-
   template <typename SimulationConfig>
   class Simulation {
     public:
-      EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
-
-      using FieldSpecs = typename SimulationConfig::IntegrationFields;
-      using Fields = typename ViewsFromFields<FieldSpecs>::type;
-      using LocalValues = typename ValuesFromFields<FieldSpecs>::type;
+      EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
       static_assert(all_kokkos_views_v<FieldSpecs>,
         "SimulationConfig::IntegrationFields must be a std::tuple of Kokkos::View types"
@@ -118,7 +58,8 @@ namespace kocs {
       template<typename Tuple, std::size_t... I>
       static Tuple make_fields_impl(unsigned int n, std::index_sequence<I...>) {
         return Tuple{
-          std::tuple_element_t<I, Tuple>(std::string("field") + std::to_string(I), n)...
+          std::tuple_element_t<I, Tuple>(
+            (I < FieldNamesCount) ? FieldNames[I] : std::string("field") + std::to_string(I), n)...
         };
       }
 

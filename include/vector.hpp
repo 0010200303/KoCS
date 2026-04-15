@@ -2,16 +2,17 @@
 #define KOCS_VECTOR_HPP
 
 #include <type_traits>
+#include <array>
 
 #include <Kokkos_Core.hpp>
-
+ 
 namespace kocs {
   template<typename Scalar, unsigned int dimensions, unsigned int Align = alignof(Scalar)>
   struct alignas(Align) VectorN {
     static_assert(dimensions > 0, "Vector dimensions must be greater than 0");
     static_assert(std::is_trivially_copyable<Scalar>::value, "Scalar must be trivially copyable");
 
-    Scalar data[dimensions];
+    std::array<Scalar, dimensions> data;
 
     // constructors
     KOKKOS_INLINE_FUNCTION
@@ -207,7 +208,7 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     Scalar length() const {
-      return std::sqrt(length_squared());
+      return Kokkos::sqrt(length_squared());
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -222,7 +223,7 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     Scalar distance_to(const VectorN& rhs) const {
-      return std::sqrt(distance_to_squared(rhs));
+      return Kokkos::sqrt(distance_to_squared(rhs));
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -248,6 +249,17 @@ namespace kocs {
         data[2] * rhs.data[0] - data[0] * rhs.data[2],
         data[0] * rhs.data[1] - data[1] * rhs.data[0]
       };
+    }
+
+    // enable easy HighFive writing
+    KOKKOS_INLINE_FUNCTION
+    constexpr std::array<Scalar, dimensions> to_array() const {
+      return data;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr const unsigned int get_dimensions() const {
+      return dimensions;
     }
 
     // unary operations

@@ -5,7 +5,7 @@ project(KoCS
   LANGUAGES CXX
 )
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -37,7 +37,6 @@ else()
 endif()
 
 find_package(Kokkos 5.0 CONFIG)
-
 if (Kokkos_FOUND)
   message(STATUS "Found Kokkos: ${Kokkos_DIR} (version ${Kokkos_VERSION})")
 else()
@@ -53,6 +52,25 @@ else()
   FetchContent_MakeAvailable(Kokkos)
 endif()
 
+find_package(HighFive CONFIG QUIET)
+if (HighFive_FOUND)
+    message(STATUS "Found HighFive: ${HighFive_DIR}")
+else()
+    message(STATUS "HighFive not found externally. Fetching...")
+
+    include(FetchContent)
+
+    FetchContent_Declare(
+        HighFive
+        GIT_REPOSITORY https://github.com/highfive-devs/highfive
+        GIT_TAG v3.3.0
+        # TODO: URL_HASH
+    )
+    FetchContent_MakeAvailable(HighFive)
+endif()
+
+find_package(HDF5 REQUIRED COMPONENTS C CXX)
+
 add_library(KoCS_core INTERFACE)
 
 target_include_directories(KoCS_core INTERFACE
@@ -61,6 +79,8 @@ target_include_directories(KoCS_core INTERFACE
 
 target_link_libraries(KoCS_core INTERFACE
   Kokkos::kokkos
+  HighFive::HighFive
+  HDF5::HDF5
 )
 
 target_sources(KoCS_core INTERFACE
@@ -70,6 +90,8 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/vector.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/line.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/io/writer.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation.hpp
 )
