@@ -14,7 +14,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
     VectorView  // velocities
   >;
 
-  static constexpr const char* IntegrationFieldNames[] = {
+  static constexpr std::string_view IntegrationFieldNames[] = {
     "positions",
     "velocities",
   };
@@ -26,7 +26,13 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
   Simulation<SimulationConfig> sim(3);
-  auto positions = sim.get_field<0>();
+
+  // auto& positions = sim.get_field<0>();
+  auto& positions = sim.get_field<Simulation<SimulationConfig>::index_of_field_name<"positions">()>();
+  // auto& positions = sim.get_field("positions");
+
+  return 0;
+
   LineInitializer<SimulationConfig> init(positions);
   sim.init(init);
 

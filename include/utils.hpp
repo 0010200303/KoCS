@@ -2,6 +2,7 @@
 #define KOCS_UTILS_HPP
 
 #include <tuple>
+#include <string_view>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
@@ -77,7 +78,7 @@ namespace kocs {
   using FieldSpecs = typename SimulationConfig::IntegrationFields; \
   using Fields = typename ViewsFromFields<FieldSpecs>::type; \
   using LocalValues = typename ValuesFromFields<FieldSpecs>::type; \
-  static constexpr const char* const* FieldNames = SimulationConfig::IntegrationFieldNames; \
+  static constexpr auto& FieldNames = SimulationConfig::IntegrationFieldNames; \
   static constexpr std::size_t FieldNamesCount = \
     std::extent<decltype(SimulationConfig::IntegrationFieldNames)>::value;
 
@@ -95,7 +96,7 @@ struct DefaultSimulationConfig {
     VectorView // positions
   >;
 
-  static constexpr const char* IntegrationFieldNames[] = {
+  static constexpr std::string_view IntegrationFieldNames[] = {
     "positions"
   };
 };

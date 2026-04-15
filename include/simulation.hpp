@@ -14,6 +14,20 @@
 #include "vector.hpp"
 
 namespace kocs {
+template <std::size_t N>
+struct fixed_string {
+  char data[N];
+
+  consteval fixed_string(const char (&str)[N]) {
+    for (std::size_t i = 0; i < N; ++i)
+      data[i] = str[i];
+  }
+
+  constexpr operator std::string_view() const {
+    return {data, N - 1};
+  }
+};
+
   template <typename SimulationConfig>
   class Simulation {
     public:
@@ -50,6 +64,23 @@ namespace kocs {
         return std::get<I>(fields);
       }
 
+      template<fixed_string Name>
+      static consteval std::size_t index_of_field_name_impl() noexcept {
+        for (std::size_t i = 0; i < FieldNamesCount; ++i) {
+          if (FieldNames[i] == Name) {
+            return i;
+          }
+        }
+        return -1;
+      }
+
+      template<fixed_string Name>
+      static consteval std::size_t index_of_field_name() noexcept {
+        constexpr std::size_t index = index_of_field_name_impl<Name>();
+        static_assert(index != -1, "Tust");
+        return index;
+      }
+
     private:
       const unsigned int agent_count;
       Fields fields;
@@ -65,7 +96,7 @@ namespace kocs {
       static Tuple make_fields_impl(unsigned int n, std::index_sequence<I...>) {
         return Tuple{
           std::tuple_element_t<I, Tuple>(
-            (I < FieldNamesCount) ? FieldNames[I] : std::string("field") + std::to_string(I), n)...
+            (I < FieldNamesCount) ? std::string(FieldNames[I]) : (std::string("field") + std::to_string(I)), n)...
         };
       }
 
