@@ -1,7 +1,11 @@
 #ifndef KOCS_UTILS_HPP
 #define KOCS_UTILS_HPP
 
+#include <tuple>
+
 #include <Kokkos_Core.hpp>
+
+#include "vector.hpp"
 
 namespace kocs {
   // check if every Field is a Kokkos::View
@@ -74,22 +78,26 @@ namespace kocs {
   static constexpr std::size_t FieldNamesCount = \
     std::extent<decltype(SimulationConfig::IntegrationFieldNames)>::value;
 
+
+
+struct DefaultSimulationConfig {
+  using Scalar = float;
+  static constexpr int dimensions = 3;
+
+  using Vector = kocs::VectorN<Scalar, dimensions>;
+  using VectorView = Kokkos::View<Vector*>;
+
+  using IntegrationFields = std::tuple<
+    VectorView // positions
+  >;
+
+  static constexpr const char* IntegrationFieldNames[] = {
+    "positions"
+  };
+};
+
 #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-  struct __SIMULATION_CONFIG__ { \
-    using Scalar = float; \
-    static constexpr int dimensions = 3; \
-    \
-    using Vector = kocs::VectorN<Scalar, dimensions>; \
-    using VectorView = Kokkos::View<Vector*>; \
-    \
-    using IntegrationFields = std::tuple< \
-      VectorView \
-    >; \
-    \
-    static constexpr const char* IntegrationFieldNames[] = { \
-      "positions" \
-    }; \
-  }; \
+  struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 #endif // KOCS_UTILS_HPP

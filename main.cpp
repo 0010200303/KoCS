@@ -8,13 +8,7 @@
 #include "include/io/writer.hpp"
 
 using namespace kocs;
-struct SimulationConfig {
-  using Scalar = float;
-  static constexpr int dimensions = 3;
-
-  using Vector = VectorN<Scalar, dimensions>;
-  using VectorView = Kokkos::View<Vector*>;
-
+struct SimulationConfig : public DefaultSimulationConfig {
   using IntegrationFields = std::tuple<
     VectorView, // positions
     VectorView  // velocities
@@ -58,16 +52,8 @@ int main() {
       << positions(i).z() << std::endl;
   }
 
-  Kokkos::View<float*> masses("masses", positions.extent(0));
-  Kokkos::View<Vector2<float>> polarities1("polarities1", positions.extent(0));
-  Kokkos::View<Vector2<float>> polarities2("polarities2", positions.extent(0));
   Writer<SimulationConfig> writer("./output/tust");
-  Kokkos::View<float*[28][7]> kek("kek", positions.extent(0));
-  writer.write(0, sim, masses, kek, polarities1, polarities2);
-  writer.write(1, sim, masses, kek, polarities1, polarities2);
-  writer.write(2, sim, masses, kek, polarities1, polarities2);
-  writer.write(3, sim, masses, kek);
-  writer.write(4, sim, masses, kek, polarities1, polarities2);
+  writer.write(0, sim);
   
   return 0;
 }
