@@ -26,6 +26,7 @@ namespace kocs {
 
 
 
+  // helper functions for IntegrationFields from simulation config
   template<typename Fields>
   struct ViewsFromFields;
 
@@ -78,8 +79,7 @@ namespace kocs {
   static constexpr std::size_t FieldNamesCount = \
     std::extent<decltype(SimulationConfig::IntegrationFieldNames)>::value;
 
-
-
+// default simulation configs
 struct DefaultSimulationConfig {
   using Scalar = float;
   static constexpr int dimensions = 3;
