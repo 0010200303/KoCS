@@ -8,62 +8,54 @@
 #include <Kokkos_Random.hpp>
 
 #include "vector.hpp"
+#include "simulation_config.hpp"
 
 namespace kocs {
-  // check if every Field is a Kokkos::View
-  template<typename T>
-  struct is_kokkos_view : std::false_type { };
+  // extract types from Fields
+  template<typename Tuple>
+  struct extract_types;
 
-  template<typename DataType, typename... Args>
-  struct is_kokkos_view<Kokkos::View<DataType, Args...>> : std::true_type { };
-
-  template<typename Tuple, std::size_t... I>
-  constexpr bool tuple_all_kokkos_views_impl(std::index_sequence<I...>) {
-    return (is_kokkos_view<std::tuple_element_t<I, Tuple>>::value && ...);
-  }
+  template<typename... Fs>
+  struct extract_types<std::tuple<Fs...>> {
+    using type = std::tuple<typename Fs::type...>;
+  };
 
   template<typename Tuple>
-  constexpr bool all_kokkos_views_v =
-    tuple_all_kokkos_views_impl<Tuple>(std::make_index_sequence<std::tuple_size<Tuple>::value>{});
+  using storage_t = typename extract_types<Tuple>::type;
 
 
 
-  // helper functions for IntegrationFields from simulation config
-  template<typename Fields>
-  struct ViewsFromFields;
+template<typename Fields>
+struct ValuesFromFields;
 
-  template<typename... Views>
-  struct ViewsFromFields<std::tuple<Views...>> {
-    using type = std::tuple<Views...>;
-  };
-    
-  template<typename Fields>
-  struct ValuesFromFields;
-
-  template<typename... Specs>
-  struct ValuesFromFields<std::tuple<Specs...>> {
+template<typename... Specs>
+struct ValuesFromFields<std::tuple<Specs...>> {
     struct type {
-      public:
-        std::tuple<typename Specs::value_type...> data;
+        using tuple_type = std::tuple<typename Specs::type::value_type...>;
 
-        KOKKOS_INLINE_FUNCTION type() : data{} { }
+        tuple_type data;
 
-        template<typename... Args,
-          typename = std::enable_if_t<sizeof...(Args) == sizeof...(Specs)>>
-        KOKKOS_INLINE_FUNCTION explicit type(Args... args) : data(args...) { }
+        KOKKOS_INLINE_FUNCTION
+        type() = default;
 
-        KOKKOS_INLINE_FUNCTION type& operator+=(const type& rhs) {
-          add_impl(rhs, std::make_index_sequence<sizeof...(Specs)>{});
-          return *this;
+        KOKKOS_INLINE_FUNCTION
+        explicit type(const typename Specs::type&... args)
+            : data(args...) {}
+
+        KOKKOS_INLINE_FUNCTION
+        type& operator+=(const type& rhs) {
+            add_impl(rhs, std::make_index_sequence<sizeof...(Specs)>{});
+            return *this;
         }
 
-      private:
+    private:
         template<std::size_t... I>
-        KOKKOS_INLINE_FUNCTION void add_impl(const type& rhs, std::index_sequence<I...>) {
-          ((std::get<I>(data) = std::get<I>(data) + std::get<I>(rhs.data)), ...);
+        KOKKOS_INLINE_FUNCTION
+        void add_impl(const type& rhs, std::index_sequence<I...>) {
+            ((std::get<I>(data) += std::get<I>(rhs.data)), ...);
         }
     };
-  };
+};
 } // namespace kocs
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
@@ -71,38 +63,16 @@ namespace kocs {
   static constexpr unsigned int dimensions = __SIMULATION_CONFIG__::dimensions; \
   using Vector = kocs::VectorN<Scalar, dimensions>; \
   using VectorView = Kokkos::View<Vector*>; \
-  using RandomPool = __SIMULATION_CONFIG__::__SIMULATION_CONFIG__::RandomPoolT;
+  using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT;
 
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-  using FieldSpecs = typename SimulationConfig::IntegrationFields; \
-  using Fields = typename ViewsFromFields<FieldSpecs>::type; \
-  using LocalValues = typename ValuesFromFields<FieldSpecs>::type; \
-  static constexpr auto& FieldNames = SimulationConfig::IntegrationFieldNames; \
-  static constexpr std::size_t FieldNamesCount = \
-    std::extent<decltype(SimulationConfig::IntegrationFieldNames)>::value;
-
-// default simulation configs
-struct DefaultSimulationConfig {
-  using Scalar = float;
-  static constexpr int dimensions = 3;
-
-  using Vector = kocs::VectorN<Scalar, dimensions>;
-  using VectorView = Kokkos::View<Vector*>;
-
-  using RandomPoolT = Kokkos::Random_XorShift64_Pool<>;
-
-  using IntegrationFields = std::tuple<
-    VectorView // positions
-  >;
-
-  static constexpr std::string_view IntegrationFieldNames[] = {
-    "positions"
-  };
-};
+  using Fields = typename __SIMULATION_CONFIG__::Fields; \
+  using Storage = kocs::storage_t<Fields>; \
+  using LocalValues = typename ValuesFromFields<Fields>::type;
 
 #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
-  EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
+  EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__)
 
 #endif // KOCS_UTILS_HPP

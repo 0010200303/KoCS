@@ -112,7 +112,7 @@ namespace kocs {
         xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
         xmf_buffer += std::to_string(agent_count);
         xmf_buffer += "\"/>\n\t\t\t\t<Geometry GeometryType=\"XYZ\">\n\t\t\t\t\t<DataItem Format=\"HDF\" Dimensions=\"";
-        xmf_buffer += std::to_string(10);
+        xmf_buffer += std::to_string(agent_count);
         xmf_buffer += " ";
         xmf_buffer += std::to_string(3);
         xmf_buffer += "\">\n\t\t\t\t\t\t";

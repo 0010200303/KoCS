@@ -14,76 +14,54 @@
 #include "vector.hpp"
 
 namespace kocs {
-template <std::size_t N>
-struct fixed_string {
-  char data[N];
-
-  consteval fixed_string(const char (&str)[N]) {
-    for (std::size_t i = 0; i < N; ++i)
-      data[i] = str[i];
-  }
-
-  constexpr operator std::string_view() const {
-    return {data, N - 1};
-  }
-};
-
   template <typename SimulationConfig>
   class Simulation {
     public:
       EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-      static_assert(all_kokkos_views_v<FieldSpecs>,
-        "SimulationConfig::IntegrationFields must be a std::tuple of Kokkos::View types"
-      );
+      // TODO: reimplement
+      // static_assert(all_kokkos_views_v<FieldSpecs>,
+      //   "SimulationConfig::IntegrationFields must be a std::tuple of Kokkos::View types"
+      // );
 
-      Simulation(const unsigned int _agent_count, const uint64_t seed = 2807) 
-        : agent_count(_agent_count) {
+      Simulation(const unsigned int agent_count_, const uint64_t seed = 2807) 
+        : agent_count(agent_count_) {
         get_runtime_guard();
-        fields = make_fields<Fields>(agent_count);
+        state = make_fields<Storage>(agent_count);
 
         random_pool = RandomPool(seed);
       }
 
-      // field accessors
-      KOKKOS_INLINE_FUNCTION
-      Fields& get_fields() noexcept { return fields; }
+      // getters
+      constexpr Storage& get_views() noexcept { return state; }
 
-      KOKKOS_INLINE_FUNCTION
-      const Fields& get_fields() const noexcept { return fields; }
+      constexpr const Storage& get_views() const noexcept { return state; }
 
-      template <std::size_t I>
-      KOKKOS_INLINE_FUNCTION
-      auto& get_field() noexcept {
-        return std::get<I>(fields);
+      template<std::size_t I>
+      auto& get_view() noexcept {
+        return std::get<I>(state);
       }
 
-      template <std::size_t I>
-      KOKKOS_INLINE_FUNCTION
-      const auto& get_field() const noexcept {
-        return std::get<I>(fields);
+      template<std::size_t I>
+      const auto& get_view() const noexcept {
+        return std::get<I>(state);
       }
 
       template<fixed_string Name>
-      static consteval std::size_t index_of_field_name_impl() noexcept {
-        for (std::size_t i = 0; i < FieldNamesCount; ++i) {
-          if (FieldNames[i] == Name) {
-            return i;
-          }
-        }
-        return -1;
-      }
-
-      template<fixed_string Name>
-      static consteval std::size_t index_of_field_name() noexcept {
-        constexpr std::size_t index = index_of_field_name_impl<Name>();
-        static_assert(index != -1, "Tust");
+      static consteval std::size_t index_of_view() noexcept {
+        constexpr std::size_t index = index_of_view_impl<Name>();
+        static_assert(index != std::size_t(-1), "Field not found");
         return index;
+      }
+
+      template <fixed_string Name>
+      auto& get_view() {
+        return get_view<index_of_view<Name>()>();
       }
 
     private:
       const unsigned int agent_count;
-      Fields fields;
+      Storage state;
 
       RandomPool random_pool;
 
@@ -94,10 +72,7 @@ struct fixed_string {
 
       template<typename Tuple, std::size_t... I>
       static Tuple make_fields_impl(unsigned int n, std::index_sequence<I...>) {
-        return Tuple{
-          std::tuple_element_t<I, Tuple>(
-            (I < FieldNamesCount) ? std::string(FieldNames[I]) : (std::string("field") + std::to_string(I)), n)...
-        };
+        return Tuple{ std::tuple_element_t<I, Fields>::make(n)... };
       }
 
       template<typename Tuple>
@@ -105,6 +80,21 @@ struct fixed_string {
         return make_fields_impl<Tuple>(n, std::make_index_sequence<std::tuple_size<Tuple>::value>{});
       }
 
+      template<fixed_string Name, std::size_t I = 0>
+      static consteval std::size_t index_of_view_impl() noexcept {
+        if constexpr (I >= std::tuple_size_v<Fields>) {
+          return std::size_t(-1);
+        } else {
+          using FieldT = std::tuple_element_t<I, Fields>;
+          if constexpr (FieldT::name == Name) {
+            return I;
+          } else {
+            return index_of_view_impl<Name, I + 1>();
+          }
+        }
+      }
+
+      // forces
       template<typename ForceFn, typename... Values, std::size_t... I>
       KOKKOS_INLINE_FUNCTION static void invoke_force_impl(
         ForceFn force,
@@ -131,7 +121,7 @@ struct fixed_string {
           std::make_index_sequence<sizeof...(Values)>{}
         );
       }
-      
+
       template<typename ForceFn, typename... Values, std::size_t... I>
       KOKKOS_INLINE_FUNCTION static void invoke_force_impl_rng(
         ForceFn force,
