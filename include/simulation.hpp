@@ -159,7 +159,9 @@ namespace kocs {
           "init",
           agent_count,
           KOKKOS_CLASS_LAMBDA (const unsigned int i) {
-            init(i);
+            auto generator = random_pool.get_state();
+            init(i, generator);
+            random_pool.free_state(generator);
           }
         );
       }

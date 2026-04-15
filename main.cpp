@@ -1,11 +1,6 @@
 #include <iostream>
 
-#include "include/utils.hpp"
-#include "include/vector.hpp"
-#include "include/simulation_config.hpp"
-#include "include/simulation.hpp"
-#include "include/initializers/line.hpp"
-#include "include/io/writer.hpp"
+#include "include/kocs.hpp"
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
@@ -17,23 +12,23 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  Simulation<SimulationConfig> sim(3);
+  Simulation<SimulationConfig> sim(1024);
   auto& positions = sim.get_view<"positions">();
 
-  LineInitializer<SimulationConfig> init(positions);
+  initializer::RandomHollowSphere<SimulationConfig> init(2.0f, positions);
   sim.init(init);
 
-  auto force = KOKKOS_LAMBDA(
-    const int i,
-    const int j,
-    // auto& rng,
-    Vector& position,
-    Vector& velocity
-  ) {
-    position += Vector(28.0f, 0.0f, 7.0f);
-    // position.x() = rng.drand(0.0f, 28.0f);
-  };
-  sim.take_step(force);
+  // auto force = KOKKOS_LAMBDA(
+  //   const int i,
+  //   const int j,
+  //   // auto& rng,
+  //   Vector& position,
+  //   Vector& velocity
+  // ) {
+  //   position += Vector(28.0f, 0.0f, 7.0f);
+  //   // position.x() = rng.drand(0.0f, 28.0f);
+  // };
+  // sim.take_step(force);
 
   Writer<SimulationConfig> writer("./output/tust");
   writer.write(0, sim);

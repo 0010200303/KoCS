@@ -90,11 +90,12 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/vector.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/line.hpp
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/io/writer.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/random_spheres.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation_config.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/io/writer.hpp
 )
 
 
