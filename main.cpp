@@ -35,7 +35,7 @@ int main() {
   // integrator(force, 0.0001);
 
   for (int i = 1; i <= 10; ++i) {
-    sim.take_step(force, 0.00001);
+    sim.take_step(force, 0.001);
   //   // integrator(force, 0.0001);
     writer.write(i, sim);
   }
