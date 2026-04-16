@@ -8,6 +8,10 @@
 #include "initializers/line.hpp"
 #include "initializers/spheres.hpp"
 
+#include "pair_finders/all_pairs.hpp"
+
+#include "integrators/euler.hpp"
+
 #include "simulation_config.hpp"
 #include "simulation.hpp"
 

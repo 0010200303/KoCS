@@ -1,12 +1,12 @@
-#ifndef KOCS_LINE_INIT_HPP
-#define KOCS_LINE_INIT_HPP
+#ifndef KOCS_INITIALIZERS_LINE_INIT_HPP
+#define KOCS_INITIALIZERS_LINE_INIT_HPP
 
 #include <Kokkos_Core.hpp>
 
 #include "../utils.hpp"
 
 namespace kocs::initializer {
-  template <typename SimulationConfig>
+  template<typename SimulationConfig>
   struct Line {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -21,4 +21,4 @@ namespace kocs::initializer {
   };
 } // namespace kocs
 
-#endif // KOCS_LINE_INIT_HPP
+#endif // KOCS_INITIALIZERS_LINE_INIT_HPP

@@ -14,7 +14,7 @@
 #include "vector.hpp"
 
 namespace kocs {
-  template <typename SimulationConfig>
+  template<typename SimulationConfig>
   class Simulation {
     public:
       EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -59,7 +59,7 @@ namespace kocs {
         return get_view<index_of_view<Name>()>();
       }
 
-    private:
+    public:
       const unsigned int agent_count;
       Storage state;
 
@@ -152,6 +152,42 @@ namespace kocs {
         );
       }
 
+      // Euler integration helpers: update each Field's view at index i using the
+      // corresponding accumulated value in LocalValues::data multiplied by dt.
+      template<std::size_t... I>
+      KOKKOS_INLINE_FUNCTION
+      static void euler_update_impl(
+        const Storage& state_ref,
+        LocalValues& local_values,
+        const int i,
+        const double dt,
+        std::index_sequence<I...>
+      ) {
+        // Expand updates for each tuple element; use comma-expression inside
+        // initializer_list to force evaluation in device code.
+        (void)std::initializer_list<int>{
+          (
+            ( std::get<I>(state_ref)(i) = std::get<I>(state_ref)(i) + (std::get<I>(local_values.data) * dt) ), 0
+          )...
+        };
+      }
+
+      KOKKOS_INLINE_FUNCTION
+      static void euler_update(
+        const Storage& state_ref,
+        LocalValues& local_values,
+        const int i,
+        const double dt
+      ) {
+        euler_update_impl(
+          state_ref,
+          local_values,
+          i,
+          dt,
+          std::make_index_sequence<std::tuple_size_v<Fields>>{}
+        );
+      }
+
     public:
       template<typename InitFn>
       void init(InitFn init) {
@@ -167,7 +203,7 @@ namespace kocs {
       }
 
       template<typename ForceFn>
-      void take_step(ForceFn force) {
+      void take_step(ForceFn force, const double dt = 1.0) {
         Kokkos::parallel_for(
           "take_step",
           Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
@@ -188,7 +224,7 @@ namespace kocs {
             );
 
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
-              Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
+              euler_update(state, local_values, i, dt);
             });
           }
         );

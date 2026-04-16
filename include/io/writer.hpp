@@ -1,5 +1,5 @@
-#ifndef KOCS_WRITER_HPP
-#define KOCS_WRITER_HPP
+#ifndef KOCS_IO_WRITER_HPP
+#define KOCS_IO_WRITER_HPP
 
 #include <type_traits>
 #include <tuple>
@@ -210,4 +210,4 @@ namespace kocs {
   };
 }
 
-#endif // KOCS_WRITER_HPP
+#endif // KOCS_IO_WRITER_HPP

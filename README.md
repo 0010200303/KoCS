@@ -6,3 +6,4 @@
 
 # TODO
 - add custom integrator example
+- (add optimizations per PairFinder x Integrator pair where possible, disable per compiler flag)

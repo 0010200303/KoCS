@@ -1,5 +1,5 @@
-#ifndef KOCS_RANDOM_SPHERE_INIT_HPP
-#define KOCS_RANDOM_SPHERE_INIT_HPP
+#ifndef KOCS_INITIALIZERS_RANDOM_SPHERE_INIT_HPP
+#define KOCS_INITIALIZERS_RANDOM_SPHERE_INIT_HPP
 
 #include <numbers>
 
@@ -64,4 +64,4 @@ namespace kocs::initializer {
   };
 } // namespace kocs
 
-#endif // KOCS_RANDOM_SPHERE_INIT_HPP
+#endif // KOCS_INITIALIZERS_RANDOM_SPHERE_INIT_HPP

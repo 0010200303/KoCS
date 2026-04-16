@@ -5,7 +5,7 @@ project(KoCS
   LANGUAGES CXX
 )
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -91,6 +91,10 @@ target_sources(KoCS_core INTERFACE
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/line.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/spheres.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/all_pairs.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/euler.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation_config.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation.hpp

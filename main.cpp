@@ -31,10 +31,42 @@ int main() {
     // position.x() = rng.drand(0.0f, 28.0f);
   };
 
+  // integrators::Euler integrator(sim);
+  // integrator(force, 0.0001);
+
   for (int i = 1; i <= 10; ++i) {
-    sim.take_step(force, 0.00001f);
+    sim.take_step(force, 0.00001);
+    // integrator(force, 0.0001);
     writer.write(i, sim);
   }
   
   return 0;
 }
+
+
+
+// struct Storage;
+// struct LocalValues;
+// struct PairFinder;
+// struct Heun;
+
+// Storage state;
+// PairFinder pair_finder;
+// Heun heun;
+
+// template<typename ForceFn>
+// void take_step(ForceFn force, const double dt = 1.0) {
+//   Storage local_state{};
+
+//   heun_(force, dt, state, local_state);
+// }
+
+// void heun_() {
+//   pair_finder.for_each(state, local_state, force);
+
+//   euler(state, local_state, dt);
+
+//   pair_finder.for_each(state, local_state, force);
+
+//   heun(state, local_state, dt);
+// }
