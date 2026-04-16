@@ -219,7 +219,7 @@ namespace kocs {
 
               Kokkos::printf("3");
 
-              Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
+              Kokkos::printf("%f\n", local_values.data[0].x());
             });
           }
         );
