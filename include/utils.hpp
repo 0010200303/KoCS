@@ -5,6 +5,7 @@
 #include <tuple>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
@@ -47,8 +48,9 @@ namespace kocs {
         KOKKOS_INLINE_FUNCTION
         type() = default;
 
+        template<typename... Args, std::enable_if_t<sizeof...(Args) == sizeof...(Specs), int> = 0>
         KOKKOS_INLINE_FUNCTION
-        explicit type(const value_type&... args) : data{args...} { }
+        explicit type(Args&&... args) : data{static_cast<value_type>(std::forward<Args>(args))...} { }
 
         KOKKOS_INLINE_FUNCTION
         type& operator+=(const type& rhs) {
