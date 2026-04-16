@@ -16,7 +16,7 @@ namespace kocs::initializer {
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i) const {
-      positions_view(i) = Vector(Scalar(i));
+      positions_view(i) = Vector(float(i));
 
       Kokkos::printf("%d %f\n", i, float(i));
     }
