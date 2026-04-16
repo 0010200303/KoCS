@@ -212,8 +212,7 @@ namespace kocs {
               for (int j = 0; j < static_cast<int>(agent_count); ++j) {
                 if (i == j)
                   continue;
-                // invoke_force(force, i, j, local_values.data);
-                force(i, j, v);
+                invoke_force(force, i, j, v);
               }
 
               Kokkos::printf("2");
