@@ -12,15 +12,14 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  Simulation<SimulationConfig> sim(128);
+  Simulation<SimulationConfig> sim(3);
   auto& positions = sim.get_view<"positions">();
-
-  auto host_view = Kokkos::create_mirror_view(positions);
-  Kokkos::deep_copy(host_view, positions);
 
   initializer::Line<SimulationConfig> init(positions);
   sim.init(init);
 
+  auto host_view = Kokkos::create_mirror_view(sim.get_view<"positions">());
+  Kokkos::deep_copy(host_view, sim.get_view<"positions">());
   std::cout << host_view(3).x() << std::endl;
 
   //Writer<SimulationConfig> writer("./output/tust");
