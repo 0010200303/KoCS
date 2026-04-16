@@ -168,16 +168,16 @@ namespace kocs {
       template<typename ValuesContainer>
       KOKKOS_INLINE_FUNCTION
       static void euler_update(
-        const Storage& state_ref,
+        Storage& state_ref,
         ValuesContainer& local_values,
         const int i,
         const double dt
       ) {
+        auto* views = state_ref.data();
         for (std::size_t idx = 0; idx < container_size_v<Storage>(); ++idx) {
-          state_ref[idx](i) = state_ref[idx](i) + (local_values[idx] * dt);
-          Kokkos::printf("%f\n", state_ref[idx](i).data[0]);
+          views[idx](i) = views[idx](i) + (local_values[idx] * dt);
         }
-        Kokkos::printf("AAA");
+        Kokkos::printf("%f\n", views[0](i).x());
       }
 
     public:
@@ -189,6 +189,7 @@ namespace kocs {
 
       template<typename ForceFn>
       void take_step(ForceFn force, const double dt = 1.0) {
+        auto* state_ptr = &state;
         Kokkos::parallel_for(
           "take_step",
           Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
@@ -208,11 +209,11 @@ namespace kocs {
               // const double debug_value = static_cast<double>(state[0](i).x());
               // Kokkos::printf("%f\n", debug_value);
               
-              Kokkos::printf("1");
+              Kokkos::printf("a");
 
-              euler_update(state, local_values, i, dt);
+              euler_update(*state_ptr, local_values, i, dt);
 
-              Kokkos::printf("2");
+              Kokkos::printf("b");
             });
           }
         );
