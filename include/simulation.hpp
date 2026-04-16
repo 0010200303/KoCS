@@ -225,8 +225,8 @@ namespace kocs {
                 invoke_force(force, i, j, local_values);
               }
 
-              // const double debug_value = static_cast<double>(local_values[0].x());
-              // Kokkos::printf("%f\n", debug_value);
+              const double debug_value = static_cast<double>(local_values[0].x());
+              Kokkos::printf("%f\n", debug_value);
               
               Kokkos::printf("1");
 
