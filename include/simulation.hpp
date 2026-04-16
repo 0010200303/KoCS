@@ -219,12 +219,14 @@ namespace kocs {
 
               Kokkos::printf("3");
 
-              Kokkos::printf("%f\n", local_values.data[0][0]);
+              const double debug_value = static_cast<double>(local_values.data[0].x());
+              Kokkos::printf("%f\n", debug_value);
 
               Kokkos::printf("4");
             });
           }
         );
+        Kokkos::fence();
       }
 
       template<typename ForceFn>
@@ -246,10 +248,12 @@ namespace kocs {
                 random_pool.free_state(generator);
               }
 
-              Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
+              const double debug_value = static_cast<double>(std::get<0>(local_values.data).x());
+              Kokkos::printf("%f\n", debug_value);
             });
           }
         );
+        Kokkos::fence();
       }
   };
 } // namespace kocs
