@@ -225,8 +225,12 @@ namespace kocs {
 
               // const double debug_value = static_cast<double>(local_values[0].x());
               // Kokkos::printf("%f\n", debug_value);
+              
+              Kokkos::printf("1");
 
               euler_update(state, local_values, i, dt);
+
+              Kokkos::printf("2");
             });
           }
         );
