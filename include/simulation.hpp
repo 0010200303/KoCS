@@ -181,6 +181,7 @@ namespace kocs {
           },
           state_ref
         );
+        Kokkos::printf("SSSSSSSs");
       }
 
       template<typename ValuesContainer>
@@ -191,6 +192,7 @@ namespace kocs {
         const int i,
         const double dt
       ) {
+        Kokkos::printf("WWWWWW");
         euler_update_impl(
           state_ref,
           local_values,
