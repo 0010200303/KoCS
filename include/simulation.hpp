@@ -103,7 +103,7 @@ namespace kocs {
         ValuesContainer& values,
         std::index_sequence<I...>
       ) {
-        force(i, j, std::get<I>(values)...);
+        force(i, j, values[I]...);
       }
 
       template<typename ForceFn, typename ValuesContainer>
@@ -131,7 +131,7 @@ namespace kocs {
         ValuesContainer& values,
         std::index_sequence<I...>
       ) {
-        force(i, j, generator, std::get<I>(values)...);
+        force(i, j, generator, values[I]...);
       }
 
       template<typename ForceFn, typename ValuesContainer>
@@ -154,28 +154,27 @@ namespace kocs {
 
       // Euler integration helpers: update each Field's view at index i using the
       // corresponding accumulated value in LocalValues::data multiplied by dt.
-      template<std::size_t... I>
+      template<typename ValuesContainer, std::size_t... I>
       KOKKOS_INLINE_FUNCTION
       static void euler_update_impl(
         const Storage& state_ref,
-        LocalValues& local_values,
+        ValuesContainer& local_values,
         const int i,
         const double dt,
         std::index_sequence<I...>
       ) {
-        // Expand updates for each tuple element; use comma-expression inside
-        // initializer_list to force evaluation in device code.
         (void)std::initializer_list<int>{
           (
-            ( std::get<I>(state_ref)(i) = std::get<I>(state_ref)(i) + (std::get<I>(local_values.data) * dt) ), 0
+            ( std::get<I>(state_ref)(i) = std::get<I>(state_ref)(i) + (local_values[I] * dt) ), 0
           )...
         };
       }
 
+      template<typename ValuesContainer>
       KOKKOS_INLINE_FUNCTION
       static void euler_update(
         const Storage& state_ref,
-        LocalValues& local_values,
+        ValuesContainer& local_values,
         const int i,
         const double dt
       ) {
@@ -204,28 +203,13 @@ namespace kocs {
             const int i = team.league_rank();
 
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
-              LocalValues local_values{};
               Vector v;
-
-              Kokkos::printf("1");
 
               for (int j = 0; j < static_cast<int>(agent_count); ++j) {
                 if (i == j)
                   continue;
-                invoke_force(force, i, j, v);
+                force(i, j, v);
               }
-
-              Kokkos::printf("2");
-
-              // euler_update(state, local_values, i, dt);
-
-              Kokkos::printf("3");
-
-              // const double debug_value = static_cast<double>(local_values.data[0].x());
-
-              Kokkos::printf("4");
-
-              // Kokkos::printf("%f\n", debug_value);
             });
           }
         );
@@ -241,17 +225,17 @@ namespace kocs {
             const int i = team.league_rank();
 
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
-              LocalValues local_values{};
+              typename LocalValues::tuple_type local_values{};
 
               for (int j = 0; j < static_cast<int>(agent_count); ++j) {
                 if (i == j) continue;
 
                 auto generator = random_pool.get_state();
-                invoke_force_rng(force, i, j, generator, local_values.data);
+                invoke_force_rng(force, i, j, generator, local_values);
                 random_pool.free_state(generator);
               }
 
-              const double debug_value = static_cast<double>(std::get<0>(local_values.data).x());
+              const double debug_value = static_cast<double>(local_values[0].x());
               Kokkos::printf("%f\n", debug_value);
             });
           }

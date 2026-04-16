@@ -41,9 +41,9 @@ namespace kocs {
         static_assert((std::is_same_v<value_type, typename Specs::type::value_type> && ...),
           "All field value types must match");
 
-        using tuple_type = std::array<value_type, sizeof...(Specs)>;
+        using tuple_type = value_type[sizeof...(Specs)];
 
-        tuple_type data;
+        tuple_type data{};
 
         KOKKOS_INLINE_FUNCTION
         type() = default;
@@ -62,7 +62,7 @@ namespace kocs {
       template<std::size_t... I>
       KOKKOS_INLINE_FUNCTION
       void add_impl(const type& rhs, std::index_sequence<I...>) {
-        ((std::get<I>(data) += std::get<I>(rhs.data)), ...);
+        ((data[I] += rhs.data[I]), ...);
       }
     };
   };
