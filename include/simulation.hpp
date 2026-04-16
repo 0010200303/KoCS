@@ -174,11 +174,13 @@ namespace kocs {
         const double dt,
         std::index_sequence<I...>
       ) {
-        (void)std::initializer_list<int>{
-          (
-            ( std::get<I>(state_ref)(i) = std::get<I>(state_ref)(i) + (local_values[I] * dt) ), 0
-          )...
-        };
+        std::size_t idx = 0;
+        std::apply(
+          [&](auto&... views) {
+            ((views(i) = views(i) + (local_values[idx++] * dt)), ...);
+          },
+          state_ref
+        );
       }
 
       template<typename ValuesContainer>
