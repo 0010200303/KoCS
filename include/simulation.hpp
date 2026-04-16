@@ -175,6 +175,7 @@ namespace kocs {
       ) {
         for (std::size_t idx = 0; idx < container_size_v<Storage>(); ++idx) {
           state_ref[idx](i) = state_ref[idx](i) + (local_values[idx] * dt);
+          Kokkos::printf("%f\n", state_ref[idx](i).x());
         }
         Kokkos::printf("AAA");
       }
