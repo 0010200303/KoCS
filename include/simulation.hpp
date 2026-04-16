@@ -219,11 +219,11 @@ namespace kocs {
 
               Kokkos::printf("3");
 
-              const double debug_value = static_cast<double>(local_values.data[0].x());
+              // const double debug_value = static_cast<double>(local_values.data[0].x());
 
               Kokkos::printf("4");
 
-              Kokkos::printf("%f\n", debug_value);
+              // Kokkos::printf("%f\n", debug_value);
             });
           }
         );
