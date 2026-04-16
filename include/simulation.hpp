@@ -174,15 +174,9 @@ namespace kocs {
         const double dt,
         std::index_sequence<I...>
       ) {
-        std::size_t idx = 0;
         Kokkos::printf("AAAAAAA");
-        std::apply(
-          [&](auto&... views) {
-            ((views(i) = views(i) + (local_values[idx++] * dt)), ...);
-          },
-          state_ref
-        );
-        Kokkos::printf("SSSSSSSs");
+        ((state_ref[I](i) = state_ref[I](i) + (local_values[I] * dt)), ...);
+        Kokkos::printf("DDDDDD");
       }
 
       template<typename ValuesContainer>
@@ -193,7 +187,6 @@ namespace kocs {
         const int i,
         const double dt
       ) {
-        Kokkos::printf("WWWWWW");
         euler_update_impl(
           state_ref,
           local_values,
