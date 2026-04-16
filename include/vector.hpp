@@ -12,7 +12,6 @@ namespace kocs {
     static_assert(dimensions > 0, "Vector dimensions must be greater than 0");
     static_assert(std::is_trivially_copyable<Scalar>::value, "Scalar must be trivially copyable");
 
-    // std::array<Scalar, dimensions> data;
     Scalar data[dimensions];
 
     // constructors
@@ -253,9 +252,13 @@ namespace kocs {
     }
 
     // enable easy HighFive writing
+    // TODO: optimize
     KOKKOS_INLINE_FUNCTION
-    constexpr std::array<Scalar, dimensions> to_array() const {
-      return data;
+    std::array<Scalar, dimensions> to_array() const {
+      std::array<Scalar, dimensions> out{};
+      for (int i = 0; i < dimensions; ++i)
+        out[i] = data[i];
+      return out;
     }
 
     KOKKOS_INLINE_FUNCTION

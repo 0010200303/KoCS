@@ -18,12 +18,8 @@ int main() {
   initializer::Line<SimulationConfig> init(positions);
   sim.init(init);
 
-  auto host_view = Kokkos::create_mirror_view(sim.get_view<"positions">());
-  Kokkos::deep_copy(host_view, sim.get_view<"positions">());
-  std::cout << host_view(2).x() << std::endl;
-
-  //Writer<SimulationConfig> writer("./output/tust");
-  //writer.write(0, sim);
+  Writer<SimulationConfig> writer("./output/tust");
+  writer.write(0, sim);
 
   auto force = KOKKOS_LAMBDA(
     const int i,
