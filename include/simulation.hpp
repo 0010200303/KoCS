@@ -210,12 +210,12 @@ namespace kocs {
 
               for (int j = 0; j < static_cast<int>(agent_count); ++j) {
                 if (i == j) continue;
-                invoke_force(force, i, j, local_values.data);
+                // invoke_force(force, i, j, local_values.data);
               }
 
               Kokkos::printf("2");
 
-              euler_update(state, local_values, i, dt);
+              // euler_update(state, local_values, i, dt);
 
               Kokkos::printf("3");
 
