@@ -34,11 +34,11 @@ int main() {
   // integrators::Euler integrator(sim);
   // integrator(force, 0.0001);
 
-  // for (int i = 1; i <= 10; ++i) {
-  //   sim.take_step(force, 0.00001);
+  for (int i = 1; i <= 10; ++i) {
+    sim.take_step(force, 0.00001);
   //   // integrator(force, 0.0001);
-  //   writer.write(i, sim);
-  // }
+    writer.write(i, sim);
+  }
   
   return 0;
 }
