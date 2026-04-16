@@ -16,6 +16,17 @@
 namespace kocs {
   template<typename SimulationConfig>
   class Simulation {
+    private:
+      template<typename T>
+      static consteval std::size_t container_size_v() noexcept {
+        using U = std::remove_reference_t<T>;
+        if constexpr (std::is_array_v<U>) {
+          return std::extent_v<U>;
+        } else {
+          return std::tuple_size_v<U>;
+        }
+      }
+
     public:
       EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -24,7 +35,7 @@ namespace kocs {
       //   "SimulationConfig::IntegrationFields must be a std::tuple of Kokkos::View types"
       // );
 
-      Simulation(const unsigned int agent_count_, const uint64_t seed = 2807) 
+      Simulation(const unsigned int agent_count_, const uint64_t seed = 2807)
         : agent_count(agent_count_) {
         get_runtime_guard();
         state = make_fields<Storage>(agent_count);
@@ -118,7 +129,7 @@ namespace kocs {
           i,
           j,
           values,
-          std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<ValuesContainer>>>{}
+          std::make_index_sequence<container_size_v<ValuesContainer>()>{}
         );
       }
 
@@ -148,7 +159,7 @@ namespace kocs {
           j,
           generator,
           values,
-          std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<ValuesContainer>>>{}
+          std::make_index_sequence<container_size_v<ValuesContainer>()>{}
         );
       }
 
@@ -203,13 +214,19 @@ namespace kocs {
             const int i = team.league_rank();
 
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
-              Vector v;
+              typename LocalValues::tuple_type local_values{};
 
               for (int j = 0; j < static_cast<int>(agent_count); ++j) {
                 if (i == j)
                   continue;
-                force(i, j, v);
+
+                invoke_force(force, i, j, local_values);
               }
+
+              // const double debug_value = static_cast<double>(local_values[0].x());
+              // Kokkos::printf("%f\n", debug_value);
+
+              euler_update(state, local_values, i, dt);
             });
           }
         );
