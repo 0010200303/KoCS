@@ -15,7 +15,7 @@ namespace kocs::initializer {
     Line(VectorView positions) : positions_view(positions) { }
 
     KOKKOS_INLINE_FUNCTION
-    void operator() (const unsigned int i, auto& generator) const {
+    void operator() (const unsigned int i) const {
       positions_view(i) = Vector(Scalar(i));
     }
   };

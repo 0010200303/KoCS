@@ -15,11 +15,11 @@ int main() {
   Simulation<SimulationConfig> sim(128);
   auto& positions = sim.get_view<"positions">();
 
-  initializer::RandomHollowSphere<SimulationConfig> init(2.0f, positions);
+  initializer::Line<SimulationConfig> init(positions);
   sim.init(init);
 
-  Writer<SimulationConfig> writer("./output/tust");
-  writer.write(0, sim);
+  //Writer<SimulationConfig> writer("./output/tust");
+  //writer.write(0, sim);
 
   auto force = KOKKOS_LAMBDA(
     const int i,
@@ -34,11 +34,11 @@ int main() {
   // integrators::Euler integrator(sim);
   // integrator(force, 0.0001);
 
-  for (int i = 1; i <= 10; ++i) {
-    sim.take_step(force, 0.00001);
-    // integrator(force, 0.0001);
-    writer.write(i, sim);
-  }
+  // for (int i = 1; i <= 10; ++i) {
+  //   sim.take_step(force, 0.00001);
+  //   // integrator(force, 0.0001);
+  //   writer.write(i, sim);
+  // }
   
   return 0;
 }
