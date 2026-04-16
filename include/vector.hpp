@@ -12,7 +12,8 @@ namespace kocs {
     static_assert(dimensions > 0, "Vector dimensions must be greater than 0");
     static_assert(std::is_trivially_copyable<Scalar>::value, "Scalar must be trivially copyable");
 
-    std::array<Scalar, dimensions> data;
+    // std::array<Scalar, dimensions> data;
+    Scalar data[dimensions];
 
     // constructors
     KOKKOS_INLINE_FUNCTION
