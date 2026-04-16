@@ -173,8 +173,8 @@ namespace kocs {
         const int i,
         const double dt
       ) {
-        Kokkos::printf("%f\n", views[0](i).x());
         auto* views = state_ref.data();
+        Kokkos::printf("%f\n", views[0](i).x());
         for (std::size_t idx = 0; idx < container_size_v<Storage>(); ++idx) {
           views[idx](i) = views[idx](i) + (local_values[idx] * dt);
         }
