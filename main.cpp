@@ -20,7 +20,7 @@ int main() {
 
   auto host_view = Kokkos::create_mirror_view(sim.get_view<"positions">());
   Kokkos::deep_copy(host_view, sim.get_view<"positions">());
-  std::cout << host_view(3).x() << std::endl;
+  std::cout << host_view(2).x() << std::endl;
 
   //Writer<SimulationConfig> writer("./output/tust");
   //writer.write(0, sim);
