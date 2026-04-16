@@ -212,6 +212,8 @@ namespace kocs {
               }
 
               euler_update(state, local_values, i, dt);
+
+              Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
             });
           }
         );
