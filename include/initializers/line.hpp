@@ -16,7 +16,7 @@ namespace kocs::initializer {
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i) const {
-      // positions_view(i) = Vector(float(i));
+      positions_view(i) = Vector(float(i));
       // positions_view(i).x() = float(i);
       positions_view(i).data[0] = float(i);
 
