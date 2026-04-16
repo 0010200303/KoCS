@@ -3,3 +3,6 @@
 
 ## optional
 - Kokkos (pulled automatically if not installed)
+
+# TODO
+- add custom integrator example
