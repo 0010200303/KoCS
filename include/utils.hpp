@@ -4,6 +4,7 @@
 #include <array>
 #include <tuple>
 #include <string_view>
+#include <type_traits>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
@@ -33,7 +34,13 @@ namespace kocs {
   struct ValuesFromFields<std::tuple<Specs...>> {
     struct type {
       public:
-        using tuple_type = std::array<typename Specs::type::value_type, sizeof...(Specs)>;
+        static_assert(sizeof...(Specs) > 0, "ValuesFromFields requires at least one field");
+
+        using value_type = typename std::tuple_element_t<0, std::tuple<Specs...>>::type::value_type;
+        static_assert((std::is_same_v<value_type, typename Specs::type::value_type> && ...),
+          "All field value types must match");
+
+        using tuple_type = std::array<value_type, sizeof...(Specs)>;
 
         tuple_type data;
 
@@ -41,7 +48,7 @@ namespace kocs {
         type() = default;
 
         KOKKOS_INLINE_FUNCTION
-        explicit type(const typename Specs::type::value_type&... args) : data{args...} { }
+        explicit type(const value_type&... args) : data{args...} { }
 
         KOKKOS_INLINE_FUNCTION
         type& operator+=(const type& rhs) {
@@ -56,7 +63,7 @@ namespace kocs {
         ((std::get<I>(data) += std::get<I>(rhs.data)), ...);
       }
     };
-};
+  };
 } // namespace kocs
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
