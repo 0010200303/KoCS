@@ -168,7 +168,7 @@ namespace kocs {
       template<typename ValuesContainer, std::size_t... I>
       KOKKOS_INLINE_FUNCTION
       static void euler_update_impl(
-        Storage& state_ref,
+        const Storage& state_ref,
         ValuesContainer& local_values,
         const int i,
         const double dt,
@@ -180,7 +180,7 @@ namespace kocs {
       template<typename ValuesContainer>
       KOKKOS_INLINE_FUNCTION
       static void euler_update(
-        Storage& state_ref,
+        const Storage& state_ref,
         ValuesContainer& local_values,
         const int i,
         const double dt
