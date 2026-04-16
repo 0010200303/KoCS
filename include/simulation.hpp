@@ -165,6 +165,18 @@ namespace kocs {
 
       // Euler integration helpers: update each Field's view at index i using the
       // corresponding accumulated value in LocalValues::data multiplied by dt.
+      template<typename ValuesContainer, std::size_t... I>
+      KOKKOS_INLINE_FUNCTION
+      static void euler_update_impl(
+        Storage& state_ref,
+        ValuesContainer& local_values,
+        const int i,
+        const double dt,
+        std::index_sequence<I...>
+      ) {
+        ((std::get<I>(state_ref)(i) = std::get<I>(state_ref)(i) + (local_values[I] * dt)), ...);
+      }
+
       template<typename ValuesContainer>
       KOKKOS_INLINE_FUNCTION
       static void euler_update(
@@ -173,12 +185,13 @@ namespace kocs {
         const int i,
         const double dt
       ) {
-        auto* views = state_ref.data();
-        Kokkos::printf("%f\n", views[0](i).x());
-        for (std::size_t idx = 0; idx < container_size_v<Storage>(); ++idx) {
-          views[idx](i) = views[idx](i) + (local_values[idx] * dt);
-        }
-        Kokkos::printf("%f\n", views[0](i).x());
+        euler_update_impl(
+          state_ref,
+          local_values,
+          i,
+          dt,
+          std::make_index_sequence<container_size_v<Storage>()>{}
+        );
       }
 
     public:
@@ -190,7 +203,7 @@ namespace kocs {
 
       template<typename ForceFn>
       void take_step(ForceFn force, const double dt = 1.0) {
-        auto* state_ptr = &state;
+        auto state_local = state; // shallow-copy Kokkos::View handles for device capture
         Kokkos::parallel_for(
           "take_step",
           Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
@@ -207,14 +220,7 @@ namespace kocs {
                 invoke_force(force, i, j, local_values);
               }
 
-              // const double debug_value = static_cast<double>(state[0](i).x());
-              // Kokkos::printf("%f\n", debug_value);
-              
-              Kokkos::printf("a");
-
-              euler_update(*state_ptr, local_values, i, dt);
-
-              Kokkos::printf("b");
+              euler_update(state_local, local_values, i, dt);
             });
           }
         );

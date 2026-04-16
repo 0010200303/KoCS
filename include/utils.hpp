@@ -46,7 +46,7 @@ namespace kocs {
         static_assert((std::is_same_v<value_type, typename Specs::type::value_type> && ...),
           "All field value types must match");
 
-        using tuple_type = value_type[sizeof...(Specs)];
+        using tuple_type = std::array<value_type, sizeof...(Specs)>;
 
         tuple_type data{};
 
