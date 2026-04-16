@@ -206,12 +206,18 @@ namespace kocs {
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
               LocalValues local_values{};
 
+              Kokkos::printf("1");
+
               for (int j = 0; j < static_cast<int>(agent_count); ++j) {
                 if (i == j) continue;
                 invoke_force(force, i, j, local_values.data);
               }
 
+              Kokkos::printf("2");
+
               euler_update(state, local_values, i, dt);
+
+              Kokkos::printf("3");
 
               Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
             });
