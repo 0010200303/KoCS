@@ -18,7 +18,7 @@ namespace kocs::initializer {
     void operator() (const unsigned int i) const {
       positions_view(i) = Vector(Scalar(i));
 
-      Kokkos::printf("%d %f\n", i, positions_view(i).x());
+      Kokkos::printf("%d %f\n", i, float(i));
     }
   };
 } // namespace kocs
