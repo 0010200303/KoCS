@@ -18,6 +18,8 @@ int main() {
   initializer::Line<SimulationConfig> init(positions);
   sim.init(init);
 
+  std::cout << positions(3).x() << std::endl;
+
   //Writer<SimulationConfig> writer("./output/tust");
   //writer.write(0, sim);
 
