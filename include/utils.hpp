@@ -1,6 +1,7 @@
 #ifndef KOCS_UTILS_HPP
 #define KOCS_UTILS_HPP
 
+#include <array>
 #include <tuple>
 #include <string_view>
 
@@ -32,7 +33,7 @@ namespace kocs {
   struct ValuesFromFields<std::tuple<Specs...>> {
     struct type {
       public:
-        using tuple_type = std::tuple<typename Specs::type::value_type...>;
+        using tuple_type = std::array<typename Specs::type::value_type, sizeof...(Specs)>;
 
         tuple_type data;
 
@@ -40,7 +41,7 @@ namespace kocs {
         type() = default;
 
         KOKKOS_INLINE_FUNCTION
-        explicit type(const typename Specs::type&... args) : data(args...) { }
+        explicit type(const typename Specs::type::value_type&... args) : data{args...} { }
 
         KOKKOS_INLINE_FUNCTION
         type& operator+=(const type& rhs) {

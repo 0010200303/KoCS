@@ -95,52 +95,52 @@ namespace kocs {
       }
 
       // forces
-      template<typename ForceFn, typename... Values, std::size_t... I>
+      template<typename ForceFn, typename ValuesContainer, std::size_t... I>
       KOKKOS_INLINE_FUNCTION static void invoke_force_impl(
         ForceFn force,
         const int i,
         const int j,
-        std::tuple<Values...>& values,
+        ValuesContainer& values,
         std::index_sequence<I...>
       ) {
         force(i, j, std::get<I>(values)...);
       }
 
-      template<typename ForceFn, typename... Values>
+      template<typename ForceFn, typename ValuesContainer>
       KOKKOS_INLINE_FUNCTION static void invoke_force(
         ForceFn force,
         const int i,
         const int j,
-        std::tuple<Values...>& values
+        ValuesContainer& values
       ) {
         invoke_force_impl(
           force,
           i,
           j,
           values,
-          std::make_index_sequence<sizeof...(Values)>{}
+          std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<ValuesContainer>>>{}
         );
       }
 
-      template<typename ForceFn, typename... Values, std::size_t... I>
+      template<typename ForceFn, typename ValuesContainer, std::size_t... I>
       KOKKOS_INLINE_FUNCTION static void invoke_force_impl_rng(
         ForceFn force,
         const int i,
         const int j,
         auto& generator,
-        std::tuple<Values...>& values,
+        ValuesContainer& values,
         std::index_sequence<I...>
       ) {
         force(i, j, generator, std::get<I>(values)...);
       }
 
-      template<typename ForceFn, typename... Values>
+      template<typename ForceFn, typename ValuesContainer>
       KOKKOS_INLINE_FUNCTION static void invoke_force_rng(
         ForceFn force,
         const int i,
         const int j,
         auto& generator,
-        std::tuple<Values...>& values
+        ValuesContainer& values
       ) {
         invoke_force_impl_rng(
           force,
@@ -148,7 +148,7 @@ namespace kocs {
           j,
           generator,
           values,
-          std::make_index_sequence<sizeof...(Values)>{}
+          std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<ValuesContainer>>>{}
         );
       }
 
