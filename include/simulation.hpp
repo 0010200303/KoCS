@@ -191,15 +191,8 @@ namespace kocs {
     public:
       template<typename InitFn>
       void init(InitFn init) {
-        Kokkos::parallel_for(
-          "init",
-          agent_count,
-          KOKKOS_CLASS_LAMBDA (const unsigned int i) {
-            // auto generator = random_pool.get_state();
-            init(i);
-            // random_pool.free_state(generator);
-          }
-        );
+        Kokkos::parallel_for("init", agent_count, init);
+        Kokkos::fence();
       }
 
       template<typename ForceFn>
