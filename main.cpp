@@ -28,6 +28,8 @@ int main() {
     Vector& position
   ) {
     position += Vector(28.0f, 0.0f, 7.0f);
+
+    Kokkos::printf("%f\n", position.x());
     // position.x() = rng.drand(0.0f, 28.0f);
   };
 
