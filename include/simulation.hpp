@@ -165,22 +165,6 @@ namespace kocs {
 
       // Euler integration helpers: update each Field's view at index i using the
       // corresponding accumulated value in LocalValues::data multiplied by dt.
-      template<std::size_t I = 0, typename ValuesContainer>
-      KOKKOS_INLINE_FUNCTION
-      static void euler_update_impl(
-        const Storage& state_ref,
-        ValuesContainer& local_values,
-        const int i,
-        const double dt
-      ) {
-        Kokkos::printf("a");
-        if constexpr (I < std::tuple_size_v<Storage>) {
-          state_ref[I](i) = state_ref[I](i) + (local_values[I] * dt);
-          euler_update_impl<I + 1>(state_ref, local_values, i, dt);
-        }
-        Kokkos::printf("b");
-      }
-
       template<typename ValuesContainer>
       KOKKOS_INLINE_FUNCTION
       static void euler_update(
@@ -189,7 +173,10 @@ namespace kocs {
         const int i,
         const double dt
       ) {
-        euler_update_impl(state_ref, local_values, i, dt);
+        for (std::size_t idx = 0; idx < container_size_v<Storage>(); ++idx) {
+          state_ref[idx](i) = state_ref[idx](i) + (local_values[idx] * dt);
+        }
+        Kokkos::printf("AAA");
       }
 
     public:
