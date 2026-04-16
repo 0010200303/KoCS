@@ -205,6 +205,7 @@ namespace kocs {
 
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
               LocalValues local_values{};
+              Vector v;
 
               Kokkos::printf("1");
 
@@ -212,7 +213,7 @@ namespace kocs {
                 if (i == j)
                   continue;
                 // invoke_force(force, i, j, local_values.data);
-                force(i, j, local_values.data[0]);
+                force(i, j, v);
               }
 
               Kokkos::printf("2");
