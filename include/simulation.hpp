@@ -175,6 +175,7 @@ namespace kocs {
         std::index_sequence<I...>
       ) {
         std::size_t idx = 0;
+        Kokkos::printf("AAAAAAA");
         std::apply(
           [&](auto&... views) {
             ((views(i) = views(i) + (local_values[idx++] * dt)), ...);
