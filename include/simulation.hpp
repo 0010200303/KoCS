@@ -220,6 +220,8 @@ namespace kocs {
               Kokkos::printf("3");
 
               Kokkos::printf("%f\n", local_values.data[0].x());
+
+              Kokkos::printf("4");
             });
           }
         );
