@@ -209,8 +209,9 @@ namespace kocs {
               Kokkos::printf("1");
 
               for (int j = 0; j < static_cast<int>(agent_count); ++j) {
-                if (i == j) continue;
-                // invoke_force(force, i, j, local_values.data);
+                if (i == j)
+                  continue;
+                invoke_force(force, i, j, local_values.data);
               }
 
               Kokkos::printf("2");
