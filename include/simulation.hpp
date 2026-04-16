@@ -210,20 +210,14 @@ namespace kocs {
           KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
             const int i = team.league_rank();
 
-            LocalValues local_values{};
-
-            Kokkos::parallel_reduce(
-              Kokkos::TeamThreadRange(team, agent_count),
-              [&](const int j, LocalValues& local) {
-                if (i == j)
-                  return;
-
-                invoke_force(force, i, j, local.data);
-              },
-              local_values
-            );
-
             Kokkos::single(Kokkos::PerTeam(team), [&]() {
+              LocalValues local_values{};
+
+              for (int j = 0; j < static_cast<int>(agent_count); ++j) {
+                if (i == j) continue;
+                invoke_force(force, i, j, local_values.data);
+              }
+
               euler_update(state, local_values, i, dt);
             });
           }
@@ -238,24 +232,17 @@ namespace kocs {
           KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
             const int i = team.league_rank();
 
-            LocalValues local_values{};
+            Kokkos::single(Kokkos::PerTeam(team), [&]() {
+              LocalValues local_values{};
 
-            Kokkos::parallel_reduce(
-              Kokkos::TeamThreadRange(team, agent_count),
-              [&](const int j, LocalValues& local) {
-                if (i == j)
-                  return;
+              for (int j = 0; j < static_cast<int>(agent_count); ++j) {
+                if (i == j) continue;
 
                 auto generator = random_pool.get_state();
-
-                invoke_force_rng(force, i, j, generator, local.data);
-
+                invoke_force_rng(force, i, j, generator, local_values.data);
                 random_pool.free_state(generator);
-              },
-              local_values
-            );
+              }
 
-            Kokkos::single(Kokkos::PerTeam(team), [&]() {
               Kokkos::printf("%f\n", std::get<0>(local_values.data).x());
             });
           }
