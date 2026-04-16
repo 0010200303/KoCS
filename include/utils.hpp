@@ -20,7 +20,12 @@ namespace kocs {
 
   template<typename... Fs>
   struct extract_types<std::tuple<Fs...>> {
-    using type = std::tuple<typename Fs::type...>;
+    static_assert(sizeof...(Fs) > 0, "Storage requires at least one field");
+    using first_type = typename std::tuple_element_t<0, std::tuple<Fs...>>::type;
+    static_assert((std::is_same_v<first_type, typename Fs::type> && ...),
+      "All Storage field types must match");
+
+    using type = std::array<first_type, sizeof...(Fs)>;
   };
 
   template<typename Tuple>
