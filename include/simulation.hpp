@@ -21,9 +21,11 @@ namespace kocs {
   struct pointer_depth<U*> { static constexpr std::size_t value = 1 + pointer_depth<U>::value; };
 
   template <typename Field>
-  struct ViewFromField;
+  struct ViewFromField {
+    using type = Kokkos::View<typename Field::type>;
+  };
 
-  template <typename T, auto Name>
+  template <typename T, fixed_string Name>
   struct ViewFromField<Field<T, Name>> {
     static_assert(pointer_depth<T>::value <= 1,
                   "Field element types must not be pointer-to-pointer or higher (depth >= 2)");
