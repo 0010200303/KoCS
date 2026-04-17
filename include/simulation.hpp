@@ -40,8 +40,6 @@ namespace kocs {
       return view_type(std::string(Field::name), n);
     }
 
-    
-
     template <typename Field>
     struct FieldHolder {
       using view_type = typename ViewFromField<Field>::type;
@@ -86,6 +84,23 @@ namespace kocs {
 
       static auto get(const Storage& storage) {
         return std::forward_as_tuple(detail::get<Fields>(storage)...);
+      }
+    };
+
+    template <typename SimulationT, typename ViewsTuple>
+    struct StepFunctor {
+      SimulationT* self;
+      ViewsTuple views;
+
+      KOKKOS_INLINE_FUNCTION
+      void operator()(const unsigned int i) const {
+        call(i, std::make_index_sequence<std::tuple_size<ViewsTuple>::value>{});
+      }
+
+      template <std::size_t... Is>
+      KOKKOS_INLINE_FUNCTION
+      void call(const unsigned int i, std::index_sequence<Is...>) const {
+        self->tust(std::get<Is>(views)(i)...);
       }
     };
   } // namespace detail
@@ -145,18 +160,11 @@ namespace kocs {
 
       template<typename Force>
       inline void take_step(Force force) {
+        (void)force;
         auto views = get_views();
-
-        std::apply(
-          [&](auto&&... expanded_views) {
-            // force(expanded_views...);
-            // tust(expanded_views(15)...);
-
-            Kokkos::parallel_for(agent_count, KOKKOS_LAMBDA(const unsigned int i) {
-              tust(expanded_views(i)...);
-            });
-          },
-          views
+        Kokkos::parallel_for(
+          agent_count,
+          detail::StepFunctor<Simulation, decltype(views)>{this, views}
         );
       }
   };
