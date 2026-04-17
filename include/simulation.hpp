@@ -143,16 +143,19 @@ namespace kocs {
       //   mass = 13.0f;
       // }
 
+      template<typename Force>
       struct Tust {
-        Tust(Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass) : pos(_pos), mass(_mass) { }
+        Tust(Force _force, Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass) : force(_force), pos(_pos), mass(_mass) { }
 
+        Force force;
         Kokkos::View<Vector*> pos;
         Kokkos::View<float*> mass;
 
         KOKKOS_INLINE_FUNCTION
         void operator() (const unsigned int i) const {
-          pos(i).x() = 0.0f;
-          mass(i) = 13.0f;
+          // pos(i).x() = 0.0f;
+          // mass(i) = 13.0f;
+          force(i, pos, mass);
         }
       };
 
@@ -165,7 +168,7 @@ namespace kocs {
             // force(expanded_views...);
             // tust(expanded_views(15)...);
 
-            Tust tust(expanded_views...);
+            Tust<Force> tust(force, expanded_views...);
             Kokkos::parallel_for(agent_count, tust);
           },
           views

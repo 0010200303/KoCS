@@ -34,11 +34,11 @@ int main() {
   //   pos(i).x() = 0.0f;
   // };
 
-  
 
-  auto tust = KOKKOS_LAMBDA(Kokkos::View<Vector*> pos, Kokkos::View<float*> mass) {
-    pos(15).x() = 0.0f;
-    mass(15) = 13.0f;
+
+  auto tust = KOKKOS_LAMBDA(const unsigned int i, Kokkos::View<Vector*> pos, Kokkos::View<float*> mass) {
+    pos(i).x() = 0.0f;
+    mass(i) = 13.0f;
   };
   sim.take_step(tust);
 
