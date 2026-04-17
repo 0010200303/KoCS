@@ -160,9 +160,7 @@ namespace kocs {
 
       template<typename Force>
       void take_step(Force force) {
-        auto views = get_views();
-
-        std::apply([this, force](auto&&... args) { take_step(force, args...); }, views);
+        std::apply([this, force](auto&&... args) { take_step(force, args...); }, get_views());
       }
   };
 } // namespace kocs
