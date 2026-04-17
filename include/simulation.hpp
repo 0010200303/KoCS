@@ -37,7 +37,7 @@ namespace kocs {
     auto make_view(std::size_t n) {
       using view_type = typename ViewFromField<Field>::type;
       // TODO: maybe use string_view instead
-      return view_type("", n);
+      return view_type(std::string(Field::name), n);
     }
 
     
@@ -88,27 +88,6 @@ namespace kocs {
         return std::forward_as_tuple(detail::get<Fields>(storage)...);
       }
     };
-
-
-
-
-template <typename... Fields, typename Storage, typename Func>
-KOKKOS_INLINE_FUNCTION
-void invoke_with_fields(Storage& storage, int i, Func&& f) {
-  f(i, get<Fields>(storage)(i)...);
-}
-
-template <typename Fields, typename Storage, typename Func>
-struct FieldInvoker;
-
-template <typename... Fields, typename Storage, typename Func>
-struct FieldInvoker<FieldList<Fields...>, Storage, Func> {
-
-  static KOKKOS_INLINE_FUNCTION
-  void apply(Storage& storage, int i, Func const& f) {
-    invoke_with_fields<Fields...>(storage, i, f);
-  }
-};
   } // namespace detail
 
   template<typename SimulationConfig>
@@ -158,20 +137,22 @@ struct FieldInvoker<FieldList<Fields...>, Storage, Func> {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-template<typename Force>
-inline void take_step(Force force, const double dt = 1.0) {
+      template<typename Force>
+      inline void take_step(Force force, const double dt = 1.0) {
+        // Storage local_storage(agent_count);
+        auto& positions = detail::get<Field<Vector*, "positions">>(storage);
+        auto& masses = detail::get<Field<float*, "masses">>(storage);
 
-  Kokkos::parallel_for(
-    "take_step",
-    Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
-    KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+        Kokkos::parallel_for(
+          "take_step",
+          Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
+          KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+            const int i = team.league_rank();
 
-      const int i = team.league_rank();
-
-      detail::FieldInvoker<Fields, Storage, Force>::apply(storage, i, force);
-    }
-  );
-}
+            force(i, positions(i), masses(i));
+          }
+        );
+      }
   };
 } // namespace kocs
 
