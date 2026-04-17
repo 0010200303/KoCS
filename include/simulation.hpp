@@ -153,25 +153,40 @@ namespace kocs {
       };
 
       template<typename Force>
-      inline void take_step(Force force) {
-        auto views = get_views();
-
+      void ha(Force force, auto&&... expanded_views) {
         Tust tust;
-        auto ha = [&](auto&&... expanded_views) {
-          tust = Tust(expanded_views...);
-
-                  auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+        tust = Tust(expanded_views...);
+        auto kek = KOKKOS_LAMBDA(const unsigned int i) {
           tust(i, force);
         };
         Kokkos::parallel_for(agent_count, kek);
-        };
+      }
+
+      template<typename Force>
+      inline void take_step(Force force) {
+        auto views = get_views();
+
+        // Tust tust;
+        // std::apply(
+        //   [&](auto&&... expanded_views) {
+        //     tust = Tust(expanded_views...);
+        //   },
+        //   views
+        // );
+
+        // auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+        //   tust(i, force);
+        // };
+        // Kokkos::parallel_for(agent_count, kek);
+
+
 
         std::apply(
-          ha,
+          [&](auto&&... expanded_views) {
+            ha(force, expanded_views...);
+          },
           views
         );
-
-
       }
   };
 } // namespace kocs
