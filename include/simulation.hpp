@@ -137,38 +137,66 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      struct Tust {
-        Tust() { }
-        Tust(Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass)
-          : pos(_pos), mass(_mass) { }
+      // struct Tust {
+      //   Tust() { }
+      //   Tust(Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass)
+      //     : pos(_pos), mass(_mass) { }
 
-        Kokkos::View<Vector*> pos;
-        Kokkos::View<float*> mass;
+      //   Kokkos::View<Vector*> pos;
+      //   Kokkos::View<float*> mass;
 
-        template<typename Force>
-        KOKKOS_INLINE_FUNCTION
-        void operator() (const unsigned int i, Force force) const {
-          force(i, pos, mass);
-        }
-      };
+      //   template<typename Force>
+      //   KOKKOS_INLINE_FUNCTION
+      //   void operator() (const unsigned int i, Force force) const {
+      //     force(i, pos, mass);
+      //   }
+      // };
 
-      template<typename Force>
-      inline void take_step(Force force) {
-        auto views = get_views();
+      // template<typename Force>
+      // inline void take_step(Force force) {
+      //   auto views = get_views();
 
-        Tust tust;
-        std::apply(
-          [&](auto&&... expanded_views) {
-            tust = Tust(expanded_views...);
-          },
-          views
-        );
+      //   Tust tust;
+      //   std::apply(
+      //     [&](auto&&... expanded_views) {
+      //       tust = Tust(expanded_views...);
+      //     },
+      //     views
+      //   );
 
-        auto kek = KOKKOS_LAMBDA(const unsigned int i) {
-          tust(i, force);
-        };
-        Kokkos::parallel_for(agent_count, kek);
-      }
+      //   auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+      //     tust(i, force);
+      //   };
+      //   Kokkos::parallel_for(agent_count, kek);
+      // }
+
+template<typename... Views>
+struct Tust : Views... {
+  KOKKOS_INLINE_FUNCTION
+  Tust(Views... v) : Views(v)... {}
+
+  template<typename Force>
+  KOKKOS_INLINE_FUNCTION
+  void operator()(unsigned int i, Force force) const {
+    call(i, force, static_cast<const Views&>(*this)...);
+  }
+
+private:
+  template<typename ForceT, typename... V>
+  KOKKOS_INLINE_FUNCTION
+  static void call(unsigned int i, ForceT force, V... v) {
+    force(i, v...);
+  }
+};
+
+template<typename Force, typename... Views>
+void take_step(Force force, Views... views) {
+  Tust<Views...> tust(views...);
+
+  Kokkos::parallel_for("step", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
+    tust(i, force);
+  });
+}
   };
 } // namespace kocs
 
