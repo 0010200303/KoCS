@@ -81,23 +81,31 @@ namespace kocs {
     template <typename... Fields, typename Storage>
     struct ViewsFromStorage<FieldList<Fields...>, Storage> {
       static auto get(Storage& storage) {
-        return std::make_tuple(detail::get<Fields>(storage)...);
+        return std::forward_as_tuple(detail::get<Fields>(storage)...);
       }
 
       static auto get(const Storage& storage) {
-        return std::make_tuple(detail::get<Fields>(storage)...);
+        return std::forward_as_tuple(detail::get<Fields>(storage)...);
       }
     };
 
-    template <typename Force, typename ViewsTuple, std::size_t... Is>
-    KOKKOS_INLINE_FUNCTION void call_force(
-      const Force& force,
-      const unsigned int i,
-      ViewsTuple& views,
-      std::index_sequence<Is...>
-    ) {
-      force(i, std::get<Is>(views)(i)...);
-    }
+    template <typename Func, typename Tuple, std::size_t... I>
+KOKKOS_INLINE_FUNCTION
+auto apply_impl(Func&& f, Tuple&& t, std::size_t i, std::index_sequence<I...>) {
+  return f(i, std::get<I>(t)(i)...);
+}
+
+template <typename Func, typename Tuple>
+KOKKOS_INLINE_FUNCTION
+auto apply(Func&& f, Tuple&& t, std::size_t i) {
+  constexpr std::size_t N = std::tuple_size_v<std::decay_t<Tuple>>;
+  return apply_impl(
+    std::forward<Func>(f),
+    std::forward<Tuple>(t),
+    i,
+    std::make_index_sequence<N>{}
+  );
+}
   } // namespace detail
 
   template<typename SimulationConfig>
@@ -147,25 +155,23 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      template<typename Force>
-      inline void take_step(Force force, const double dt = 1.0) {
-        (void)dt;
-        auto views = get_views();
-        using views_type = std::remove_reference_t<decltype(views)>;
+template<typename Force>
+inline void take_step(Force force, const double dt = 1.0) {
 
-        Kokkos::parallel_for(
-          "take_step",
-          agent_count,
-          KOKKOS_LAMBDA(const unsigned int i) {
-            detail::call_force(
-              force,
-              i,
-              views,
-              std::make_index_sequence<std::tuple_size_v<views_type>>{}
-            );
-          }
-        );
-      }
+  auto views = get_views();  
+  // tuple<Field1View, Field2View, ...>
+
+  Kokkos::parallel_for(
+    "take_step",
+    Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
+    KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+
+      const int i = team.league_rank();
+
+      detail::apply(force, views, i);
+    }
+  );
+}
   };
 } // namespace kocs
 
