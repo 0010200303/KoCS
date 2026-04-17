@@ -162,9 +162,12 @@ namespace kocs {
         std::apply(
           [&](auto&&... expanded_views) {
             Tust tust(expanded_views...);
-            Kokkos::parallel_for(agent_count, KOKKOS_LAMBDA(unsigned int i) {
-              // tust(i, force);
-            });
+
+            auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+
+            };
+
+            Kokkos::parallel_for(agent_count, kek);
           },
           views
         );
