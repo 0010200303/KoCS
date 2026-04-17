@@ -151,11 +151,18 @@ namespace kocs {
 
       template<typename Force, typename... Views>
       void take_step(Force force, Views... views) {
-        Tust<Views...> tust(views...);
+        Tust tust(views...);
 
         Kokkos::parallel_for("step", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
           tust(i, force);
         });
+      }
+
+      template<typename Force>
+      void take_step(Force force) {
+        auto views = get_views();
+
+        std::apply([this, force](auto&&... args) { take_step(force, args...); }, views);
       }
   };
 } // namespace kocs

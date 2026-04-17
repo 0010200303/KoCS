@@ -30,7 +30,7 @@ int main() {
     pos.z() = float(i);
     mass = float(i);
   };
-  sim.take_step(tust, positions, masses);
+  sim.take_step(tust);
 
   writer.write(1, sim);
 
