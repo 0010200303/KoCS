@@ -145,14 +145,7 @@ namespace kocs {
         template<typename Force>
         KOKKOS_INLINE_FUNCTION
         void operator()(unsigned int i, Force force) const {
-          call(i, force, static_cast<const Views&>(*this)...);
-        }
-
-      private:
-        template<typename ForceT, typename... V>
-        KOKKOS_INLINE_FUNCTION
-        static void call(unsigned int i, ForceT force, V... v) {
-          force(i, v...);
+          force(i, static_cast<const Views&>(*this)...);
         }
       };
 
@@ -161,8 +154,7 @@ namespace kocs {
         Tust<Views...> tust(views...);
 
         Kokkos::parallel_for("step", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
-          // tust(i, force);
-          force(i, views...);
+          tust(i, force);
         });
       }
   };
