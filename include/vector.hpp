@@ -262,7 +262,7 @@ namespace kocs {
     }
 
     KOKKOS_INLINE_FUNCTION
-    constexpr const unsigned int get_dimensions() const {
+    constexpr unsigned int get_dimensions() const {
       return dimensions;
     }
 

@@ -68,6 +68,26 @@ namespace kocs {
       using holder = FieldHolder<Field>;
       return static_cast<holder&>(s).view;
     }
+
+    template <typename Field, typename Storage>
+    inline const auto& get(const Storage& s) {
+      using holder = FieldHolder<Field>;
+      return static_cast<const holder&>(s).view;
+    }
+
+    template <typename FieldList, typename Storage>
+    struct ViewsFromStorage;
+
+    template <typename... Fields, typename Storage>
+    struct ViewsFromStorage<FieldList<Fields...>, Storage> {
+      static auto get(Storage& storage) {
+        return std::forward_as_tuple(get<Fields>(storage)...);
+      }
+
+      static auto get(const Storage& storage) {
+        return std::forward_as_tuple(get<Fields>(storage)...);
+      }
+    };
   } // namespace detail
 
 
@@ -98,6 +118,19 @@ namespace kocs {
       template <typename Field>
       inline auto& get_view() {
         return detail::get<Field>(storage);
+      }
+
+      // template <typename Field>
+      // inline const auto& get_view() const {
+      //   return detail::get<Field>(storage);
+      // }
+
+      inline auto get_views() {
+        return detail::ViewsFromStorage<Fields, Storage>::get(storage);
+      }
+
+      inline auto get_views() const {
+        return detail::ViewsFromStorage<Fields, Storage>::get(storage);
       }
   };
 } // namespace kocs

@@ -15,20 +15,24 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
   Simulation<SimulationConfig> sim(16);
-  // auto& positions = get<Field<Vector*, "positions">>(sim.storage);
-  // auto& masses = get<Field<float*, "masses">>(sim.storage);
   auto& positions = sim.get_view<Field<Vector*, "positions">>();
   auto& masses = sim.get_view<Field<float*, "masses">>();
 
-  auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos) {
+  Writer<SimulationConfig> writer("./output/tust");
+  writer.write(0, sim);
+
+  auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos, float& mass) {
     pos = Vector(28.0f);
-    pos[1] = 0.0f;
+    pos[1] = float(i);
     pos.z() = 7.0f;
+    mass = float(i);
   };
 
-  Kokkos::parallel_for("tust", positions.extent(0) - 1, KOKKOS_LAMBDA(unsigned int i) {
-    tust(i, positions(i));
+  Kokkos::parallel_for("tust", positions.extent(0), KOKKOS_LAMBDA(unsigned int i) {
+    tust(i, positions(i), masses(i));
   });
+
+  writer.write(1, sim);
 
 
 
@@ -47,9 +51,6 @@ int main() {
 
   // initializer::Line<SimulationConfig> init(positions);
   // sim.init(init);
-
-  // Writer<SimulationConfig> writer("./output/tust");
-  // writer.write(0, sim);
 
   // auto force = KOKKOS_LAMBDA(
   //   const int i,
