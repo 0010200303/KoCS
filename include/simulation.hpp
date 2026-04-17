@@ -40,8 +40,6 @@ namespace kocs {
       return view_type(std::string(Field::name), n);
     }
 
-    
-
     template <typename Field>
     struct FieldHolder {
       using view_type = typename ViewFromField<Field>::type;
@@ -86,6 +84,19 @@ namespace kocs {
 
       static auto get(const Storage& storage) {
         return std::forward_as_tuple(detail::get<Fields>(storage)...);
+      }
+    };
+
+    // Add helper to call a functor with the i-th element of each field view.
+    template<typename FieldList>
+    struct ForEachAt;
+
+    template<typename... Fs>
+    struct ForEachAt<FieldList<Fs...>> {
+      template<typename StorageType, typename Force>
+      KOKKOS_INLINE_FUNCTION static void call_force(StorageType& storage, const int idx, Force f) {
+        // Expand the field pack and call force with the i-th element of each view.
+        f(idx, get<Fs>(storage)(idx)...);
       }
     };
   } // namespace detail
@@ -139,35 +150,15 @@ namespace kocs {
 
       template<typename Force>
       inline void take_step(Force force, const double dt = 1.0) {
-        // Storage local_storage(agent_count);
-        auto& positions = detail::get<Field<Vector*, "positions">>(storage);
-        auto& masses = detail::get<Field<float*, "masses">>(storage);
-
         Kokkos::parallel_for(
           "take_step",
           Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
           KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
             const int i = team.league_rank();
-
-            force(i, positions(i), masses(i));
-
-            Kokkos::single(Kokkos::PerTeam(team), [&]() {
-
-              // force(i, positions(i), masses(i));
-
-              // for (int j = 0; j < agent_count; ++j) {
-              //   if (i == j)
-              //     continue;
-
-              //   force(i, positions(i), masses(i));
-              // }
-
-              // euler_update();
-            });
+            // Automatically forward all fields' i-th elements to user force:
+            detail::ForEachAt<Fields>::call_force(storage, i, force);
           }
         );
-
-        Kokkos::fence();
       }
   };
 } // namespace kocs
