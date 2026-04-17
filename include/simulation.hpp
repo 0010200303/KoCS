@@ -157,20 +157,21 @@ namespace kocs {
         auto views = get_views();
 
         Tust tust;
-        std::apply(
-          [&](auto&&... expanded_views) {
-            tust = Tust(expanded_views...);
+        auto ha = [&](auto&&... expanded_views) {
+          tust = Tust(expanded_views...);
 
-                    auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+                  auto kek = KOKKOS_LAMBDA(const unsigned int i) {
           tust(i, force);
         };
         Kokkos::parallel_for(agent_count, kek);
-          },
+        };
+
+        std::apply(
+          ha,
           views
         );
 
 
-        
       }
   };
 } // namespace kocs
