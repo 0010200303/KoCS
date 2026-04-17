@@ -158,14 +158,16 @@ namespace kocs {
 
         Tust tust;
         std::apply(
-          KOKKOS_LAMBDA(auto&&... expanded_views) {
-            // tust = Tust(expanded_views...);
-            Kokkos::parallel_for(agent_count, KOKKOS_LAMBDA(unsigned int i) {
-              force(i, expanded_views...);
-            });
+          [&](auto&&... expanded_views) {
+            tust = Tust(expanded_views...);
           },
           views
         );
+
+        auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+          tust(i, force);
+        };
+        Kokkos::parallel_for(agent_count, kek);
       }
   };
 } // namespace kocs
