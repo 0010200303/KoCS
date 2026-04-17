@@ -1,6 +1,7 @@
 #ifndef KOCS_SIMULATION_HPP
 #define KOCS_SIMULATION_HPP
 
+#include <cstddef>
 #include <tuple>
 #include <string>
 #include <type_traits>
@@ -137,40 +138,20 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      struct Tust {
-        Tust() { }
-        Tust(Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass)
-          : pos(_pos), mass(_mass) { }
-
-        Kokkos::View<Vector*> pos;
-        Kokkos::View<float*> mass;
-
-        template<typename Force>
-        KOKKOS_INLINE_FUNCTION
-        void operator() (const unsigned int i, Force force) const {
-          force(i, pos, mass);
-        }
-      };
-
       template<typename Force>
       inline void take_step(Force force) {
         auto views = get_views();
 
-        Tust tust;
-        std::apply(
-          [&](auto&&... expanded_views) {
-            // tust = Tust(expanded_views...);
-            Kokkos::parallel_for(agent_count, KOKKOS_LAMBDA(unsigned int i) {
+        auto kernel = std::apply(
+          [force](auto&&... expanded_views) {
+            return KOKKOS_LAMBDA(const unsigned int i) {
               force(i, expanded_views...);
-            });
+            };
           },
           views
         );
 
-        // auto kek = KOKKOS_LAMBDA(const unsigned int i) {
-        //   tust(i, force);
-        // };
-        // Kokkos::parallel_for(agent_count, kek);
+        Kokkos::parallel_for(agent_count, kernel);
       }
   };
 } // namespace kocs
