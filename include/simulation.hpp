@@ -105,19 +105,6 @@ namespace kocs {
       const unsigned int agent_count;
       Storage storage;
 
-      // Helper that expands the FieldList and calls `force(i, view1(i), view2(i), ...)`
-      template<typename FieldListT>
-      struct CallForceHelper;
-
-      template<typename... Fs>
-      struct CallForceHelper<FieldList<Fs...>> {
-        template<typename ForceType>
-        KOKKOS_INLINE_FUNCTION static void call(ForceType force, Storage& s, int i) {
-          // expand get<Fs>(s)(i) for every field Fs in the FieldList
-          force(i, detail::get<Fs>(s)(i)...);
-        }
-      };
-
       RandomPool random_pool;
 
       static RuntimeGuard& get_runtime_guard() {
@@ -150,6 +137,19 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
+      // New: generic caller that expands all Fields... and forwards storage.view(i) for each
+      template<typename FieldList> struct ForceCaller;
+
+      template<typename... Fs>
+      struct ForceCaller<FieldList<Fs...>> {
+        template<typename Force>
+        KOKKOS_INLINE_FUNCTION
+        static void call(const Force& force, const int i, Storage& storage) {
+          // Expand each Field type Fs -> static_cast<detail::FieldHolder<Fs>&>(storage).view(i)
+          force(i, (static_cast<detail::FieldHolder<Fs>&>(storage).view(i))...);
+        }
+      };
+
       template<typename Force>
       inline void take_step(Force force, const double dt = 1.0) {
         Kokkos::parallel_for(
@@ -157,7 +157,8 @@ namespace kocs {
           Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
           KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
             const int i = team.league_rank();
-            CallForceHelper<Fields>::call(force, storage, i);
+            // Forward all registered fields for this SimulationConfig to user force
+            ForceCaller<Fields>::call(force, i, storage);
           }
         );
       }
