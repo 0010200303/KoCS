@@ -138,6 +138,7 @@ namespace kocs {
       }
 
       struct Tust {
+        Tust() { }
         Tust(Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass)
           : pos(_pos), mass(_mass) { }
 
@@ -159,20 +160,18 @@ namespace kocs {
       inline void take_step(Force force) {
         auto views = get_views();
 
-        auto kek = KOKKOS_LAMBDA(const unsigned int i) {
-
-        };
-
+        Tust tust;
         std::apply(
           [&](auto&&... expanded_views) {
-            Tust tust(expanded_views...);
-
-
-
-            Kokkos::parallel_for(agent_count, kek);
+            tust = Tust(expanded_views...);
           },
           views
         );
+
+        auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+          tust(i, force);
+        };
+        Kokkos::parallel_for(agent_count, kek);
       }
   };
 } // namespace kocs
