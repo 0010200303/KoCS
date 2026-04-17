@@ -24,11 +24,21 @@ int main() {
   // Writer<SimulationConfig> writer("./output/tust");
   // writer.write(0, sim);
 
-  auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos, float& mass) {
-    pos = -float(i);
-    pos[1] = float(i);
-    pos.z() = float(i);
-    mass = float(i);
+  // auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos, float& mass) {
+    // pos = -float(i);
+    // pos[1] = float(i);
+    // pos.z() = float(i);
+    // mass = float(i);
+  // };
+  // auto tust = KOKKOS_LAMBDA(unsigned int i, const Kokkos::View<Vector*> pos) {
+  //   pos(i).x() = 0.0f;
+  // };
+
+  
+
+  auto tust = KOKKOS_LAMBDA(Kokkos::View<Vector*> pos, Kokkos::View<float*> mass) {
+    pos(15).x() = 0.0f;
+    mass(15) = 13.0f;
   };
   sim.take_step(tust);
 
@@ -40,11 +50,14 @@ int main() {
 
 
 
-  auto host = Kokkos::create_mirror_view(positions);
-  Kokkos::deep_copy(host, positions);
+  auto host_pos = Kokkos::create_mirror_view(positions);
+  Kokkos::deep_copy(host_pos, positions);
+
+  auto host_mass = Kokkos::create_mirror_view(masses);
+  Kokkos::deep_copy(host_mass, masses);
 
   for (int i = 0; i < positions.extent(0); ++i) {
-    std::cout << host(i).data[0] << " " << host(i).data[1] << " " << host(i).data[2] << std::endl;
+    std::cout << host_pos(i).data[0] << " " << host_pos(i).data[1] << " " << host_pos(i).data[2] << " " << host_mass(i) << std::endl;
   }
 
 

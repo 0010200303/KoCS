@@ -137,20 +137,25 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
+      void tust(Vector& pos, float& mass) {
+        pos.x() = 0.0f;
+        mass = 13.0f;
+      }
+
       template<typename Force>
-      inline void take_step(Force force, const double dt = 1.0) {
-        // Storage local_storage(agent_count);
-        auto& positions = detail::get<Field<Vector*, "positions">>(storage);
-        auto& masses = detail::get<Field<float*, "masses">>(storage);
+      inline void take_step(Force force) {
+        auto views = get_views();
 
-        Kokkos::parallel_for(
-          "take_step",
-          Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
-          KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
-            const int i = team.league_rank();
+        std::apply(
+          [&](auto&&... expanded_views) {
+            // force(expanded_views...);
+            // tust(expanded_views(15)...);
 
-            force(i, positions(i), masses(i));
-          }
+            Kokkos::parallel_for(agent_count, KOKKOS_LAMBDA(const unsigned int i) {
+              tust(expanded_views(i)...);
+            });
+          },
+          views
         );
       }
   };
