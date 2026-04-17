@@ -24,27 +24,13 @@ int main() {
   // Writer<SimulationConfig> writer("./output/tust");
   // writer.write(0, sim);
 
-  // auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos, float& mass) {
-    // pos = -float(i);
-    // pos[1] = float(i);
-    // pos.z() = float(i);
-    // mass = float(i);
-  // };
-  // auto tust = KOKKOS_LAMBDA(unsigned int i, const Kokkos::View<Vector*> pos) {
-  //   pos(i).x() = 0.0f;
-  // };
-
-
-
-  auto tust = KOKKOS_LAMBDA(const unsigned int i, Kokkos::View<Vector*> pos, Kokkos::View<float*> mass) {
-    pos(i).x() = 0.0f;
-    mass(i) = 13.0f;
+  auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos, float& mass) {
+    pos = -float(i);
+    pos[1] = float(i);
+    pos.z() = float(i);
+    mass = float(i);
   };
   sim.take_step(tust, positions, masses);
-
-  // Kokkos::parallel_for("tust", positions.extent(0), KOKKOS_LAMBDA(unsigned int i) {
-    // tust(i, positions(i), masses(i));
-  // });
 
   // writer.write(1, sim);
 

@@ -145,7 +145,7 @@ namespace kocs {
         template<typename Force>
         KOKKOS_INLINE_FUNCTION
         void operator()(unsigned int i, Force force) const {
-          force(i, static_cast<const Views&>(*this)...);
+          force(i, static_cast<const Views&>(*this)(i)...);
         }
       };
 
