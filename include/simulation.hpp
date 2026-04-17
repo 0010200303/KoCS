@@ -81,11 +81,11 @@ namespace kocs {
     template <typename... Fields, typename Storage>
     struct ViewsFromStorage<FieldList<Fields...>, Storage> {
       static auto get(Storage& storage) {
-        return std::forward_as_tuple(get<Fields>(storage)...);
+        return std::forward_as_tuple(detail::get<Fields>(storage)...);
       }
 
       static auto get(const Storage& storage) {
-        return std::forward_as_tuple(get<Fields>(storage)...);
+        return std::forward_as_tuple(detail::get<Fields>(storage)...);
       }
     };
   } // namespace detail
