@@ -137,41 +137,35 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-using FieldPack = typename SimulationConfig::Fields;
-template <typename>
-struct unpack_fieldlist;
+template <typename T>
+struct fieldlist_traits;
 
 template <typename... Fs>
-struct unpack_fieldlist<FieldList<Fs...>> {
-  using type = std::tuple<Fs...>; // only as carrier for pack extraction
+struct fieldlist_traits<FieldList<Fs...>> {
+  using type = FieldList<Fs...>;
 };
 
-using FieldTuple = typename unpack_fieldlist<typename SimulationConfig::Fields>::type;
+template <typename Force, typename Storage, typename FieldListT>
+struct Stepper;
 
-template <typename Storage, typename Force, typename... Fs>
-void take_step_impl(Storage& storage,
-                    Force force,
-                    std::size_t n,
-                    std::tuple<Fs...>)
-{
-  Kokkos::parallel_for(
-    "take_step",
-    Kokkos::RangePolicy<>(0, n),
-    KOKKOS_LAMBDA(int i) {
-      force(i, get<Fs>(storage)(i)...);
-    }
-  );
-}
+template <typename Force, typename Storage, typename... Fs>
+struct Stepper<Force, Storage, FieldList<Fs...>> {
+
+  static void run(Storage& storage, Force force, std::size_t n) {
+    Kokkos::parallel_for(
+      "take_step",
+      Kokkos::RangePolicy<>(0, n),
+      KOKKOS_LAMBDA(int i) {
+        force(i, get<Fs>(storage)(i)...);
+      }
+    );
+  }
+};
 
 template <typename Force>
 void take_step(Force force)
 {
-take_step_impl<Storage, Force>(
-    storage,
-    force,
-    agent_count,
-    FieldTuple{}
-);
+Stepper<Force, Storage, Fields>::run(storage, force, agent_count);
 }
 
       // template<typename Force>
