@@ -23,7 +23,7 @@ namespace kocs {
   template <typename Field>
   struct ViewFromField;
 
-  template <typename T, fixed_string Name>
+  template <typename T, auto Name>
   struct ViewFromField<Field<T, Name>> {
     static_assert(pointer_depth<T>::value <= 1,
                   "Field element types must not be pointer-to-pointer or higher (depth >= 2)");
