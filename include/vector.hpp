@@ -253,7 +253,6 @@ namespace kocs {
 
     // enable easy HighFive writing
     // TODO: optimize
-    KOKKOS_INLINE_FUNCTION
     std::array<Scalar, dimensions> to_array() const {
       std::array<Scalar, dimensions> out{};
       for (int i = 0; i < dimensions; ++i)
@@ -261,7 +260,6 @@ namespace kocs {
       return out;
     }
 
-    KOKKOS_INLINE_FUNCTION
     constexpr unsigned int get_dimensions() const {
       return dimensions;
     }
