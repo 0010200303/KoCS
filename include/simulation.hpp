@@ -152,10 +152,6 @@ namespace kocs {
         }
       };
 
-      #define TUST(...) \
-      struct Tust { \
-      };
-
       template<typename Force>
       inline void take_step(Force force) {
         auto views = get_views();
@@ -164,14 +160,17 @@ namespace kocs {
         std::apply(
           [&](auto&&... expanded_views) {
             tust = Tust(expanded_views...);
+
+                    auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+          tust(i, force);
+        };
+        Kokkos::parallel_for(agent_count, kek);
           },
           views
         );
 
-        auto kek = KOKKOS_LAMBDA(const unsigned int i) {
-          tust(i, force);
-        };
-        Kokkos::parallel_for(agent_count, kek);
+
+        
       }
   };
 } // namespace kocs
