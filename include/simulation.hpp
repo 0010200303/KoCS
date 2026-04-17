@@ -137,28 +137,39 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      // New: generic caller that expands all Fields... and forwards storage.view(i) for each
+      // Device-friendly pack of view handles (copies of Kokkos::View)
+      template<typename FieldList> struct ViewsProxy;
+
+      template<typename... Fs>
+      struct ViewsProxy<FieldList<Fs...>> : detail::FieldHolder<Fs>... {
+        ViewsProxy(Storage& s)
+          : detail::FieldHolder<Fs>{detail::get<Fs>(s)}... { }
+      };
+
+      // Generic caller that expands all Fields... and forwards views(i) for each
       template<typename FieldList> struct ForceCaller;
 
       template<typename... Fs>
       struct ForceCaller<FieldList<Fs...>> {
-        template<typename Force>
+        template<typename Force, typename ViewsT>
         KOKKOS_INLINE_FUNCTION
-        static void call(const Force& force, const int i, Storage& storage) {
-          // Expand each Field type Fs -> static_cast<detail::FieldHolder<Fs>&>(storage).view(i)
-          force(i, (static_cast<detail::FieldHolder<Fs>&>(storage).view(i))...);
+        static void call(const Force& force, const int i, const ViewsT& views) {
+          // expand each Field -> views.view(i)
+          force(i, (static_cast<const detail::FieldHolder<Fs>&>(views).view(i))...);
         }
       };
 
       template<typename Force>
       inline void take_step(Force force, const double dt = 1.0) {
+        // Build a host-side, device-safe pack of view handles and capture by value
+        auto views = ViewsProxy<Fields>(storage);
+
         Kokkos::parallel_for(
           "take_step",
           Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
           KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
             const int i = team.league_rank();
-            // Forward all registered fields for this SimulationConfig to user force
-            ForceCaller<Fields>::call(force, i, storage);
+            ForceCaller<Fields>::call(force, i, views);
           }
         );
       }
