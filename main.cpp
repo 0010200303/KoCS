@@ -1,44 +1,73 @@
 #include <iostream>
 
+#include <Kokkos_Core.hpp>
+
 #include "include/kocs.hpp"
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
-  // using Fields = std::tuple<
-  //   Field<VectorView, "positions">,
-  //   Field<VectorView, "velocities">
-  // >;
+  using Fields = FieldList<
+    Field<Vector*, "positions">,
+    Field<float*, "masses">
+  >;
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  Simulation<SimulationConfig> sim(3);
-  auto& positions = sim.get_view<"positions">();
+  Simulation<SimulationConfig> sim(16);
+  auto& positions = get<Field<Vector*, "positions">>(sim.storage);
+  auto& masses = get<Field<float*, "masses">>(sim.storage);
 
-  initializer::Line<SimulationConfig> init(positions);
-  sim.init(init);
-
-  Writer<SimulationConfig> writer("./output/tust");
-  writer.write(0, sim);
-
-  auto force = KOKKOS_LAMBDA(
-    const int i,
-    const int j,
-    // auto& rng,
-    Vector& position
-  ) {
-    position += Vector(28.0f, 0.0f, 7.0f);
-    // position.x() = rng.drand(0.0f, 28.0f);
+  auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos) {
+    pos = Vector(28.0f);
+    pos[1] = 0.0f;
+    pos.z() = 7.0f;
   };
 
-  // integrators::Euler integrator(sim);
-  // integrator(force, 0.0001);
+  Kokkos::parallel_for("tust", positions.extent(0) - 1, KOKKOS_LAMBDA(unsigned int i) {
+    tust(i, positions(i));
+  });
 
-  for (int i = 1; i <= 10; ++i) {
-    sim.take_step(force, 0.001);
-  //   // integrator(force, 0.0001);
-    writer.write(i, sim);
+
+
+  auto host = Kokkos::create_mirror_view(positions);
+  Kokkos::deep_copy(host, positions);
+
+  for (int i = 0; i < positions.extent(0); ++i) {
+    std::cout << host(i).data[0] << " " << host(i).data[1] << " " << host(i).data[2] << std::endl;
   }
+
+
+
+
+
+
+
+  // initializer::Line<SimulationConfig> init(positions);
+  // sim.init(init);
+
+  // Writer<SimulationConfig> writer("./output/tust");
+  // writer.write(0, sim);
+
+  // auto force = KOKKOS_LAMBDA(
+  //   const int i,
+  //   const int j,
+  //   // auto& rng,
+  //   Vector& position,
+  //   Vector& velocity
+  // ) {
+  //   position += Vector(28.0f, 0.0f, 7.0f);
+  //   // position.x() = rng.drand(0.0f, 28.0f);
+  // };
+
+  // // integrators::Euler integrator(sim);
+  // // integrator(force, 0.0001);
+
+  // for (int i = 1; i <= 10; ++i) {
+  //   sim.take_step(force, 0.001);
+  // //   // integrator(force, 0.0001);
+  //   writer.write(i, sim);
+  // }
   
   return 0;
 }

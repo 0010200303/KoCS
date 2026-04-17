@@ -31,7 +31,7 @@ namespace kocs {
   template<typename Tuple>
   using storage_t = typename extract_types<Tuple>::type;
 
-
+  
 
   template<typename Fields>
   struct ValuesFromFields;
@@ -46,7 +46,7 @@ namespace kocs {
         static_assert((std::is_same_v<value_type, typename Specs::type::value_type> && ...),
           "All field value types must match");
 
-        using tuple_type = std::array<value_type, sizeof...(Specs)>;
+        using tuple_type = value_type[sizeof...(Specs)];
 
         tuple_type data{};
 
@@ -80,11 +80,15 @@ namespace kocs {
   using VectorView = Kokkos::View<Vector*>; \
   using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT;
 
+// #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
+//   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
+//   using Fields = typename __SIMULATION_CONFIG__::Fields; \
+//   using Storage = kocs::storage_t<Fields>; \
+//   using LocalValues = typename ValuesFromFields<Fields>::type;
+
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-  using Fields = typename __SIMULATION_CONFIG__::Fields; \
-  using Storage = kocs::storage_t<Fields>; \
-  using LocalValues = typename ValuesFromFields<Fields>::type;
+  using Fields = typename __SIMULATION_CONFIG__::Fields;
 
 #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
