@@ -51,8 +51,8 @@ namespace kocs {
 
     using RandomPoolT = Kokkos::Random_XorShift64_Pool<>;
 
-    using Fields = std::tuple<
-      kocs::Field<VectorView, "positions">
+    using Fields = FieldList<
+      Field<Vector*, "positions">
     >;
   };
 } // namespace kocs

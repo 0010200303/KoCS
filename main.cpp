@@ -15,8 +15,10 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
   Simulation<SimulationConfig> sim(16);
-  auto& positions = get<Field<Vector*, "positions">>(sim.storage);
-  auto& masses = get<Field<float*, "masses">>(sim.storage);
+  // auto& positions = get<Field<Vector*, "positions">>(sim.storage);
+  // auto& masses = get<Field<float*, "masses">>(sim.storage);
+  auto& positions = sim.get_view<Field<Vector*, "positions">>();
+  auto& masses = sim.get_view<Field<float*, "masses">>();
 
   auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos) {
     pos = Vector(28.0f);
