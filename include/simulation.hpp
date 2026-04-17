@@ -81,13 +81,23 @@ namespace kocs {
     template <typename... Fields, typename Storage>
     struct ViewsFromStorage<FieldList<Fields...>, Storage> {
       static auto get(Storage& storage) {
-        return std::forward_as_tuple(detail::get<Fields>(storage)...);
+        return std::make_tuple(detail::get<Fields>(storage)...);
       }
 
       static auto get(const Storage& storage) {
-        return std::forward_as_tuple(detail::get<Fields>(storage)...);
+        return std::make_tuple(detail::get<Fields>(storage)...);
       }
     };
+
+    template <typename Force, typename ViewsTuple, std::size_t... Is>
+    KOKKOS_INLINE_FUNCTION void call_force(
+      const Force& force,
+      const unsigned int i,
+      ViewsTuple& views,
+      std::index_sequence<Is...>
+    ) {
+      force(i, std::get<Is>(views)(i)...);
+    }
   } // namespace detail
 
   template<typename SimulationConfig>
@@ -137,39 +147,22 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      // Device-friendly pack of view handles (copies of Kokkos::View)
-      template<typename FieldList> struct ViewsProxy;
-
-      template<typename... Fs>
-      struct ViewsProxy<FieldList<Fs...>> : detail::FieldHolder<Fs>... {
-        ViewsProxy(Storage& s)
-          : detail::FieldHolder<Fs>{detail::get<Fs>(s)}... { }
-      };
-
-      // Generic caller that expands all Fields... and forwards views(i) for each
-      template<typename FieldList> struct ForceCaller;
-
-      template<typename... Fs>
-      struct ForceCaller<FieldList<Fs...>> {
-        template<typename Force, typename ViewsT>
-        KOKKOS_INLINE_FUNCTION
-        static void call(const Force& force, const int i, const ViewsT& views) {
-          // expand each Field -> views.view(i)
-          force(i, (static_cast<const detail::FieldHolder<Fs>&>(views).view(i))...);
-        }
-      };
-
       template<typename Force>
       inline void take_step(Force force, const double dt = 1.0) {
-        // Build a host-side, device-safe pack of view handles and capture by value
-        auto views = ViewsProxy<Fields>(storage);
+        (void)dt;
+        auto views = get_views();
+        using views_type = std::remove_reference_t<decltype(views)>;
 
         Kokkos::parallel_for(
           "take_step",
-          Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
-          KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
-            const int i = team.league_rank();
-            ForceCaller<Fields>::call(force, i, views);
+          agent_count,
+          KOKKOS_LAMBDA(const unsigned int i) {
+            detail::call_force(
+              force,
+              i,
+              views,
+              std::make_index_sequence<std::tuple_size_v<views_type>>{}
+            );
           }
         );
       }
