@@ -37,7 +37,7 @@ namespace kocs {
     auto make_view(std::size_t n) {
       using view_type = typename ViewFromField<Field>::type;
       // TODO: maybe use string_view instead
-      return view_type(n);
+      return view_type("", n);
     }
 
     
