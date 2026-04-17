@@ -137,6 +137,7 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
+      KOKKOS_INLINE_FUNCTION
       void tust(Vector& pos, float& mass) {
         pos.x() = 0.0f;
         mass = 13.0f;
