@@ -137,26 +137,22 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      // KOKKOS_INLINE_FUNCTION
-      // void tust(Vector& pos, float& mass) {
-      //   pos.x() = 0.0f;
-      //   mass = 13.0f;
-      // }
-
-      template<typename Force>
       struct Tust {
-        Tust(Force _force, Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass) : force(_force), pos(_pos), mass(_mass) { }
+        Tust(Kokkos::View<Vector*> _pos, Kokkos::View<float*> _mass)
+          : pos(_pos), mass(_mass) { }
 
-        Force force;
         Kokkos::View<Vector*> pos;
         Kokkos::View<float*> mass;
 
+        template<typename Force>
         KOKKOS_INLINE_FUNCTION
-        void operator() (const unsigned int i) const {
-          // pos(i).x() = 0.0f;
-          // mass(i) = 13.0f;
+        void operator() (const unsigned int i, Force force) const {
           force(i, pos, mass);
         }
+      };
+
+      #define TUST(...) \
+      struct Tust { \
       };
 
       template<typename Force>
@@ -165,11 +161,10 @@ namespace kocs {
 
         std::apply(
           [&](auto&&... expanded_views) {
-            // force(expanded_views...);
-            // tust(expanded_views(15)...);
-
-            Tust<Force> tust(force, expanded_views...);
-            Kokkos::parallel_for(agent_count, tust);
+            Tust tust(expanded_views...);
+            Kokkos::parallel_for(agent_count, KOKKOS_LAMBDA(unsigned int i){
+              tust(i, force);
+            });
           },
           views
         );
