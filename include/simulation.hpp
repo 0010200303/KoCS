@@ -9,6 +9,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 
+#include "simulation_config.hpp"
 #include "runtime_guard.hpp"
 #include "utils.hpp"
 #include "vector.hpp"
