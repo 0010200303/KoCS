@@ -143,7 +143,7 @@ namespace kocs {
         auto views = get_views();
 
         auto kernel = std::apply(
-          [force](auto&&... expanded_views) {
+          KOKKOS_LAMBDA (auto&&... expanded_views) {
             return KOKKOS_LAMBDA(const unsigned int i) {
               force(i, expanded_views...);
             };
