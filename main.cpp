@@ -30,10 +30,11 @@ int main() {
     pos.z() = float(i);
     mass = float(i);
   };
+  sim.take_step(tust);
 
-  Kokkos::parallel_for("tust", positions.extent(0), KOKKOS_LAMBDA(unsigned int i) {
-    tust(i, positions(i), masses(i));
-  });
+  // Kokkos::parallel_for("tust", positions.extent(0), KOKKOS_LAMBDA(unsigned int i) {
+    // tust(i, positions(i), masses(i));
+  // });
 
   writer.write(1, sim);
 

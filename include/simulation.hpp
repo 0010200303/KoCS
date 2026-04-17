@@ -136,6 +136,39 @@ namespace kocs {
       inline void init(Initializer initializer) {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
+
+      template<typename Force>
+      inline void take_step(Force force, const double dt = 1.0) {
+        // Storage local_storage(agent_count);
+        auto& positions = detail::get<Field<Vector*, "positions">>(storage);
+        auto& masses = detail::get<Field<float*, "masses">>(storage);
+
+        Kokkos::parallel_for(
+          "take_step",
+          Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
+          KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+            const int i = team.league_rank();
+
+            force(i, positions(i), masses(i));
+
+            Kokkos::single(Kokkos::PerTeam(team), [&]() {
+
+              // force(i, positions(i), masses(i));
+
+              // for (int j = 0; j < agent_count; ++j) {
+              //   if (i == j)
+              //     continue;
+
+              //   force(i, positions(i), masses(i));
+              // }
+
+              // euler_update();
+            });
+          }
+        );
+
+        Kokkos::fence();
+      }
   };
 } // namespace kocs
 
