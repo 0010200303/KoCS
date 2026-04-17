@@ -159,13 +159,15 @@ namespace kocs {
       inline void take_step(Force force) {
         auto views = get_views();
 
+        auto kek = KOKKOS_LAMBDA(const unsigned int i) {
+
+        };
+
         std::apply(
           [&](auto&&... expanded_views) {
             Tust tust(expanded_views...);
 
-            auto kek = KOKKOS_LAMBDA(const unsigned int i) {
 
-            };
 
             Kokkos::parallel_for(agent_count, kek);
           },
