@@ -40,7 +40,12 @@ namespace kocs {
       return view_type(std::string(Field::name), n);
     }
 
-    
+    // create a fresh "delta" view for accumulating changes (same element type)
+    template <typename Field>
+    auto make_delta_view(std::size_t n) {
+      using view_type = typename ViewFromField<Field>::type;
+      return view_type(std::string(Field::name) + "_delta", n);
+    }
 
     template <typename Field>
     struct FieldHolder {
@@ -158,9 +163,47 @@ namespace kocs {
         });
       }
 
+      private:
+        // helper: expand (orig..., delta...) for calling force inside device code
+        template<typename Force, typename OrigTuple, typename DeltaTuple, std::size_t... I, std::size_t... J>
+        static KOKKOS_INLINE_FUNCTION
+        void call_force_impl(unsigned int i, Force force, const OrigTuple& origs, DeltaTuple& deltas,
+                                  std::index_sequence<I...>, std::index_sequence<J...>) {
+          force(i, std::get<I>(origs)(i)..., std::get<J>(deltas)(i)...);
+        }
+
+        // helper: add deltas back into originals element-wise
+        template<typename OrigTuple, typename DeltaTuple, std::size_t... I>
+        static KOKKOS_INLINE_FUNCTION
+        void apply_deltas_impl(unsigned int i, OrigTuple& origs, DeltaTuple& deltas, std::index_sequence<I...>) {
+          (void)std::initializer_list<int>{((std::get<I>(origs)(i) += std::get<I>(deltas)(i)), 0)...};
+        }
+    
+    public:
       template<typename Force>
       void take_step(Force force) {
-        std::apply([this, force](auto&&... args) { take_step(force, args...); }, get_views());
+        // get tuple of original views
+        auto origs = get_views();
+
+        // create tuple of empty delta views (one per Field)
+        auto deltas = std::make_tuple(detail::make_delta_view<Fields>(agent_count)...);
+
+        using orig_tuple_t = decltype(origs);
+        using delta_tuple_t = decltype(deltas);
+
+        // run step kernel: force(i, orig_0(i), ..., delta_0(i), ...)
+        Kokkos::parallel_for("step", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
+          call_force_impl<Force, orig_tuple_t, delta_tuple_t>(
+            i, force, origs, deltas,
+            std::make_index_sequence<std::tuple_size_v<orig_tuple_t>>{},
+            std::make_index_sequence<std::tuple_size_v<delta_tuple_t>>{});
+        });
+
+        // apply accumulated deltas back into original views
+        Kokkos::parallel_for("apply_deltas", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
+          apply_deltas_impl(orig_tuple_t(), delta_tuple_t()); // avoid unused warning in device builds
+          apply_deltas_impl(i, origs, deltas, std::make_index_sequence<std::tuple_size_v<orig_tuple_t>>{});
+        });
       }
   };
 } // namespace kocs
