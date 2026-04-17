@@ -89,23 +89,26 @@ namespace kocs {
       }
     };
 
-    template <typename Func, typename Tuple, std::size_t... I>
+
+
+
+template <typename... Fields, typename Storage, typename Func>
 KOKKOS_INLINE_FUNCTION
-auto apply_impl(Func&& f, Tuple&& t, std::size_t i, std::index_sequence<I...>) {
-  return f(i, std::get<I>(t)(i)...);
+void invoke_with_fields(Storage& storage, int i, Func&& f) {
+  f(i, get<Fields>(storage)(i)...);
 }
 
-template <typename Func, typename Tuple>
-KOKKOS_INLINE_FUNCTION
-auto apply(Func&& f, Tuple&& t, std::size_t i) {
-  constexpr std::size_t N = std::tuple_size_v<std::decay_t<Tuple>>;
-  return apply_impl(
-    std::forward<Func>(f),
-    std::forward<Tuple>(t),
-    i,
-    std::make_index_sequence<N>{}
-  );
-}
+template <typename Fields, typename Storage, typename Func>
+struct FieldInvoker;
+
+template <typename... Fields, typename Storage, typename Func>
+struct FieldInvoker<FieldList<Fields...>, Storage, Func> {
+
+  static KOKKOS_INLINE_FUNCTION
+  void apply(Storage& storage, int i, Func const& f) {
+    invoke_with_fields<Fields...>(storage, i, f);
+  }
+};
   } // namespace detail
 
   template<typename SimulationConfig>
@@ -158,9 +161,6 @@ auto apply(Func&& f, Tuple&& t, std::size_t i) {
 template<typename Force>
 inline void take_step(Force force, const double dt = 1.0) {
 
-  auto views = get_views();  
-  // tuple<Field1View, Field2View, ...>
-
   Kokkos::parallel_for(
     "take_step",
     Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
@@ -168,7 +168,7 @@ inline void take_step(Force force, const double dt = 1.0) {
 
       const int i = team.league_rank();
 
-      detail::apply(force, views, i);
+      detail::FieldInvoker<Fields, Storage, Force>::apply(storage, i, force);
     }
   );
 }
