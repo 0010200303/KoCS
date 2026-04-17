@@ -40,8 +40,6 @@ int main() {
     pos(i).x() = 0.0f;
     mass(i) = 13.0f;
   };
-  // auto tust = KOKKOS_LAMBDA(const unsigned int i) {
-  // };
   sim.take_step(tust, positions, masses);
 
   // Kokkos::parallel_for("tust", positions.extent(0), KOKKOS_LAMBDA(unsigned int i) {
