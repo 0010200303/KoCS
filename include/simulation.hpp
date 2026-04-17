@@ -137,22 +137,59 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      template<typename Force>
-      inline void take_step(Force force, const double dt = 1.0) {
-        // Storage local_storage(agent_count);
-        auto& positions = detail::get<Field<Vector*, "positions">>(storage);
-        auto& masses = detail::get<Field<float*, "masses">>(storage);
+using FieldPack = typename SimulationConfig::Fields;
+template <typename>
+struct unpack_fieldlist;
 
-        Kokkos::parallel_for(
-          "take_step",
-          Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
-          KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
-            const int i = team.league_rank();
+template <typename... Fs>
+struct unpack_fieldlist<FieldList<Fs...>> {
+  using type = std::tuple<Fs...>; // only as carrier for pack extraction
+};
 
-            force(i, positions(i), masses(i));
-          }
-        );
-      }
+using FieldTuple = typename unpack_fieldlist<typename SimulationConfig::Fields>::type;
+
+template <typename Storage, typename Force, typename... Fs>
+void take_step_impl(Storage& storage,
+                    Force force,
+                    std::size_t n,
+                    std::tuple<Fs...>)
+{
+  Kokkos::parallel_for(
+    "take_step",
+    Kokkos::RangePolicy<>(0, n),
+    KOKKOS_LAMBDA(int i) {
+      force(i, get<Fs>(storage)(i)...);
+    }
+  );
+}
+
+template <typename Force>
+void take_step(Force force)
+{
+take_step_impl<Storage, Force>(
+    storage,
+    force,
+    agent_count,
+    FieldTuple{}
+);
+}
+
+      // template<typename Force>
+      // inline void take_step(Force force, const double dt = 1.0) {
+      //   // Storage local_storage(agent_count);
+      //   auto& positions = detail::get<Field<Vector*, "positions">>(storage);
+      //   auto& masses = detail::get<Field<float*, "masses">>(storage);
+
+      //   Kokkos::parallel_for(
+      //     "take_step",
+      //     Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
+      //     KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+      //       const int i = team.league_rank();
+
+      //       force(i, positions(i), masses(i));
+      //     }
+      //   );
+      // }
   };
 } // namespace kocs
 
