@@ -137,53 +137,22 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-template <typename T>
-struct fieldlist_traits;
+      template<typename Force>
+      inline void take_step(Force force, const double dt = 1.0) {
+        // Storage local_storage(agent_count);
+        auto& positions = detail::get<Field<Vector*, "positions">>(storage);
+        auto& masses = detail::get<Field<float*, "masses">>(storage);
 
-template <typename... Fs>
-struct fieldlist_traits<FieldList<Fs...>> {
-  using type = FieldList<Fs...>;
-};
+        Kokkos::parallel_for(
+          "take_step",
+          Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
+          KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+            const int i = team.league_rank();
 
-template <typename Force, typename Storage, typename FieldListT>
-struct Stepper;
-
-template <typename Force, typename Storage, typename... Fs>
-struct Stepper<Force, Storage, FieldList<Fs...>> {
-
-  static void run(Storage& storage, Force force, std::size_t n) {
-    Kokkos::parallel_for(
-      "take_step",
-      Kokkos::RangePolicy<>(0, n),
-      KOKKOS_LAMBDA(int i) {
-        force(i, get<Fs>(storage)(i)...);
+            force(i, positions(i), masses(i));
+          }
+        );
       }
-    );
-  }
-};
-
-template <typename Force>
-void take_step(Force force)
-{
-Stepper<Force, Storage, Fields>::run(storage, force, agent_count);
-}
-
-      // template<typename Force>
-      // inline void take_step(Force force, const double dt = 1.0) {
-      //   // Storage local_storage(agent_count);
-      //   auto& positions = detail::get<Field<Vector*, "positions">>(storage);
-      //   auto& masses = detail::get<Field<float*, "masses">>(storage);
-
-      //   Kokkos::parallel_for(
-      //     "take_step",
-      //     Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
-      //     KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
-      //       const int i = team.league_rank();
-
-      //       force(i, positions(i), masses(i));
-      //     }
-      //   );
-      // }
   };
 } // namespace kocs
 
