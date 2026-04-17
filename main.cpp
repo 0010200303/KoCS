@@ -21,8 +21,8 @@ int main() {
   initializer::Line<SimulationConfig> init(positions);
   sim.init(init);
 
-  Writer<SimulationConfig> writer("./output/tust");
-  writer.write(0, sim);
+  // Writer<SimulationConfig> writer("./output/tust");
+  // writer.write(0, sim);
 
   auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos, float& mass) {
     pos = -float(i);
@@ -36,7 +36,7 @@ int main() {
     // tust(i, positions(i), masses(i));
   // });
 
-  writer.write(1, sim);
+  // writer.write(1, sim);
 
 
 
