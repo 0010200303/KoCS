@@ -40,6 +40,8 @@ namespace kocs {
       return view_type(std::string(Field::name), n);
     }
 
+    
+
     template <typename Field>
     struct FieldHolder {
       using view_type = typename ViewFromField<Field>::type;
@@ -86,19 +88,6 @@ namespace kocs {
         return std::forward_as_tuple(detail::get<Fields>(storage)...);
       }
     };
-
-    // Add helper to call a functor with the i-th element of each field view.
-    template<typename FieldList>
-    struct ForEachAt;
-
-    template<typename... Fs>
-    struct ForEachAt<FieldList<Fs...>> {
-      template<typename StorageType, typename Force>
-      KOKKOS_INLINE_FUNCTION static void call_force(StorageType& storage, const int idx, Force f) {
-        // Expand the field pack and call force with the i-th element of each view.
-        f(idx, get<Fs>(storage)(idx)...);
-      }
-    };
   } // namespace detail
 
   template<typename SimulationConfig>
@@ -115,6 +104,19 @@ namespace kocs {
     private:
       const unsigned int agent_count;
       Storage storage;
+
+      // Helper that expands the FieldList and calls `force(i, view1(i), view2(i), ...)`
+      template<typename FieldListT>
+      struct CallForceHelper;
+
+      template<typename... Fs>
+      struct CallForceHelper<FieldList<Fs...>> {
+        template<typename ForceType>
+        KOKKOS_INLINE_FUNCTION static void call(ForceType force, Storage& s, int i) {
+          // expand get<Fs>(s)(i) for every field Fs in the FieldList
+          force(i, detail::get<Fs>(s)(i)...);
+        }
+      };
 
       RandomPool random_pool;
 
@@ -155,8 +157,7 @@ namespace kocs {
           Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO),
           KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
             const int i = team.league_rank();
-            // Automatically forward all fields' i-th elements to user force:
-            detail::ForEachAt<Fields>::call_force(storage, i, force);
+            CallForceHelper<Fields>::call(force, storage, i);
           }
         );
       }
