@@ -18,6 +18,9 @@ int main() {
   auto& positions = sim.get_view<Field<Vector*, "positions">>();
   auto& masses = sim.get_view<Field<float*, "masses">>();
 
+  initializer::Line<SimulationConfig> init(positions);
+  sim.init(init);
+
   Writer<SimulationConfig> writer("./output/tust");
   writer.write(0, sim);
 
@@ -49,8 +52,6 @@ int main() {
 
 
 
-  // initializer::Line<SimulationConfig> init(positions);
-  // sim.init(init);
 
   // auto force = KOKKOS_LAMBDA(
   //   const int i,

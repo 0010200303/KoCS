@@ -90,8 +90,6 @@ namespace kocs {
     };
   } // namespace detail
 
-
-
   template<typename SimulationConfig>
   class Simulation {
     EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -120,10 +118,10 @@ namespace kocs {
         return detail::get<Field>(storage);
       }
 
-      // template <typename Field>
-      // inline const auto& get_view() const {
-      //   return detail::get<Field>(storage);
-      // }
+      template <typename Field>
+      inline const auto& get_view() const {
+        return detail::get<Field>(storage);
+      }
 
       inline auto get_views() {
         return detail::ViewsFromStorage<Fields, Storage>::get(storage);
@@ -131,6 +129,12 @@ namespace kocs {
 
       inline auto get_views() const {
         return detail::ViewsFromStorage<Fields, Storage>::get(storage);
+      }
+    
+    public:
+      template<typename Initializer>
+      inline void init(Initializer initializer) {
+        Kokkos::parallel_for("init", agent_count, initializer);
       }
   };
 } // namespace kocs
