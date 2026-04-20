@@ -184,9 +184,10 @@ namespace kocs {
 
       template<int N, typename... Views>
       struct StagePack {
-        static_assert(N > 0, "StagePack must contain at least one stage");
+        static_assert(N > 1, "StagePack must contain at least one stage");
 
-        std::array<ViewPack<Views...>, N> stages;
+        ViewPack<Views...> stage;
+        StagePack<N - 1, Views...> next;
 
         static auto make_mirror_view_pack(const ViewPack<Views...>& pack) {
           return ViewPack<Views...>(
@@ -194,25 +195,19 @@ namespace kocs {
           );
         }
 
-        template<std::size_t... Is>
-        static auto make_stages(const ViewPack<Views...>& stage, std::index_sequence<Is...>) {
-          return std::array<ViewPack<Views...>, N>{
-            (Is == 0 ? stage : make_mirror_view_pack(stage))...
-          };
-        }
-
         KOKKOS_INLINE_FUNCTION
-        StagePack(const ViewPack<Views...>& stage)
-          : stages(make_stages(stage, std::make_index_sequence<N>{})) { }
+        StagePack(const ViewPack<Views...>& stage_)
+          : stage(stage_)
+          , next(make_mirror_view_pack(stage_)) { }
 
         KOKKOS_INLINE_FUNCTION
         ViewPack<Views...>& operator[](int i) {
-          return stages[i];
+          return i == 0 ? stage : next[i - 1];
         }
 
         KOKKOS_INLINE_FUNCTION
         const ViewPack<Views...>& operator[](int i) const {
-          return stages[i];
+          return i == 0 ? stage : next[i - 1];
         }
       };
 
@@ -231,23 +226,17 @@ namespace kocs {
           const auto& stage1 = stage_pack[1];
 
           Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Views&>(stage1)(i)...);
+            force(i, static_cast<const Views&>(stage_pack[1])(i)...);
           });
 
           Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ( (static_cast<const Views&>(stage0)(i) += static_cast<const Views&>(stage1)(i)), ... );
+            ( (static_cast<const Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
           });
         }
       };
 
       template<typename Force, typename... Views>
       void take_step(Force force, Views... views) {
-        // auto tust = EulerIntegrator<decltype(make_integrator_field(views))...>{
-          // agent_count,
-          // make_integrator_field(views)...
-        // };
-        // tust.integrate(force);
-
         auto tust = HeunIntegrator<Views...>{
           agent_count,
           views...
