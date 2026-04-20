@@ -190,12 +190,12 @@ namespace kocs {
 
         static auto make_mirror_view_pack(const ViewPack<Views...>& pack) {
           return ViewPack<Views...>(
-            Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), static_cast<const Views&>(pack))...
+            Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), static_cast<const Views>(pack))...
           );
         }
 
         template<std::size_t... Is>
-        static auto make_stages(const ViewPack<Views...>& stage, std::index_sequence<Is...>) {
+        static auto make_stages(const ViewPack<Views...> stage, std::index_sequence<Is...>) {
           return std::array<ViewPack<Views...>, N>{
             (Is == 0 ? stage : make_mirror_view_pack(stage))...
           };
@@ -228,12 +228,12 @@ namespace kocs {
         template<typename Force>
         void integrate(Force force) {
           Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Views&>(stage_pack[1])(i)...);
+            force(i, static_cast<const Views>(stage_pack[1])(i)...);
           });
 
-          // Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            // ( (static_cast<Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
-          // });
+          Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+            ( (static_cast<Views>(stage_pack[0])(i) += static_cast<const Views>(stage_pack[1])(i)), ... );
+          });
         }
       };
 
