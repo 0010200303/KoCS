@@ -24,13 +24,6 @@ int main() {
   Writer<SimulationConfig> writer("./output/tust");
   writer.write(0, sim);
 
-  // auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& force, float& mass) {
-  //   pos = -float(i) * 2;
-  //   pos[1] = float(i);
-  //   pos.z() = float(i);
-  //   mass = float(i);
-  // };
-
   auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& force, float& mass) {
     const float stiffness = 0.25f;
     const Vector& pos = positions(i);
@@ -38,8 +31,6 @@ int main() {
     force = -stiffness * positions(i);
     mass = 1.0;
   };
-  // sim.take_step(tust);
-  // writer.write(1, sim);
 
   for (int i = 1; i <= 10; ++i) {
     sim.take_step(1.0, tust);

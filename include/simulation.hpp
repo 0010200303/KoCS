@@ -15,8 +15,6 @@
 #include "utils.hpp"
 #include "vector.hpp"
 
-#include "integrators/euler.hpp"
-
 namespace kocs {
   namespace detail {
     template<typename U>
