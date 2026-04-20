@@ -169,9 +169,9 @@ namespace kocs {
             force(i, static_cast<const FieldsTypes&>(*this).delta(i)...);
           });
 
-          Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ( (static_cast<const FieldsTypes&>(*this).state(i) += static_cast<const FieldsTypes&>(*this).delta(i)), ... );
-          });
+          // Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) mutable {
+          //   ( (static_cast<Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
+          // });
         }
       };
 
@@ -223,19 +223,16 @@ namespace kocs {
           : agent_count(agent_count_), stage_pack(ViewPack<Views...>(views...)) { }
         
         unsigned int agent_count;
-        StagePack<2, Views...> stage_pack;
+        mutable StagePack<2, Views...> stage_pack;
 
         template<typename Force>
         void integrate(Force force) {
-          auto* stage0 = &stage_pack[0];
-          auto* stage1 = &stage_pack[1];
-
           Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Views&>(*stage1)(i)...);
+            force(i, static_cast<const Views&>(stage_pack[1])(i)...);
           });
 
           Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ((static_cast<Views&>(*stage0)(i) += static_cast<const Views&>(*stage1)(i)), ...);
+            ( (static_cast<Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
           });
         }
       };
