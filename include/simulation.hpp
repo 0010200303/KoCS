@@ -225,10 +225,15 @@ namespace kocs {
 
       template<typename Force, typename... Views>
       void take_step(Force force, Views... views) {
-        EulerIntegrator tust = EulerIntegrator<decltype(make_integrator_field(views))...>(
+        // EulerIntegrator tust = EulerIntegrator<decltype(make_integrator_field(views))...>(
+        //   agent_count,
+        //   make_integrator_field(views)...
+        // );
+
+        auto tust = EulerIntegrator<decltype(make_integrator_field(views))...>{
           agent_count,
           make_integrator_field(views)...
-        );
+        };
         tust.integrate(force);
       }
 
