@@ -141,17 +141,17 @@ namespace kocs {
       }
 
       template<typename Force, typename... Views>
-      void take_step(Force force, Views... views) {
+      void take_step(double dt, Force force, Views... views) {
         auto tust = integrator::Euler<Views...>{
           agent_count,
           views...
         };
-        tust.integrate(force);
+        tust.integrate(dt, force);
       }
 
       template<typename Force>
-      void take_step(Force force) {
-        std::apply([this, force](auto&&... args) { take_step(force, args...); }, get_views());
+      void take_step(double dt, Force force) {
+        std::apply([this, dt, force](auto&&... args) { take_step(dt, force, args...); }, get_views());
       }
   };
 } // namespace kocs

@@ -11,13 +11,13 @@ namespace kocs::integrator {
     using Base<2, Views...>::Base;
 
     template<typename Force>
-    void integrate(Force force) {
+    void integrate(double dt, Force force) {
       Kokkos::parallel_for("integrate_euler", this->agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
         force(i, static_cast<Views&>(this->stage_pack[1])(i)...);
       });
 
       Kokkos::parallel_for("apply_euler", this->agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-        ( (static_cast<Views&>(this->stage_pack[0])(i) += static_cast<Views&>(this->stage_pack[1])(i)), ... );
+        ( (static_cast<Views&>(this->stage_pack[0])(i) += static_cast<Views&>(this->stage_pack[1])(i) * dt), ... );
       });
     }
   };
