@@ -231,9 +231,9 @@ namespace kocs {
             force(i, static_cast<const Views&>(stage_pack[1])(i)...);
           });
 
-          Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ( (static_cast<Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
-          });
+          // Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+            // ( (static_cast<Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
+          // });
         }
       };
 
@@ -249,7 +249,7 @@ namespace kocs {
           agent_count,
           views...
         };
-        // tust.integrate(force);
+        tust.integrate(force);
       }
 
       template<typename Force>
