@@ -25,7 +25,7 @@ int main() {
   writer.write(0, sim);
 
   auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& pos, float& mass) {
-    pos = -float(i);
+    pos = -float(i) * 2;
     pos[1] = float(i);
     pos.z() = float(i);
     mass = float(i);
