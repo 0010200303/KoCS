@@ -137,50 +137,103 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-      template<typename... Views>
-      struct EulerIntegrator : Views... {
+      // template<typename... Views>
+      // struct EulerIntegrator : Views... {
+      //   KOKKOS_INLINE_FUNCTION
+      //   EulerIntegrator(unsigned int agent_count_, Storage storage_, Views... v)
+      //     : agent_count(agent_count_), storage(storage_), Views(v)... { }
+
+      //   unsigned int agent_count;
+      //   Storage storage;
+
+      //   template<typename Force>
+      //   void integrate(Force force) {
+      //     Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+      //       force(i, static_cast<const Views&>(*this)(i)...);
+      //     });
+      //   }
+
+      //   template<typename... Originals>
+      //   void apply(Originals... originals) {
+      //     auto addd = KOKKOS_CLASS_LAMBDA(const unsigned int i, auto& original, auto& delta) {
+      //       original(i) += delta(i);
+      //     };
+
+      //     Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+      //       // ( (originals(i) += static_cast<const Views&>(*this)(i)), ... );
+      //       // storage(i)... += views(i)...;
+      //       addd(i, storage..., static_cast<const Views&>(*this)...);
+      //     });
+      //   }
+      // };
+      
+      // template<typename View>
+      // KOKKOS_INLINE_FUNCTION
+      // auto make_delta_view(const View& v) {
+      //   // using view_t = std::decay_t<View>;
+      //   // return view_t("ww", v.extents());
+      //   return Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), v);
+      // }
+
+      // template<typename... Views>
+      // auto make_delta_views(unsigned int agent_count_, Storage storage_, Views... views) {
+      //   return EulerIntegrator<decltype(make_delta_view(views))...>(
+      //     agent_count_,
+      //     storage_,
+      //     make_delta_view(views)...
+      //   );
+      // }
+
+      template<typename ViewT>
+      struct IntegratorField {
+        ViewT state;
+        ViewT delta;
+
         KOKKOS_INLINE_FUNCTION
-        EulerIntegrator(unsigned int agent_count_, Views... v)
-          : agent_count(agent_count_), Views(v)... { }
+        IntegratorField(ViewT state_, ViewT delta_) : state(state_), delta(delta_) { }
+      };
+
+      template<typename ViewT>
+      auto make_integrator_field(const ViewT& view) {
+        auto delta = Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), view);
+        return IntegratorField<ViewT>(view, delta);
+      }
+
+      template<typename... Fields>
+      struct EulerIntegrator : Fields... {
+        KOKKOS_INLINE_FUNCTION
+        EulerIntegrator(unsigned int agent_count_, Fields... fields)
+          : agent_count(agent_count_), Fields(fields)... { }
 
         unsigned int agent_count;
 
         template<typename Force>
         void integrate(Force force) {
           Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Views&>(*this)(i)...);
+            force(i, static_cast<const Fields&>(*this).delta(i)...);
           });
-        }
 
-        template<typename... Originals>
-        void apply(Originals... originals) {
+          auto addd = KOKKOS_CLASS_LAMBDA(const unsigned int i, auto& field) {
+            field.original(i) += field.delta(i);
+          };
+
           Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ( (originals(i) += static_cast<const Views&>(*this)(i)), ... );
+            // ( (originals(i) += static_cast<const Views&>(*this)(i)), ... );
+            // storage(i)... += views(i)...;
+            // addd(i, static_cast<const Fields&>(*this)...);
+
+            ( (static_cast<const Fields&>(*this).state(i) += static_cast<const Fields&>(*this).delta(i)), ... );
           });
         }
       };
 
-      template<typename View>
-      KOKKOS_INLINE_FUNCTION
-      auto make_delta_view(const View& v) {
-        // using view_t = std::decay_t<View>;
-        // return view_t("ww", v.extents());
-        return Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), v);
-      }
-
-      template<typename... Views>
-      auto make_delta_views(unsigned int agent_count_, Views... views) {
-        return EulerIntegrator<decltype(make_delta_view(views))...>(
-          agent_count_,
-          make_delta_view(views)...
-        );
-      }
-
       template<typename Force, typename... Views>
       void take_step(Force force, Views... views) {
-        EulerIntegrator tust = make_delta_views(agent_count, views...);
+        EulerIntegrator tust = EulerIntegrator<decltype(make_integrator_field(views))...>(
+          agent_count,
+          make_integrator_field(views)...
+        );
         tust.integrate(force);
-        tust.apply(views...);
       }
 
       template<typename Force>
