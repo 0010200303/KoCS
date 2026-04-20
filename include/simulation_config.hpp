@@ -3,6 +3,8 @@
 
 #include <string_view>
 
+#include "integrators/euler.hpp"
+
 namespace kocs {
   template <std::size_t N>
   struct fixed_string {
@@ -46,10 +48,13 @@ namespace kocs {
     using Scalar = float;
     static constexpr int dimensions = 3;
 
-    using Vector = kocs::VectorN<Scalar, dimensions>;
+    using Vector = VectorN<Scalar, dimensions>;
     using VectorView = Kokkos::View<Vector*>;
 
     using RandomPoolT = Kokkos::Random_XorShift64_Pool<>;
+
+    template<typename... Views>
+    using Integrator = integrator::Euler<Views...>;
 
     using Fields = FieldList<
       Field<Vector*, "positions">

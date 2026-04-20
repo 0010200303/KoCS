@@ -142,11 +142,7 @@ namespace kocs {
 
       template<typename Force, typename... Views>
       void take_step(double dt, Force force, Views... views) {
-        auto tust = integrator::Euler<Views...>{
-          agent_count,
-          views...
-        };
-        tust.integrate(dt, force);
+        Integrator<Views...>{ agent_count, views... }.integrate(dt, force);
       }
 
       template<typename Force>

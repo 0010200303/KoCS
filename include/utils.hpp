@@ -80,15 +80,11 @@ namespace kocs {
   using VectorView = Kokkos::View<Vector*>; \
   using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT;
 
-// #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-//   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-//   using Fields = typename __SIMULATION_CONFIG__::Fields; \
-//   using Storage = kocs::storage_t<Fields>; \
-//   using LocalValues = typename ValuesFromFields<Fields>::type;
-
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-  using Fields = typename __SIMULATION_CONFIG__::Fields;
+  using Fields = typename __SIMULATION_CONFIG__::Fields; \
+  template<typename... Views> \
+  using Integrator = typename __SIMULATION_CONFIG__::template Integrator<Views...>;
 
 #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
