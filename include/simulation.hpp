@@ -228,11 +228,11 @@ namespace kocs {
           const auto& stage1 = stage_pack[1];
 
           Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Views&>(stage1)(i)...);
+            force(i, static_cast<const Views&>(stage_pack[1])(i)...);
           });
 
           Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ( (static_cast<const Views&>(stage0)(i) += static_cast<const Views&>(stage1)(i)), ... );
+            ( (static_cast<const Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
           });
         }
       };
