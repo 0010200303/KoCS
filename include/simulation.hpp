@@ -249,7 +249,7 @@ namespace kocs {
           agent_count,
           views...
         };
-        tust.integrate(force);
+        // tust.integrate(force);
       }
 
       template<typename Force>
