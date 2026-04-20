@@ -199,18 +199,18 @@ namespace kocs {
         return IntegratorField<ViewT>(view, delta);
       }
 
-      template<typename... Fields>
-      struct EulerIntegrator : Fields... {
+      template<typename... FieldsTypes>
+      struct EulerIntegrator : FieldsTypes... {
         KOKKOS_INLINE_FUNCTION
-        EulerIntegrator(unsigned int agent_count_, Fields... fields)
-          : agent_count(agent_count_), Fields(fields)... { }
+        EulerIntegrator(unsigned int agent_count_, FieldsTypes... fields)
+          : agent_count(agent_count_), FieldsTypes(fields)... { }
 
         unsigned int agent_count;
 
         template<typename Force>
         void integrate(Force force) {
           Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Fields&>(*this).delta(i)...);
+            force(i, static_cast<const FieldsTypes&>(*this).delta(i)...);
           });
 
           Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
@@ -218,7 +218,7 @@ namespace kocs {
             // storage(i)... += views(i)...;
             // addd(i, static_cast<const Fields&>(*this)...);
 
-            ( (static_cast<const Fields&>(*this).state(i) += static_cast<const Fields&>(*this).delta(i)), ... );
+            ( (static_cast<const FieldsTypes&>(*this).state(i) += static_cast<const FieldsTypes&>(*this).delta(i)), ... );
           });
         }
       };
