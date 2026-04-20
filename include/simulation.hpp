@@ -213,10 +213,6 @@ namespace kocs {
             force(i, static_cast<const Fields&>(*this).delta(i)...);
           });
 
-          auto addd = KOKKOS_CLASS_LAMBDA(const unsigned int i, auto& field) {
-            field.original(i) += field.delta(i);
-          };
-
           Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
             // ( (originals(i) += static_cast<const Views&>(*this)(i)), ... );
             // storage(i)... += views(i)...;
