@@ -3,27 +3,24 @@
 
 #include <Kokkos_Core.hpp>
 
-#include "../utils.hpp"
-#include "../simulation.hpp"
+#include "base.hpp"
 
-// namespace kocs::integrators {
-//   template<typename SimulationConfig>
-//   struct Euler {
-//     EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
+namespace kocs::integrator {
+  template<typename... Views>
+  struct Euler : public Base<2, Views...> {
+    using Base<2, Views...>::Base;
 
-//     private:
-//       Simulation<SimulationConfig>& simulation;
+    template<typename Force>
+    void integrate(Force force) {
+      Kokkos::parallel_for("integrate_euler", this->agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+        force(i, static_cast<Views&>(this->stage_pack[1])(i)...);
+      });
 
-//     public:
-//       Euler(Simulation<SimulationConfig>& simulation_) : simulation(simulation_) { }
-
-//       template<typename ForceFn>
-//       void take_step(ForceFn force, const double dt = 1.0) {
-//         simulation.pair_finder.for_pair(KOKKOS_LAMBDA(const unsigned int i, const unsigned int j) {
-//           force()
-//         });
-//       }
-//   };
-// }
+      Kokkos::parallel_for("apply_euler", this->agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+        ( (static_cast<Views&>(this->stage_pack[0])(i) += static_cast<Views&>(this->stage_pack[1])(i)), ... );
+      });
+    }
+  };
+} // namespace kocs::integrator
 
 #endif // KOCS_INTEGRATORS_EULER_HPP

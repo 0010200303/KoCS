@@ -15,6 +15,8 @@
 #include "utils.hpp"
 #include "vector.hpp"
 
+#include "integrators/euler.hpp"
+
 namespace kocs {
   namespace detail {
     template<typename U>
@@ -138,108 +140,9 @@ namespace kocs {
         Kokkos::parallel_for("init", agent_count, initializer);
       }
 
-
-
-      template<typename ViewT>
-      struct IntegratorField {
-        ViewT state;
-        ViewT delta;
-
-        KOKKOS_INLINE_FUNCTION
-        IntegratorField(ViewT state_, ViewT delta_) : state(state_), delta(delta_) { }
-      };
-
-      template<typename ViewT>
-      auto make_integrator_field(const ViewT& view) {
-        auto delta = Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), view);
-        return IntegratorField<ViewT>(view, delta);
-      }
-
-      template<typename... FieldsTypes>
-      struct EulerIntegrator : FieldsTypes... {
-        KOKKOS_INLINE_FUNCTION
-        EulerIntegrator(unsigned int agent_count_, FieldsTypes... fields)
-          : agent_count(agent_count_), FieldsTypes(fields)... { }
-
-        unsigned int agent_count;
-
-        template<typename Force>
-        void integrate(Force force) {
-          Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const FieldsTypes&>(*this).delta(i)...);
-          });
-
-          // Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) mutable {
-          //   ( (static_cast<Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
-          // });
-        }
-      };
-
-
-
-      template<typename... Views>
-      struct ViewPack : Views... {
-        ViewPack() = default;
-        ViewPack(Views... views) : Views(views)... { }
-      };
-
-      template<int N, typename... Views>
-      struct StagePack {
-        static_assert(N > 0, "StagePack must contain at least one stage");
-
-        ViewPack<Views...> stages[N];
-
-        static auto make_mirror_view_pack(const ViewPack<Views...>& pack) {
-          return ViewPack<Views...>(
-            Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), static_cast<const Views&>(pack))...
-          );
-        }
-
-        StagePack(const ViewPack<Views...>& stage) {
-          stages[0] = stage;
-          for (int i = 1; i < N; ++i) {
-            stages[i] = make_mirror_view_pack(stage);
-          }
-        }
-
-        KOKKOS_INLINE_FUNCTION
-        ViewPack<Views...>& operator[](int i) {
-          return stages[i];
-        }
-
-        KOKKOS_INLINE_FUNCTION
-        const ViewPack<Views...>& operator[](int i) const {
-          return stages[i];
-        }
-      };
-
-      template<typename... Views>
-      struct HeunIntegrator {
-        KOKKOS_INLINE_FUNCTION
-        HeunIntegrator(unsigned int agent_count_, Views... views)
-          : agent_count(agent_count_), stage_pack(ViewPack<Views...>(views...)) { }
-        
-        unsigned int agent_count;
-        mutable StagePack<2, Views...> stage_pack;
-
-        template<typename Force>
-        void integrate(Force force) {
-          auto& stage0 = stage_pack[0];
-          const auto& stage1 = stage_pack[1];
-
-          Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Views&>(stage_pack[1])(i)...);
-          });
-
-          Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ( (static_cast<const Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
-          });
-        }
-      };
-
       template<typename Force, typename... Views>
       void take_step(Force force, Views... views) {
-        auto tust = HeunIntegrator<Views...>{
+        auto tust = integrator::Euler<Views...>{
           agent_count,
           views...
         };

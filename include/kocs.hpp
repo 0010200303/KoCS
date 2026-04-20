@@ -10,6 +10,7 @@
 
 #include "pair_finders/all_pairs.hpp"
 
+#include "integrators/base.hpp"
 #include "integrators/euler.hpp"
 
 #include "simulation_config.hpp"

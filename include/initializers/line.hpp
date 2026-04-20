@@ -19,6 +19,6 @@ namespace kocs::initializer {
       positions_view(i) = Vector(Scalar(i));
     }
   };
-} // namespace kocs
+} // namespace kocs::initalizer
 
 #endif // KOCS_INITIALIZERS_LINE_INIT_HPP
