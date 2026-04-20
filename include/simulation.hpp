@@ -179,15 +179,15 @@ namespace kocs {
 
       template<typename... Views>
       struct ViewPack : Views... {
+        ViewPack() = default;
         ViewPack(Views... views) : Views(views)... { }
       };
 
       template<int N, typename... Views>
       struct StagePack {
-        static_assert(N > 1, "StagePack must contain at least one stage");
+        static_assert(N > 0, "StagePack must contain at least one stage");
 
-        ViewPack<Views...> stage;
-        StagePack<N - 1, Views...> next;
+        ViewPack<Views...> stages[N];
 
         static auto make_mirror_view_pack(const ViewPack<Views...>& pack) {
           return ViewPack<Views...>(
@@ -195,19 +195,21 @@ namespace kocs {
           );
         }
 
-        KOKKOS_INLINE_FUNCTION
-        StagePack(const ViewPack<Views...>& stage_)
-          : stage(stage_)
-          , next(make_mirror_view_pack(stage_)) { }
+        StagePack(const ViewPack<Views...>& stage) {
+          stages[0] = stage;
+          for (int i = 1; i < N; ++i) {
+            stages[i] = make_mirror_view_pack(stage);
+          }
+        }
 
         KOKKOS_INLINE_FUNCTION
         ViewPack<Views...>& operator[](int i) {
-          return i == 0 ? stage : next[i - 1];
+          return stages[i];
         }
 
         KOKKOS_INLINE_FUNCTION
         const ViewPack<Views...>& operator[](int i) const {
-          return i == 0 ? stage : next[i - 1];
+          return stages[i];
         }
       };
 
@@ -222,15 +224,15 @@ namespace kocs {
 
         template<typename Force>
         void integrate(Force force) {
-          const auto& stage0 = stage_pack[0];
+          auto& stage0 = stage_pack[0];
           const auto& stage1 = stage_pack[1];
 
           Kokkos::parallel_for("integrate_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            force(i, static_cast<const Views&>(stage_pack[1])(i)...);
+            force(i, static_cast<const Views&>(stage1)(i)...);
           });
 
           Kokkos::parallel_for("apply_euler", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            ( (static_cast<const Views&>(stage_pack[0])(i) += static_cast<const Views&>(stage_pack[1])(i)), ... );
+            ( (static_cast<const Views&>(stage0)(i) += static_cast<const Views&>(stage1)(i)), ... );
           });
         }
       };
