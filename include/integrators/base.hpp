@@ -4,6 +4,8 @@
 #include <Kokkos_Core.hpp>
 
 #include "detail.hpp"
+#include "../forces/detail.hpp"
+
 #include "../pair_finders/all_pairs.hpp"
 
 namespace kocs::integrators {
@@ -16,8 +18,24 @@ namespace kocs::integrators {
     mutable detail::StagePack<N, Views...> stage_pack;
 
     template<typename Force>
-    void evaluate_force(Force force, detail::ViewPack<Views...>& view_pack) {
+    void evaluate_force_impl(Force force, detail::GenericForceTag, detail::ViewPack<Views...>& view_pack) {
+      Kokkos::parallel_for(
+        "apply_generic_force",
+        agent_count,
+        KOKKOS_LAMBDA(const unsigned int i) {
+          force(i, static_cast<const Views&>(view_pack)(i)...);
+        }
+      );
+    }
+
+    template<typename Force>
+    void evaluate_force_impl(Force force, detail::PairwiseForceTag, detail::ViewPack<Views...>& view_pack) {
       pair_finders::NaiveAllPairs(agent_count, force, view_pack);
+    }
+
+    template<typename Force>
+    void evaluate_force(Force force, detail::ViewPack<Views...>& view_pack) {
+      evaluate_force_impl(force, typename Force::tag{}, view_pack);
     }
   };
 } // namespace kocs::integrator

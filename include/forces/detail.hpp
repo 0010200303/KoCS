@@ -11,6 +11,8 @@ namespace kocs::detail {
 
     TaggedForce(Force force_) : force(force_) { }
 
+    using tag = Tag;
+
     template<typename... Args>
     KOKKOS_INLINE_FUNCTION
     void operator()(Args&&... args) const {

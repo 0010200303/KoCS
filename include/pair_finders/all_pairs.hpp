@@ -9,12 +9,19 @@ namespace kocs::pair_finders {
   template<typename Force, typename... Views>
   static void NaiveAllPairs(unsigned int agent_count, Force force, detail::ViewPack<Views...>& view_pack) {
     Kokkos::parallel_for(
-      "apply_force",
-      agent_count,
-      KOKKOS_LAMBDA(const unsigned int i) {
-        force(i, static_cast<const Views&>(view_pack)(i)...);
-      }
-    );
+      "naive_all_pairs_apply_force",
+      Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
+      KOKKOS_LAMBDA(const auto& team) {
+        const int i = team.league_rank();
+
+        Kokkos::parallel_for(
+          Kokkos::TeamThreadRange(team, agent_count),
+          [&](const int j) {
+            if (i != j) {
+              force(i, j, static_cast<const Views&>(view_pack)(i)...);
+            }
+          });
+      });
   }
 } // namespace kocs::pair_finders
 
