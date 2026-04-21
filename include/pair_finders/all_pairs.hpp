@@ -20,6 +20,9 @@ namespace kocs::pair_finders {
         Kokkos::parallel_reduce(
           Kokkos::TeamThreadRange(team_member, agent_count),
           [&](const int j, auto& local) {
+            if (i == j)
+              return;
+
             local.apply([&](auto&... values) {
               force(i, j, values...);
             });
@@ -35,25 +38,6 @@ namespace kocs::pair_finders {
             });
           }
         );
-
-
-
-        // Kokkos::parallel_for(
-        //   Kokkos::TeamThreadRange(team, agent_count),
-        //   [&](const int j) {
-        //     if (i == j)
-        //       return;
-
-        //     force(i, j, static_cast<const Views&>(view_pack)(i)...);
-        //   }
-        // );
-
-        // for (int j = 0; j < static_cast<int>(agent_count); ++j) {
-        //   if (i == j)
-        //     continue;
-
-        //   force(i, j, static_cast<const Views&>(view_pack)(i)...);
-        // }
       }
     );
   }
