@@ -4,16 +4,15 @@
 #include <Kokkos_Core.hpp>
 
 #include "base.hpp"
-#include "../pair_finders/all_pairs.hpp"
 
-namespace kocs::integrator {
+namespace kocs::integrators {
   template<typename... Views>
   struct Euler : public Base<2, Views...> {
     using Base<2, Views...>::Base;
 
     template<typename Force>
     void integrate(double dt, Force force) {
-      pair_finders::NaiveAllPairs(this->agent_count, force, this->stage_pack[1]);
+      this->evaluate_force(force, this->stage_pack[1]);
 
       Kokkos::parallel_for(
         "apply_euler",

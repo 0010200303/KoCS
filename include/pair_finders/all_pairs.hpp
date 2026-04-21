@@ -3,9 +3,11 @@
 
 #include <Kokkos_Core.hpp>
 
+#include "../integrators/detail.hpp"
+
 namespace kocs::pair_finders {
   template<typename Force, typename... Views>
-  static void NaiveAllPairs(unsigned int agent_count, Force force, detail::ViewPack<Views...> view_pack) {
+  static void NaiveAllPairs(unsigned int agent_count, Force force, detail::ViewPack<Views...>& view_pack) {
     Kokkos::parallel_for(
       "apply_force",
       agent_count,

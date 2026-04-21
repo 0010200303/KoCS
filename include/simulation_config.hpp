@@ -54,7 +54,7 @@ namespace kocs {
     using RandomPoolT = Kokkos::Random_XorShift64_Pool<>;
 
     template<typename... Views>
-    using Integrator = integrator::Euler<Views...>;
+    using Integrator = integrators::Euler<Views...>;
 
     using Fields = FieldList<
       Field<Vector*, "positions">

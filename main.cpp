@@ -28,8 +28,8 @@ int main() {
     const float stiffness = 0.25f;
     const Vector& pos = positions(i);
 
-    force = -stiffness * positions(i);
-    mass = 1.0;
+    force += -stiffness * positions(i);
+    mass += 1.0;
   };
 
   for (int i = 1; i <= 10; ++i) {
@@ -39,31 +39,3 @@ int main() {
   
   return 0;
 }
-
-
-
-// struct Storage;
-// struct LocalValues;
-// struct PairFinder;
-// struct Heun;
-
-// Storage state;
-// PairFinder pair_finder;
-// Heun heun;
-
-// template<typename ForceFn>
-// void take_step(ForceFn force, const double dt = 1.0) {
-//   Storage local_state{};
-
-//   heun_(force, dt, state, local_state);
-// }
-
-// void heun_() {
-//   pair_finder.for_each(state, local_state, force);
-
-//   euler(state, local_state, dt);
-
-//   pair_finder.for_each(state, local_state, force);
-
-//   heun(state, local_state, dt);
-// }
