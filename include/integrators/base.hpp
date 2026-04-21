@@ -11,8 +11,8 @@
 namespace kocs::integrators {
   template<const unsigned int N, typename... Views>
   struct Base {
-    Base(unsigned int agent_count, Views... views)
-      : agent_count(agent_count), stage_pack(detail::ViewPack<Views...>(views...)) { }
+    Base(unsigned int agent_count_, Views... views)
+      : agent_count(agent_count_), stage_pack(detail::ViewPack<Views...>(views...)) { }
 
     unsigned int agent_count;
     mutable detail::StagePack<N, Views...> stage_pack;
@@ -30,7 +30,7 @@ namespace kocs::integrators {
 
     template<typename Force>
     void evaluate_force_impl(Force force, detail::PairwiseForceTag, detail::ViewPack<Views...>& view_pack) {
-      pair_finders::NaiveAllPairs(agent_count, force, view_pack);
+      pair_finders::NaiveAllPairs(agent_count, detail::first(this->stage_pack[0]), force, view_pack);
     }
 
     template<typename Force>

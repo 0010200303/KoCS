@@ -8,6 +8,16 @@ namespace kocs::detail {
     ViewPack(Views... views) : Views(views)... { }
   };
 
+  template<typename FirstView, typename... RestViews>
+  KOKKOS_INLINE_FUNCTION FirstView& first(ViewPack<FirstView, RestViews...>& pack) {
+    return static_cast<FirstView&>(pack);
+  }
+
+  template<typename FirstView, typename... RestViews>
+  KOKKOS_INLINE_FUNCTION const FirstView& first(const ViewPack<FirstView, RestViews...>& pack) {
+    return static_cast<const FirstView&>(pack);
+  }
+
   template<int N, typename... Views>
   struct StagePack {
     static_assert(N > 0, "StagePack must contain at least one stage");
