@@ -17,6 +17,7 @@ namespace kocs::pair_finders {
 
         auto total = detail::make_accumulator_pack(view_pack);
 
+        // TODO: maybe you can actually have the total be references into the current view???
         Kokkos::parallel_reduce(
           Kokkos::TeamThreadRange(team_member, agent_count),
           [&](const int j, auto& local) {
