@@ -27,6 +27,15 @@ namespace kocs::pair_finders {
           total
         );
 
+        Kokkos::single(
+          Kokkos::PerTeam(team_member),
+          [&]() {
+            total.apply([&](auto&... values) {
+              ((static_cast<const Views&>(view_pack)(i) += values), ...);
+            });
+          }
+        );
+
 
 
         // Kokkos::parallel_for(

@@ -63,6 +63,12 @@ namespace kocs::detail {
       value += other.value;
       return *this;
     }
+
+    KOKKOS_INLINE_FUNCTION
+    AccumulatorSlot& operator+=(const T& other) {
+      value += other;
+      return *this;
+    }
   };
 
   template<typename... Slots>
