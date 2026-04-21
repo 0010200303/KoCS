@@ -12,6 +12,7 @@
 
 #include "vector.hpp"
 #include "simulation_config.hpp"
+#include "forces/detail.hpp"
 
 namespace kocs {
   // extract types from Fields
@@ -72,6 +73,12 @@ namespace kocs {
     };
   };
 } // namespace kocs
+
+// force macros
+#define GENERIC_FORCE kocs::detail::generic_force | KOKKOS_LAMBDA
+#define PAIRWISE_FORCE kocs::detail::pairwise_force | KOKKOS_LAMBDA
+
+
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   using Scalar = typename __SIMULATION_CONFIG__::Scalar; \

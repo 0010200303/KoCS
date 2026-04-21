@@ -33,9 +33,6 @@ namespace kocs::detail {
 
   constexpr ForceTagger<GenericForceTag> generic_force{};
   constexpr ForceTagger<PairwiseForceTag> pairwise_force{};
-
-#define GENERIC_FORCE kocs::detail::generic_force | KOKKOS_LAMBDA
-#define PAIRWISE_FORCE kocs::detail::pairwise_force | KOKKOS_LAMBDA
 } // namespace kocs::detail
 
 #endif // KOCS_FORCES_DETAIL_HPP
