@@ -16,10 +16,11 @@ namespace kocs::pair_finders {
 
         Kokkos::parallel_for(
           Kokkos::TeamThreadRange(team, agent_count),
-          [&](const int j) {
-            if (i != j) {
-              force(i, j, static_cast<const Views&>(view_pack)(i)...);
-            }
+          KOKKOS_LAMBDA(const int j) {
+            if (i == j)
+              return;
+
+            force(i, j, static_cast<const Views&>(view_pack)(i)...);
           });
       });
   }

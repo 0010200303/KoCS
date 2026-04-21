@@ -30,7 +30,14 @@ int main() {
     mass += 1.0;
   };
 
-  auto pairwise_force = PAIRWISE_FORCE(unsigned int i, unsigned int j, Vector& force, float& mass) {
+  auto pairwise_force = PAIRWISE_FORCE(
+    unsigned int i,
+    unsigned int j,
+    // const Vector& displacement,
+    // const Scalar distance,
+    Vector& force,
+    float& mass
+  ) {
     const float stiffness = 0.5f;
 
     Vector r = positions(i) - positions(j);
