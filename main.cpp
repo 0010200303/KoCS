@@ -24,7 +24,7 @@ int main() {
   Writer<SimulationConfig> writer("./output/tust");
   writer.write(0, sim);
 
-  auto tust = KOKKOS_LAMBDA(unsigned int i, Vector& force, float& mass) {
+  auto tust = GENERIC_FORCE(unsigned int i, Vector& force, float& mass) {
     const float stiffness = 0.25f;
     const Vector& pos = positions(i);
 

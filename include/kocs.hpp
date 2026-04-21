@@ -5,6 +5,9 @@
 
 #include "vector.hpp"
 
+#include "integrators/base.hpp"
+#include "forces/detail.hpp"
+
 #include "initializers/line.hpp"
 #include "initializers/spheres.hpp"
 
