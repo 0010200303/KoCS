@@ -11,7 +11,7 @@ namespace kocs::pair_finders {
     Kokkos::parallel_for(
       "naive_all_pairs_apply_force",
       Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
-      KOKKOS_LAMBDA(const auto& team) {
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
         const int i = team.league_rank();
 
         Kokkos::parallel_for(
@@ -20,7 +20,7 @@ namespace kocs::pair_finders {
             if (i == j)
               return;
 
-            // force(i, j, static_cast<const Views&>(view_pack)(i)...);
+            force(i, j, static_cast<const Views&>(view_pack)(i)...);
           });
       });
   }
