@@ -16,7 +16,7 @@ namespace kocs::pair_finders {
 
         Kokkos::parallel_for(
           Kokkos::TeamThreadRange(team, agent_count),
-          KOKKOS_LAMBDA(const int j) {
+          [&](const int j) {
             if (i == j)
               return;
 
