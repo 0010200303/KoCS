@@ -6,9 +6,9 @@
 #include "base.hpp"
 
 namespace kocs::integrators {
-  template<typename... Views>
-  struct Euler : public Base<2, Views...> {
-    using Base<2, Views...>::Base;
+  template<typename PairFinder, typename... Views>
+  struct Euler : public Base<PairFinder, 2, Views...> {
+    using Base<PairFinder, 2, Views...>::Base;
 
     template<typename Force>
     void integrate(double dt, Force force) {

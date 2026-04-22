@@ -3,7 +3,9 @@
 
 #include <string_view>
 
+#include "integrators/detail.hpp"
 #include "integrators/euler.hpp"
+#include "pair_finders/all_pairs.hpp"
 
 namespace kocs {
   template <std::size_t N>
@@ -55,6 +57,9 @@ namespace kocs {
 
     template<typename... Views>
     using Integrator = integrators::Euler<Views...>;
+
+    template<typename Force, typename... Views>
+    using PairFinder = pair_finders::NaiveAllPairs<Force, detail::first_type_t<Views...>, Views...>;
 
     using Fields = FieldList<
       Field<Vector*, "positions">

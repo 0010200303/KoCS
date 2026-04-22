@@ -91,7 +91,9 @@ namespace kocs {
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   using Fields = typename __SIMULATION_CONFIG__::Fields; \
   template<typename... Views> \
-  using Integrator = typename __SIMULATION_CONFIG__::template Integrator<Views...>;
+  using Integrator = typename __SIMULATION_CONFIG__::template Integrator<Views...>; \
+  template<typename Force, typename... Views> \
+  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinder<Force, Views...>;
 
 #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \

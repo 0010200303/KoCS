@@ -9,14 +9,26 @@ namespace kocs::detail {
   };
 
   template<typename FirstView, typename... RestViews>
-  KOKKOS_INLINE_FUNCTION FirstView& first(ViewPack<FirstView, RestViews...>& pack) {
+  KOKKOS_INLINE_FUNCTION
+  FirstView& first(ViewPack<FirstView, RestViews...>& pack) {
     return static_cast<FirstView&>(pack);
   }
 
   template<typename FirstView, typename... RestViews>
-  KOKKOS_INLINE_FUNCTION const FirstView& first(const ViewPack<FirstView, RestViews...>& pack) {
+  KOKKOS_INLINE_FUNCTION
+  const FirstView& first(const ViewPack<FirstView, RestViews...>& pack) {
     return static_cast<const FirstView&>(pack);
   }
+
+  template<typename First, typename...>
+  struct first_type {
+    using type = First;
+  };
+
+  template<typename... Views>
+  using first_type_t = typename first_type<Views...>::type;
+
+  
 
   template<int N, typename... Views>
   struct StagePack {

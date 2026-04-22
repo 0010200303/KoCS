@@ -140,7 +140,7 @@ namespace kocs {
 
       template<typename Force, typename... Views>
       void take_step(double dt, Force force, Views... views) {
-        Integrator<Views...>{ agent_count, views... }.integrate(dt, force);
+        Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... }.integrate(dt, force);
       }
 
       template<typename Force>
