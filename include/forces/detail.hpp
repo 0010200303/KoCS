@@ -99,13 +99,13 @@ namespace kocs::detail {
     }
   };
 
-  template<typename... Views>
-  KOKKOS_INLINE_FUNCTION
-  static auto make_accumulator_pack(const ViewPack<Views...>& pack) {
-    return AccumulatorPack<AccumulatorSlot<typename Views::value_type>...>(
-      AccumulatorSlot<typename Views::value_type>{}...
-    );
-  }
+  // template<typename... Views>
+  // KOKKOS_INLINE_FUNCTION
+  // static auto make_accumulator_pack(const ViewPack<Views...>& pack) {
+  //   return AccumulatorPack<AccumulatorSlot<typename Views::value_type>...>(
+  //     AccumulatorSlot<typename Views::value_type>{}...
+  //   );
+  // }
 } // namespace kocs::detail
 
 #endif // KOCS_FORCES_DETAIL_HPP
