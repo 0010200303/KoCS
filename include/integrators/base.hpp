@@ -45,8 +45,7 @@ namespace kocs::integrators {
         "www",
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
-          // force(i, static_cast<const Views&>(view_pack)(i)...);
-          Kokkos::printf("%d\n", kek.extent(0));
+          Kokkos::printf("%f\n", kek(1).x());
         }
       );
     }
