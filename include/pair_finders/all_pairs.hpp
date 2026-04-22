@@ -45,8 +45,8 @@ namespace kocs::pair_finders {
               const auto displacement = position_i - positions(j);
               const auto distance_squared = displacement.length_squared();
 
-              // if (distance_squared >= cutoff_distance_squared)
-              //   return;
+              if (distance_squared >= cutoff_distance_squared)
+                return;
 
               // local.apply([&](auto&... values) {
               //   force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
