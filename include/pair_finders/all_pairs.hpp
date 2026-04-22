@@ -36,7 +36,7 @@ namespace kocs::pair_finders {
         "apply_euler",
         a,
         KOKKOS_LAMBDA(const unsigned int i) {
-          Kokkos::printf("%d %d\n", a, kek(1).x());
+          Kokkos::printf("%f\n", kek(1).x());
       });
     }
   };
