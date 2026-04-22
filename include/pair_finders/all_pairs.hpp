@@ -12,7 +12,7 @@ namespace kocs::pair_finders {
     NaiveAllPairs(
       unsigned int agent_count_,
       float cutoff_distance,
-      PositionsView positions_,
+      PositionsView& positions_,
       detail::ViewPack<Views...>& view_pack_)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
@@ -32,7 +32,7 @@ namespace kocs::pair_finders {
         "apply_euler",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          // Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
+          Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
       });
     }
   };
