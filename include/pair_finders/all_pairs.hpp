@@ -26,24 +26,15 @@ namespace kocs::pair_finders {
 
     template<typename Force>
     void evaluate_force(Force force) {
-      Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
-
-      // Kokkos::parallel_for(
-      //   "naive_all_pairs_apply_force",
-      //   Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
-      //   KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
-      //     const int i = team_member.league_rank();
-
-      //     Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
-      //   }
-      // );
+      const auto agent_count_local = agent_count;
+      const auto positions_local = positions;
 
       Kokkos::parallel_for(
         "apply_euler",
-        this->agent_count,
+        agent_count_local,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
-      });
+          Kokkos::printf("%u %zu\n", agent_count_local, positions_local.extent(0));
+        });
     }
   };
 } // namespace kocs::pair_finders
