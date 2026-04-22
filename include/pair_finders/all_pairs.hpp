@@ -30,7 +30,7 @@ namespace kocs::pair_finders {
         "apply_euler",
         agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          Kokkos::printf("%d\n", static_cast<int>(positions.extent_int(0)));
+          Kokkos::printf("%d\n", positions.extent_int(0));
       });
     }
   };
