@@ -3,21 +3,82 @@
 
 namespace kocs::detail {
   template<typename... Views>
-  struct ViewPack : Views... {
+  struct ViewPack;
+
+  template<>
+  struct ViewPack<> {
     ViewPack() = default;
-    ViewPack(Views... views) : Views(views)... { }
+
+    template<typename F>
+    KOKKOS_INLINE_FUNCTION
+    decltype(auto) apply(F&& f) const {
+      return static_cast<F&&>(f)();
+    }
+
+    template<typename F>
+    KOKKOS_INLINE_FUNCTION
+    decltype(auto) apply(F&& f) {
+      return static_cast<F&&>(f)();
+    }
+  };
+
+  template<typename FirstView, typename... RestViews>
+  struct ViewPack<FirstView, RestViews...> : ViewPack<RestViews...> {
+    using base_type = ViewPack<RestViews...>;
+
+    FirstView first_value;
+
+    ViewPack() = default;
+
+    ViewPack(const FirstView& first, const RestViews&... rest)
+      : base_type(rest...)
+      , first_value(first) { }
+
+    ViewPack(const FirstView& first, const base_type& rest)
+      : base_type(rest)
+      , first_value(first) { }
+
+    KOKKOS_INLINE_FUNCTION
+    FirstView& first() {
+      return first_value;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    const FirstView& first() const {
+      return first_value;
+    }
+
+    template<typename F>
+    KOKKOS_INLINE_FUNCTION
+    decltype(auto) apply(F&& f) {
+      return static_cast<base_type&>(*this).apply(
+        [&](auto&... rest_values) -> decltype(auto) {
+          return static_cast<F&&>(f)(first_value, rest_values...);
+        }
+      );
+    }
+
+    template<typename F>
+    KOKKOS_INLINE_FUNCTION
+    decltype(auto) apply(F&& f) const {
+      return static_cast<const base_type&>(*this).apply(
+        [&](const auto&... rest_values) -> decltype(auto) {
+          return static_cast<F&&>(f)(first_value, rest_values...);
+        }
+      );
+    }
   };
 
   template<typename FirstView, typename... RestViews>
   KOKKOS_INLINE_FUNCTION
   FirstView& first(ViewPack<FirstView, RestViews...>& pack) {
-    return static_cast<FirstView&>(pack);
+    return pack.first();
   }
 
   template<typename FirstView, typename... RestViews>
   KOKKOS_INLINE_FUNCTION
   const FirstView& first(const ViewPack<FirstView, RestViews...>& pack) {
-    return static_cast<const FirstView&>(pack);
+    return pack.first();
   }
 
   template<typename First, typename...>
@@ -28,7 +89,11 @@ namespace kocs::detail {
   template<typename... Views>
   using first_type_t = typename first_type<Views...>::type;
 
-  
+  // template<typename... Views>
+  // KOKKOS_INLINE_FUNCTION
+  // auto make_accumulator_pack(const ViewPack<Views...>&) {
+  //   return ViewPack<typename Views::value_type...>(typename Views::value_type{}...);
+  // }
 
   template<int N, typename... Views>
   struct StagePack {
@@ -36,10 +101,24 @@ namespace kocs::detail {
 
     ViewPack<Views...> stages[N];
 
+    template<typename FirstView, typename... RestViews>
+    static auto make_mirror_view_pack_impl(const ViewPack<FirstView, RestViews...>& pack) {
+      using mirror_first_type = FirstView;
+
+      if constexpr (sizeof...(RestViews) == 0) {
+        return ViewPack<mirror_first_type>(
+          Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), pack.first())
+        );
+      } else {
+        return ViewPack<mirror_first_type, RestViews...>(
+          Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), pack.first()),
+          make_mirror_view_pack_impl(static_cast<const ViewPack<RestViews...>&>(pack))
+        );
+      }
+    }
+
     static auto make_mirror_view_pack(const ViewPack<Views...>& pack) {
-      return ViewPack<Views...>(
-        Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), static_cast<const Views&>(pack))...
-      );
+      return make_mirror_view_pack_impl(pack);
     }
 
     StagePack(const ViewPack<Views...>& stage) {

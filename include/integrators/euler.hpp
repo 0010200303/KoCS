@@ -18,10 +18,14 @@ namespace kocs::integrators {
         "apply_euler",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          ( (static_cast<Views&>(this->stage_pack[0])(i) += static_cast<Views&>(this->stage_pack[1])(i) * dt), ... );
-      });
+          this->stage_pack[0].apply([&](auto&... current_views) {
+            this->stage_pack[1].apply([&](auto&... delta_views) {
+              ((current_views(i) += delta_views(i) * dt), ...);
+            });
+          });
+        });
     }
   };
-} // namespace kocs::integrator
+} // namespace kocs::integrators
 
 #endif // KOCS_INTEGRATORS_EULER_HPP

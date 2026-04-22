@@ -45,6 +45,6 @@ namespace kocs::integrators {
       evaluate_force_impl(force, typename Force::tag{}, view_pack);
     }
   };
-} // namespace kocs::integrator
+} // namespace kocs::integrators
 
 #endif // KOCS_INTEGRATORS_BASE_HPP
