@@ -26,14 +26,17 @@ namespace kocs::pair_finders {
 
     template<typename Force>
     void evaluate_force(Force force) {
+      auto& pos = positions;
+      auto& pack = view_pack;
+
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
-        KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
+        KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
-          auto position_i = positions(i);
+          auto position_i = pos(i);
 
-          auto total = detail::make_accumulator_pack(view_pack);
+          auto total = detail::make_accumulator_pack(pack);
 
           // TODO: maybe you can actually have the total be references into the current view???
           Kokkos::parallel_reduce(
@@ -42,7 +45,7 @@ namespace kocs::pair_finders {
               if (i == j)
                 return;
 
-              const auto displacement = position_i - positions(j);
+              const auto displacement = position_i - pos(j);
               const auto distance_squared = displacement.length_squared();
 
               if (distance_squared >= cutoff_distance_squared)
@@ -59,7 +62,7 @@ namespace kocs::pair_finders {
             Kokkos::PerTeam(team_member),
             [&]() {
               total.apply([&](auto&... values) {
-                ((static_cast<const Views&>(view_pack)(i) += values), ...);
+                ((static_cast<const Views&>(pack)(i) += values), ...);
               });
             }
           );

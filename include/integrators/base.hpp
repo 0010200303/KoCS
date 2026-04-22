@@ -31,7 +31,6 @@ namespace kocs::integrators {
 
     template<typename Force>
     void evaluate_force_impl(Force force, detail::PairwiseForceTag, detail::ViewPack<Views...>& view_pack) {
-      // pair_finders::NaiveAllPairs(agent_count, detail::first(this->stage_pack[0]), force, view_pack);
       auto pair_finders = pair_finders::NaiveAllPairs(
         agent_count,
         10000.0f,
