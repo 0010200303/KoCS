@@ -48,9 +48,9 @@ namespace kocs::pair_finders {
               if (distance_squared >= cutoff_distance_squared)
                 return;
 
-              // local.apply([&](auto&... values) {
+              local.apply([&](auto&... values) {
               //   force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
-              // });
+              });
             },
             total
           );
