@@ -7,8 +7,8 @@
 - Kokkos (pulled automatically if not installed)
 
 # TODO
-- readd rng & sphere initializer
 - add general example
 - add custom integrator example
 - add custom par finder example
 - (add optimizations per PairFinder x Integrator pair where possible, disable per compiler flag)
+- benchmark if rng drops performance

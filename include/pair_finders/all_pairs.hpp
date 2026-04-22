@@ -71,8 +71,8 @@ namespace kocs::pair_finders {
       );
     }
 
-    template<typename Random, typename Force>
-    void evaluate_force_rng(Random& random_pool, Force force) {
+    template<typename RandomPool, typename Force>
+    void evaluate_force_rng(RandomPool& random_pool, Force force) {
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force_rng",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),

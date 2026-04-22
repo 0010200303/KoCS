@@ -49,9 +49,9 @@ namespace kocs::integrators {
 
 
 
-    template<typename Random, typename Force>
+    template<typename RandomPool, typename Force>
     void evaluate_force_impl_rng(
-      Random& random_pool,
+      RandomPool& random_pool,
       Force force,
       detail::GenericForceTag,
       detail::ViewPack<Views...>& view_pack
@@ -71,9 +71,9 @@ namespace kocs::integrators {
       );
     }
 
-    template<typename Force>
+    template<typename RandomPool, typename Force>
     void evaluate_force_impl_rng(
-      auto& random_pool,
+      RandomPool& random_pool,
       Force force,
       detail::PairwiseForceTag,
       detail::ViewPack<Views...>& view_pack
@@ -87,8 +87,8 @@ namespace kocs::integrators {
       pair_finders.evaluate_force_rng(random_pool, force);
     }
 
-    template<typename Force>
-    void evaluate_force_rng(auto& random_pool, Force force, detail::ViewPack<Views...>& view_pack) {
+    template<typename RandomPool, typename Force>
+    void evaluate_force_rng(RandomPool& random_pool, Force force, detail::ViewPack<Views...>& view_pack) {
       evaluate_force_impl_rng(random_pool, force, typename Force::tag{}, view_pack);
     }
   };

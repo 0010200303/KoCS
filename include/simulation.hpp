@@ -131,7 +131,13 @@ namespace kocs {
     public:
       template<typename Initializer>
       inline void init(Initializer initializer) {
-        Kokkos::parallel_for("init", agent_count, initializer);
+        Kokkos::parallel_for("init", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+          Random generator = random_pool.get_state();
+
+          initializer(i, generator);
+
+          random_pool.free_state(generator);
+        });
       }
 
       template<typename Force, typename... Views>

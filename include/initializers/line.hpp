@@ -5,7 +5,7 @@
 
 #include "../utils.hpp"
 
-namespace kocs::initializer {
+namespace kocs::initializers {
   template<typename SimulationConfig>
   struct Line {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -16,10 +16,10 @@ namespace kocs::initializer {
     Line(ViewType positions) : positions_view(positions) { }
 
     KOKKOS_INLINE_FUNCTION
-    void operator() (const unsigned int i) const {
+    void operator() (const unsigned int i, Random& generator) const {
       positions_view(i) = Vector(Scalar(i));
     }
   };
-} // namespace kocs::initalizer
+} // namespace kocs::initalizers
 
 #endif // KOCS_INITIALIZERS_LINE_INIT_HPP
