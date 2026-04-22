@@ -1,7 +1,5 @@
-#include <iostream>
-
 #include <Kokkos_Core.hpp>
-#include <cmath>
+
 #include "include/kocs.hpp"
 
 using namespace kocs;
@@ -24,10 +22,8 @@ int main() {
   Writer<SimulationConfig> writer("./output/tust");
   writer.write(0, sim);
 
-  auto generic_force = GENERIC_FORCE(unsigned int i, Vector& force, float& mass) {
-    const float stiffness = 1.0f;
-    force += -stiffness * positions(i);
-    mass += 1.0;
+  auto generic_force = GENERIC_FORCE(unsigned int i, auto& rng, Vector& force, float& mass) {
+    mass += rng.drand(-10.0, 10.0);
   };
 
   auto pairwise_force = PAIRWISE_FORCE(
@@ -35,16 +31,16 @@ int main() {
     unsigned int j,
     const Vector& displacement,
     const Scalar& distance,
+    auto& rng,
     Vector& force,
     float& mass
   ) {
-    const float stiffness = 0.5f;
-    force += displacement * (stiffness - distance) / distance;
+    force += Vector(rng.rand(-100.0, 100.0));
   };
 
   for (int i = 1; i <= 10; ++i) {
-    sim.take_step(0.01, generic_force);
-    sim.take_step(0.01, pairwise_force);
+    sim.take_step_rng(0.01, generic_force);
+    sim.take_step_rng(0.01, pairwise_force);
     writer.write(i, sim);
   }
   

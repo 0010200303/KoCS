@@ -10,10 +10,7 @@ namespace kocs::integrators {
   struct Euler : public Base<PairFinder, 2, Views...> {
     using Base<PairFinder, 2, Views...>::Base;
 
-    template<typename Force>
-    void integrate(double dt, Force force) {
-      this->evaluate_force(force, this->stage_pack[1]);
-
+    void apply_euler(double dt) {
       Kokkos::parallel_for(
         "apply_euler",
         this->agent_count,
@@ -23,7 +20,20 @@ namespace kocs::integrators {
               ((current_views(i) += delta_views(i) * dt), ...);
             });
           });
-        });
+        }
+      );
+    }
+
+    template<typename Force>
+    void integrate(double dt, Force force) {
+      this->evaluate_force(force, this->stage_pack[1]);
+      apply_euler(dt);
+    }
+
+    template<typename Force>
+    void integrate_rng(double dt, auto& random_pool, Force force) {
+      this->evaluate_force_rng(random_pool, force, this->stage_pack[1]);
+      apply_euler(dt);
     }
   };
 } // namespace kocs::integrators

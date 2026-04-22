@@ -45,6 +45,51 @@ namespace kocs::integrators {
     void evaluate_force(Force force, detail::ViewPack<Views...>& view_pack) {
       evaluate_force_impl(force, typename Force::tag{}, view_pack);
     }
+
+
+
+    template<typename Force>
+    void evaluate_force_impl_rng(
+      auto& random_pool,
+      Force force,
+      detail::GenericForceTag,
+      detail::ViewPack<Views...>& view_pack
+    ) {
+      Kokkos::parallel_for(
+        "apply_generic_force_rng",
+        agent_count,
+        KOKKOS_LAMBDA(const unsigned int i) {
+          auto generator = random_pool.get_state();
+
+          view_pack.apply([&](auto&... views) {
+            force(i, generator, views(i)...);
+          });
+
+          random_pool.free_state(generator);
+        }
+      );
+    }
+
+    template<typename Force>
+    void evaluate_force_impl_rng(
+      auto& random_pool,
+      Force force,
+      detail::PairwiseForceTag,
+      detail::ViewPack<Views...>& view_pack
+    ) {
+      auto pair_finders = pair_finders::NaiveAllPairs(
+        agent_count,
+        10000.0f,
+        detail::first(this->stage_pack[0]),
+        view_pack
+      );
+      pair_finders.evaluate_force_rng(random_pool, force);
+    }
+
+    template<typename Force>
+    void evaluate_force_rng(auto& random_pool, Force force, detail::ViewPack<Views...>& view_pack) {
+      evaluate_force_impl_rng(random_pool, force, typename Force::tag{}, view_pack);
+    }
   };
 } // namespace kocs::integrators
 
