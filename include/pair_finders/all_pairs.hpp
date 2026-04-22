@@ -37,6 +37,13 @@ namespace kocs::pair_finders {
       //     Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
       //   }
       // );
+
+      Kokkos::parallel_for(
+        "apply_euler",
+        this->agent_count,
+        KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+          Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
+      });
     }
   };
 } // namespace kocs::pair_finders
