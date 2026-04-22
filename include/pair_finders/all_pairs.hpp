@@ -31,7 +31,7 @@ namespace kocs::pair_finders {
       Kokkos::parallel_for(
         "apply_euler",
         agent_count,
-        KOKKOS_LAMBDA(const unsigned int i) {
+        KOKKOS_CLASS_LAMBDA(const unsigned int i) {
           Kokkos::printf("%f\n", positions(i).x());
       });
     }
