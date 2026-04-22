@@ -39,7 +39,7 @@ namespace kocs::integrators {
       );
       pair_finders.evaluate_force(force);
 
-      Kokkos::printf("%d\n", detail::first(this->stage_pack[0]).extent(0));
+      // Kokkos::printf("%d\n", detail::first(this->stage_pack[0]).extent(0));
     }
 
     template<typename Force>
