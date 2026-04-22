@@ -34,7 +34,6 @@ namespace kocs::integrators {
       auto pair_finders = pair_finders::NaiveAllPairs(
         agent_count,
         10000.0f,
-        detail::first(this->stage_pack[0]),
         view_pack
       );
       pair_finders.evaluate_force(force);

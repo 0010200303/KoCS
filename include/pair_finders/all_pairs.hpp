@@ -7,25 +7,24 @@
 #include "../forces/detail.hpp"
 
 namespace kocs::pair_finders {
-  template<typename PositionsView, typename... Views>
+  template<typename... Views>
   struct NaiveAllPairs {
     NaiveAllPairs(
       unsigned int agent_count_,
       float cutoff_distance,
-      PositionsView& positions_,
       detail::ViewPack<Views...>& view_pack_)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
-      , positions(positions_)
       , view_pack(view_pack_) { }
     
     unsigned int agent_count;
     float cutoff_distance_squared;
-    PositionsView positions;
     detail::ViewPack<Views...> view_pack;
 
     template<typename Force>
     void evaluate_force(Force force) {
+      auto& positions = detail::first(view_pack);
+
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
