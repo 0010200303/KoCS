@@ -22,7 +22,7 @@ int main() {
   Writer<SimulationConfig> writer("./output/tust");
   writer.write(0, sim);
 
-  auto generic_force = GENERIC_FORCE(unsigned int i, auto& rng, Vector& force, float& mass) {
+  auto generic_force = GENERIC_FORCE(unsigned int i, Random& rng, Vector& force, float& mass) {
     mass += rng.drand(-10.0, 10.0);
   };
 
