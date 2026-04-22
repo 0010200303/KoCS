@@ -31,51 +31,8 @@ namespace kocs::pair_finders {
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
-          // auto& pos = positions;
-          // auto& position_i = pos(i);
-
-          auto total = detail::make_accumulator_pack(view_pack);
 
           Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
-
-          // TODO: maybe you can actually have the total be references into the current view???
-          // Kokkos::parallel_reduce(
-          //   Kokkos::TeamThreadRange(team_member, agent_count),
-          //   [&](const int j, auto& local) {
-          //     if (i == j)
-          //       return;
-
-          //     // const auto displacement = position_i - pos(j);
-          //     // const auto distance_squared = displacement.length_squared();
-
-          //     // if (distance_squared >= cutoff_distance_squared)
-          //       // return;
-
-          //     using Vector = kocs::Vector3<float>;
-          //     Vector displacement = Vector(1, 1, 1);
-          //     float distance_squared = 1;
-
-          //     local.apply([&](auto&... values) {
-          //       force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
-          //     });
-          //   },
-          //   total
-          // );
-
-          // Kokkos::single(
-          //   Kokkos::PerTeam(team_member),
-          //   [&]() {
-          //   }
-          // );
-
-          // Kokkos::single(
-          //   Kokkos::PerTeam(team_member),
-          //   [&]() {
-          //     total.apply([&](auto&... values) {
-          //       ((static_cast<const Views&>(view_pack)(i) += values), ...);
-          //     });
-          //   }
-          // );
         }
       );
     }
