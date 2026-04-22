@@ -21,13 +21,11 @@ namespace kocs::pair_finders {
     
     unsigned int agent_count;
     float cutoff_distance_squared;
-    PositionsView& positions;
-    detail::ViewPack<Views...>& view_pack;
+    PositionsView positions;
+    detail::ViewPack<Views...> view_pack;
 
     template<typename Force>
     void evaluate_force(Force force) {
-      Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
-
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
@@ -37,6 +35,8 @@ namespace kocs::pair_finders {
           // auto& position_i = pos(i);
 
           auto total = detail::make_accumulator_pack(view_pack);
+
+          Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
 
           // TODO: maybe you can actually have the total be references into the current view???
           Kokkos::parallel_reduce(
