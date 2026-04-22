@@ -39,11 +39,11 @@ int main() {
     float& mass
   ) {
     const float stiffness = 0.5f;
-    force += displacement * (stiffness - distance) / distance;
+    force = displacement * (stiffness - distance) / distance;
   };
 
   for (int i = 1; i <= 10; ++i) {
-    sim.take_step(0.01, generic_force);
+    // sim.take_step(0.01, generic_force);
     sim.take_step(0.01, pairwise_force);
     writer.write(i, sim);
   }

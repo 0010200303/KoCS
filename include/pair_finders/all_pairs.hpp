@@ -38,7 +38,7 @@ namespace kocs::pair_finders {
           // TODO: maybe you can actually have the total be references into the current view???
           Kokkos::parallel_reduce(
             Kokkos::TeamThreadRange(team_member, agent_count),
-            [=, *this](const int j, auto& local) {
+            [&](const int j, auto& local) {
               if (i == j)
                 return;
 
@@ -57,7 +57,7 @@ namespace kocs::pair_finders {
 
           Kokkos::single(
             Kokkos::PerTeam(team_member),
-            [=, *this]() {
+            [&]() {
               total.apply([&](auto&... values) {
                 ((static_cast<const Views&>(view_pack)(i) += values), ...);
               });
