@@ -24,9 +24,9 @@ namespace kocs::integrators {
       );
     }
 
-    template<typename Force>
-    void integrate(double dt, Force force) {
-      this->evaluate_force(force, this->stage_pack[1]);
+    template<typename... Forces>
+    void integrate(double dt, Forces... forces) {
+      this->evaluate_force(this->stage_pack[1], forces...);
       apply_euler(dt);
     }
 

@@ -55,7 +55,7 @@ namespace kocs {
   using IntegratorT = kocs::detail::integrator_t<__INTEGRATOR__, Views...>;
 
 #define CONFIG_PAIR_FINDER(__PAIR_FINDER_TYPE__) \
-  template<typename Force, typename... Views> \
+  template<typename PositionsView, typename... Views> \
   using PairFinderT = kocs::detail::pair_finder_t<__PAIR_FINDER_TYPE__, Views...>;
 
 #define FIELD(__SCALAR_TYPE__, __FIELD_NAME__) \

@@ -25,8 +25,10 @@ namespace kocs::pair_finders {
     PositionsView positions;
     detail::ViewPack<Views...> view_pack;
 
-    template<typename Force>
-    void evaluate_force(Force force) {
+    template<typename... Forces>
+    void evaluate_force(Forces... forces) {
+      static_assert(sizeof...(Forces) > 0, "At least one force must be provided");
+
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
@@ -49,8 +51,9 @@ namespace kocs::pair_finders {
               if (distance_squared >= cutoff_distance_squared)
                 return;
 
+              // TODO: check this
               local.apply([&](auto&... values) {
-                force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
+                (forces(i, j, displacement, Kokkos::sqrt(distance_squared), values...), ...);
               });
             },
             total

@@ -43,8 +43,13 @@ namespace kocs::integrators {
     }
 
     template<typename Force>
-    void evaluate_force(Force force, detail::ViewPack<Views...>& view_pack) {
+    void evaluate_force_one(Force force, detail::ViewPack<Views...>& view_pack) {
       evaluate_force_impl(force, typename Force::tag{}, view_pack);
+    }
+
+    template<typename... Forces>
+    void evaluate_force(detail::ViewPack<Views...>& view_pack, Forces... forces) {
+      (evaluate_force_one(forces, view_pack), ...);
     }
 
 

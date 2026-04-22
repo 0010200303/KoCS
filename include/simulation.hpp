@@ -140,14 +140,25 @@ namespace kocs {
         });
       }
 
-      template<typename Force, typename... Views>
-      void take_step(double dt, Force force, Views... views) {
-        Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... }.integrate(dt, force);
-      }
+      // template<typename Force, typename... Views>
+      // void take_step(double dt, Force force, Views... views) {
+        // Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... }.integrate(dt, force);
+      // }
 
-      template<typename Force>
-      void take_step(double dt, Force force) {
-        std::apply([this, dt, force](auto&&... args) { take_step(dt, force, args...); }, get_views());
+      // TODO: fix this mess
+      template<typename... Forces>
+      void take_step(double dt, Forces... forces) {
+        std::apply(
+          [&](auto&&... views) {
+            auto integrator = Integrator<
+              PairFinder<Kokkos::View<Vector*>, std::decay_t<decltype(views)>...>,
+              std::decay_t<decltype(views)>...
+            >{ agent_count, views... };
+
+            integrator.integrate(dt, forces...);
+          },
+          get_views()
+        );
       }
 
       template<typename Force, typename... Views>

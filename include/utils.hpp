@@ -93,8 +93,8 @@ namespace kocs {
   using Fields = typename __SIMULATION_CONFIG__::Fields; \
   template<typename... Views> \
   using Integrator = typename __SIMULATION_CONFIG__::template IntegratorT<Views...>; \
-  template<typename Force, typename... Views> \
-  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<Force, Views...>;
+  template<typename PositionsView, typename... Views> \
+  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<PositionsView, Views...>;
 
 #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \

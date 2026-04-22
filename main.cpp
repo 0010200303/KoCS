@@ -61,7 +61,7 @@ int main() {
   };
 
   for (int i = 1; i <= 10; ++i) {
-    sim.take_step_rng(0.001, generic_force);
+    // sim.take_step_rng(0.001, generic_force);
     // sim.take_step(0.001, pairwise_force_x);
     // sim.take_step(0.001, pairwise_force_y);
     // sim.take_step(0.001, pairwise_force_z);
