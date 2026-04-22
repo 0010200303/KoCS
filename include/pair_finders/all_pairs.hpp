@@ -50,7 +50,7 @@ namespace kocs::pair_finders {
                 return;
 
               if constexpr (UseRandom) {
-                auto generator = random_pool.get_state();
+                typename RandomPool::generator_type generator = random_pool.get_state();
 
                 local.apply([&](auto&... values) {
                   force(i, j, displacement, Kokkos::sqrt(distance_squared), generator, values...);
