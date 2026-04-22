@@ -65,7 +65,7 @@ namespace kocs::pair_finders {
             [&]() {
               Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
             }
-          )
+          );
 
           // Kokkos::single(
           //   Kokkos::PerTeam(team_member),
