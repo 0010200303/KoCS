@@ -85,7 +85,8 @@ namespace kocs {
   static constexpr unsigned int dimensions = __SIMULATION_CONFIG__::dimensions; \
   using Vector = kocs::VectorN<Scalar, dimensions>; \
   using VectorView = Kokkos::View<Vector*>; \
-  using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT;
+  using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT; \
+  using Random = typename RandomPool::generator_type;
 
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \

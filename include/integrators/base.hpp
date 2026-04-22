@@ -2,6 +2,7 @@
 #define KOCS_INTEGRATORS_BASE_HPP
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
 
 #include "detail.hpp"
 #include "../forces/detail.hpp"
