@@ -7,16 +7,16 @@
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   using Fields = FieldList<
-    Field<Vector*, "positions">,
-    Field<float*, "masses">
+    Field<Vector, "positions">,
+    Field<float, "masses">
   >;
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
   Simulation<SimulationConfig> sim(16);
-  auto& positions = sim.get_view<Field<Vector*, "positions">>();
-  auto& masses = sim.get_view<Field<float*, "masses">>();
+  auto& positions = sim.get_view<Field<Vector, "positions">>();
+  auto& masses = sim.get_view<Field<float, "masses">>();
 
   initializer::Line<SimulationConfig> init(positions);
   sim.init(init);

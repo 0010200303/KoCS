@@ -23,7 +23,6 @@ namespace kocs::integrators {
         "apply_generic_force",
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
-          // force(i, static_cast<const Views&>(view_pack)(i)...);
           view_pack.apply([&](auto&... views) {
             force(i, views(i)...);
           });

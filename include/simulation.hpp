@@ -29,9 +29,9 @@ namespace kocs {
 
     template <typename T, fixed_string Name>
     struct ViewFromField<Field<T, Name>> {
-      static_assert(pointer_depth<T>::value <= 1,
-                    "Field element types must not be pointer-to-pointer or higher (depth >= 2)");
-      using type = Kokkos::View<T>;
+      static_assert(pointer_depth<T>::value == 0,
+                    "Field element types must be base types like float or Vector, not pointers");
+      using type = Kokkos::View<T*>;
     };
 
     template <typename Field>
