@@ -40,6 +40,7 @@ int main() {
   ) {
     const float stiffness = 0.5f;
     // force = displacement * (stiffness - distance) / distance;
+    force = Vector(0.0f, 0.0f, 0.0f);
   };
 
   for (int i = 1; i <= 10; ++i) {
