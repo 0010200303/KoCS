@@ -31,7 +31,8 @@ namespace kocs::pair_finders {
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
-          auto& position_i = positions(i);
+          auto& pos = positions;
+          auto& position_i = pos(i);
 
           auto total = detail::make_accumulator_pack(view_pack);
 
@@ -42,7 +43,7 @@ namespace kocs::pair_finders {
               if (i == j)
                 return;
 
-              const auto displacement = position_i - positions(j);
+              const auto displacement = position_i - pos(j);
               const auto distance_squared = displacement.length_squared();
 
               if (distance_squared >= cutoff_distance_squared)
