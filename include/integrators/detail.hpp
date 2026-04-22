@@ -7,6 +7,7 @@ namespace kocs::detail {
 
   template<>
   struct ViewPack<> {
+    KOKKOS_INLINE_FUNCTION
     ViewPack() = default;
 
     template<typename F>
