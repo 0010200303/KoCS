@@ -12,7 +12,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  Simulation<SimulationConfig> sim(16);
+  Simulation<SimulationConfig> sim(128);
   auto& positions = sim.get_view<FIELD(Vector, "positions")>();
   auto& masses = sim.get_view<FIELD(float, "masses")>();
 
@@ -22,7 +22,7 @@ int main() {
   Writer<SimulationConfig> writer("./output/tust");
   writer.write(0, sim);
 
-  auto generic_force = GENERIC_FORCE(unsigned int i, Random& rng, Vector& force, float& mass) {
+  auto generic_force = GENERIC_FORCE(unsigned int i, auto& rng, Vector& force, float& mass) {
     mass += rng.drand(-10.0, 10.0);
   };
 
@@ -31,16 +31,16 @@ int main() {
     unsigned int j,
     const Vector& displacement,
     const Scalar& distance,
-    Random& rng,
     Vector& force,
     float& mass
   ) {
-    force += Vector(rng.rand(-100.0, 100.0));
+    const float stiffness = 0.5f;
+    force += displacement * (stiffness - distance) / distance;
   };
 
   for (int i = 1; i <= 10; ++i) {
     sim.take_step_rng(0.01, generic_force);
-    sim.take_step_rng(0.01, pairwise_force);
+    sim.take_step(0.01, pairwise_force);
     writer.write(i, sim);
   }
   
