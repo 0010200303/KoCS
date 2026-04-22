@@ -33,8 +33,6 @@ namespace kocs::pair_finders {
           const int i = team_member.league_rank();
           auto& position_i = positions(i); 
 
-          // Kokkos::printf("%f\n", agent_count, positions(i).x());
-
           auto total = detail::make_accumulator_pack(view_pack);
 
           // TODO: maybe you can actually have the total be references into the current view???

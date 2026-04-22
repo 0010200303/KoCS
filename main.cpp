@@ -14,7 +14,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  Simulation<SimulationConfig> sim(2);
+  Simulation<SimulationConfig> sim(16);
   auto& positions = sim.get_view<Field<Vector*, "positions">>();
   auto& masses = sim.get_view<Field<float*, "masses">>();
 
@@ -39,8 +39,7 @@ int main() {
     float& mass
   ) {
     const float stiffness = 0.5f;
-    // force = displacement * (stiffness - distance) / distance;
-    force = displacement;
+    force += displacement * (stiffness - distance) / distance;
   };
 
   for (int i = 1; i <= 10; ++i) {
