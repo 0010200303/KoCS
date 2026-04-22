@@ -51,7 +51,7 @@ namespace kocs::pair_finders {
 
               using Vector = kocs::Vector3<float>;
               Vector displacement = Vector(1, 1, 1);
-              Vector distance_squared = Vector(1, 1, 1);
+              float distance_squared = 1;
 
               local.apply([&](auto&... values) {
                 force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
