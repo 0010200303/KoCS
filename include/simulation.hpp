@@ -24,14 +24,10 @@ namespace kocs {
 
     template <typename Field>
     struct ViewFromField {
-      using type = Kokkos::View<typename Field::type>;
-    };
-
-    template <typename T, fixed_string Name>
-    struct ViewFromField<Field<T, Name>> {
-      static_assert(pointer_depth<T>::value == 0,
-                    "Field element types must be base types like float or Vector, not pointers");
-      using type = Kokkos::View<T*>;
+      using field_type = std::remove_cv_t<typename Field::type>;
+      static_assert(pointer_depth<field_type>::value <= 1,
+                    "Field element types must not be pointer-to-pointer or higher (depth >= 2)");
+      using type = Kokkos::View<std::remove_pointer_t<field_type>*>;
     };
 
     template <typename Field>
