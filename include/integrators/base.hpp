@@ -15,8 +15,7 @@ namespace kocs::integrators {
       : agent_count(agent_count_), stage_pack(detail::ViewPack<Views...>(views...)) { }
 
     unsigned int agent_count;
-    mutable detail::StagePack<N, Views...> stage_pack;
-    // TODO: remove mutable?
+    detail::StagePack<N, Views...> stage_pack;
 
     template<typename Force>
     void evaluate_force_impl(Force force, detail::GenericForceTag, detail::ViewPack<Views...>& view_pack) {
