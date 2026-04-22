@@ -33,8 +33,8 @@ int main() {
   auto pairwise_force = PAIRWISE_FORCE(
     unsigned int i,
     unsigned int j,
-    const Vector displacement,
-    const Scalar distance,
+    const Vector& displacement,
+    const Scalar& distance,
     Vector& force,
     float& mass
   ) {
