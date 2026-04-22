@@ -26,6 +26,8 @@ namespace kocs::pair_finders {
 
     template<typename Force>
     void evaluate_force(Force force) {
+      Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
+
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
@@ -59,8 +61,6 @@ namespace kocs::pair_finders {
             },
             total
           );
-          
-          Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
 
           // Kokkos::single(
           //   Kokkos::PerTeam(team_member),
