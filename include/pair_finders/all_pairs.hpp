@@ -26,13 +26,11 @@ namespace kocs::pair_finders {
 
     template<typename Force>
     void evaluate_force(Force force) {
-      // Kokkos::printf("%f\n", kek(1).x());
-
       Kokkos::parallel_for(
         "apply_euler",
         agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          Kokkos::printf("%f\n", positions(i).x());
+          Kokkos::printf("%d\n", static_cast<int>(positions.extent_int(0)));
       });
     }
   };
