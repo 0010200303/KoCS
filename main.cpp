@@ -6,10 +6,10 @@
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
-  using Fields = FieldList<
+  CONFIG_FIELDS(
     FIELD(Vector, "positions"),
     FIELD(float, "masses")
-  >;
+  )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 

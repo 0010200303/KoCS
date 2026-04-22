@@ -74,8 +74,6 @@ namespace kocs {
   };
 } // namespace kocs
 
-#define FIELD(SCALAR_TYPE, FIELD_NAME) kocs::Field<SCALAR_TYPE, FIELD_NAME>
-
 // force macros
 #define GENERIC_FORCE kocs::detail::generic_force | KOKKOS_LAMBDA
 #define PAIRWISE_FORCE kocs::detail::pairwise_force | KOKKOS_LAMBDA
@@ -93,9 +91,9 @@ namespace kocs {
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   using Fields = typename __SIMULATION_CONFIG__::Fields; \
   template<typename... Views> \
-  using Integrator = typename __SIMULATION_CONFIG__::template Integrator<Views...>; \
+  using Integrator = typename __SIMULATION_CONFIG__::template IntegratorT<Views...>; \
   template<typename Force, typename... Views> \
-  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinder<Force, Views...>;
+  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<Force, Views...>;
 
 #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
