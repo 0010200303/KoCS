@@ -1,6 +1,8 @@
 #ifndef KOCS_PAIR_FINDERS_ALL_PAIRS_HPP
 #define KOCS_PAIR_FINDERS_ALL_PAIRS_HPP
 
+#include <type_traits>
+
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 
@@ -27,6 +29,10 @@ namespace kocs::pair_finders {
 
     template<bool UseRandom, typename RandomPool, typename Force>
     void evaluate_force_impl(RandomPool& random_pool, Force force) {
+      using Generator = int;
+      if constexpr (std::is_same_v<RandomPool, int> == false)
+        using Generator = typename RandomPool::generator_type;
+
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
@@ -49,8 +55,10 @@ namespace kocs::pair_finders {
               if (distance_squared >= cutoff_distance_squared)
                 return;
 
+              Generator generator;
               if constexpr (UseRandom) {
-                typename RandomPool::generator_type generator = random_pool.get_state();
+                // typename RandomPool::generator_type generator = random_pool.get_state();
+                generator = random_pool.get_state();
 
                 local.apply([&](auto&... values) {
                   force(i, j, displacement, Kokkos::sqrt(distance_squared), generator, values...);
