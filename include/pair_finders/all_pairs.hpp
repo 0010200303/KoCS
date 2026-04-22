@@ -12,8 +12,8 @@ namespace kocs::pair_finders {
     NaiveAllPairs(
       unsigned int agent_count_,
       float cutoff_distance,
-      PositionsView& positions_,
-      detail::ViewPack<Views...>& view_pack_)
+      PositionsView positions_,
+      detail::ViewPack<Views...> view_pack_)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
       , positions(positions_)
@@ -21,8 +21,8 @@ namespace kocs::pair_finders {
     
     unsigned int agent_count;
     float cutoff_distance_squared;
-    PositionsView& positions;
-    detail::ViewPack<Views...>& view_pack;
+    PositionsView positions;
+    detail::ViewPack<Views...> view_pack;
 
     template<typename Force>
     void evaluate_force(Force force) {
