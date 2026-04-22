@@ -49,7 +49,7 @@ namespace kocs::pair_finders {
                 return;
 
               local.apply([&](auto&... values) {
-              //   force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
+                force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
               });
             },
             total
