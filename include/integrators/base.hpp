@@ -31,23 +31,13 @@ namespace kocs::integrators {
 
     template<typename Force>
     void evaluate_force_impl(Force force, detail::PairwiseForceTag, detail::ViewPack<Views...>& view_pack) {
-      auto kek = detail::first(this->stage_pack[0]);
-
       auto pair_finders = pair_finders::NaiveAllPairs(
         agent_count,
         10000.0f,
-        kek,
+        detail::first(this->stage_pack[0]),
         view_pack
       );
       pair_finders.evaluate_force(force);
-
-      Kokkos::parallel_for(
-        "www",
-        agent_count,
-        KOKKOS_LAMBDA(const unsigned int i) {
-          Kokkos::printf("%f\n", kek(1).x());
-        }
-      );
     }
 
     template<typename Force>
