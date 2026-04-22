@@ -49,9 +49,9 @@ namespace kocs::integrators {
 
 
 
-    template<typename Force>
+    template<typename Random, typename Force>
     void evaluate_force_impl_rng(
-      auto& random_pool,
+      Random& random_pool,
       Force force,
       detail::GenericForceTag,
       detail::ViewPack<Views...>& view_pack
