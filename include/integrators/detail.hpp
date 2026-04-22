@@ -30,10 +30,12 @@ namespace kocs::detail {
 
     ViewPack() = default;
 
+    KOKKOS_INLINE_FUNCTION
     ViewPack(const FirstView& first, const RestViews&... rest)
       : base_type(rest...)
       , first_value(first) { }
 
+    KOKKOS_INLINE_FUNCTION
     ViewPack(const FirstView& first, const base_type& rest)
       : base_type(rest)
       , first_value(first) { }
