@@ -30,7 +30,7 @@ namespace kocs::pair_finders {
       auto kek = positions;
       auto a = agent_count;
 
-      Kokkos::printf("%d %d\n", agent_count, kek.extent(0));
+      Kokkos::printf("%f\n", kek(1).x());
 
       Kokkos::parallel_for(
         "apply_euler",
