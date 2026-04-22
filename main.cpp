@@ -26,7 +26,8 @@ int main() {
     mass += rng.drand(-100.0, 100.0);
   };
 
-  auto pairwise_force = PAIRWISE_FORCE(
+  const float stiffness = 0.1f;
+  auto pairwise_force_x = PAIRWISE_FORCE(
     unsigned int i,
     unsigned int j,
     const Vector& displacement,
@@ -34,13 +35,39 @@ int main() {
     Vector& force,
     float& mass
   ) {
-    const float stiffness = 0.1f;
-    force += displacement * (stiffness - distance) / distance;
+    force.x() += displacement.x() * (stiffness - distance) / distance;
+  };
+
+  auto pairwise_force_y = PAIRWISE_FORCE(
+    unsigned int i,
+    unsigned int j,
+    const Vector& displacement,
+    const Scalar& distance,
+    Vector& force,
+    float& mass
+  ) {
+    force.y() += displacement.y() * (stiffness - distance) / distance;
+  };
+
+  auto pairwise_force_z = PAIRWISE_FORCE(
+    unsigned int i,
+    unsigned int j,
+    const Vector& displacement,
+    const Scalar& distance,
+    Vector& force,
+    float& mass
+  ) {
+    force.z() += displacement.z() * (stiffness - distance) / distance;
   };
 
   for (int i = 1; i <= 10; ++i) {
     sim.take_step_rng(0.001, generic_force);
-    sim.take_step(0.001, pairwise_force);
+    // sim.take_step(0.001, pairwise_force_x);
+    // sim.take_step(0.001, pairwise_force_y);
+    // sim.take_step(0.001, pairwise_force_z);
+
+    sim.take_step(0.001, pairwise_force_x, pairwise_force_y, pairwise_force_z);
+
     writer.write(i, sim);
   }
   
