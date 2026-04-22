@@ -49,6 +49,7 @@ namespace kocs::pair_finders {
               // if (distance_squared >= cutoff_distance_squared)
                 // return;
 
+              using Vector = kocs::Vector3<float>;
               Vector displacement = Vector(1, 1, 1);
               Vector distance_squared = Vector(1, 1, 1);
 
