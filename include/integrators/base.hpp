@@ -24,7 +24,7 @@ namespace kocs::integrators {
         "apply_generic_force",
         agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          force(i, static_cast<const Views&>(view_pack)(i)...);
+          // force(i, static_cast<const Views&>(view_pack)(i)...);
 
           Kokkos::printf("%d\n", detail::first(this->stage_pack[0]).extent(0));
         }
