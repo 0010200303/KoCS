@@ -57,7 +57,7 @@ namespace kocs::pair_finders {
 
           Kokkos::single(
             Kokkos::PerTeam(team_member),
-            [&]() {
+            [=, *this]() {
               total.apply([&](auto&... values) {
                 ((static_cast<const Views&>(view_pack)(i) += values), ...);
               });
