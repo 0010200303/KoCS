@@ -23,10 +23,8 @@ namespace kocs::integrators {
       Kokkos::parallel_for(
         "apply_generic_force",
         agent_count,
-        KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          // force(i, static_cast<const Views&>(view_pack)(i)...);
-
-          Kokkos::printf("%d\n", detail::first(this->stage_pack[0]).extent(0));
+        KOKKOS_LAMBDA(const unsigned int i) {
+          force(i, static_cast<const Views&>(view_pack)(i)...);
         }
       );
     }
@@ -40,6 +38,16 @@ namespace kocs::integrators {
         view_pack
       );
       pair_finders.evaluate_force(force);
+
+      auto kek = detail::first(this->stage_pack[0]);
+      Kokkos::parallel_for(
+        "www",
+        agent_count,
+        KOKKOS_LAMBDA(const unsigned int i) {
+          // force(i, static_cast<const Views&>(view_pack)(i)...);
+          Kokkos::printf("%d\n", kek.extent(0));
+        }
+      );
     }
 
     template<typename Force>

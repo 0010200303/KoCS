@@ -43,7 +43,7 @@ int main() {
     force = displacement;
   };
 
-  sim.take_step(0.01, generic_force);
+  sim.take_step(0.01, pairwise_force);
 
   // for (int i = 1; i <= 10; ++i) {
     // // sim.take_step(0.01, generic_force);
