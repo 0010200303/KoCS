@@ -12,7 +12,8 @@ namespace kocs::initializer {
 
     VectorView positions_view;
 
-    Line(VectorView positions) : positions_view(positions) { }
+    template<typename ViewType>
+    Line(ViewType positions) : positions_view(positions) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i) const {
