@@ -29,9 +29,9 @@ namespace kocs::pair_finders {
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
-        KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
+        KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
-          auto position_i = positions(i);
+          auto& position_i = positions(i);
 
           auto total = detail::make_accumulator_pack(view_pack);
 
@@ -55,14 +55,14 @@ namespace kocs::pair_finders {
           //   total
           // );
 
-          Kokkos::single(
-            Kokkos::PerTeam(team_member),
-            [&]() {
-              total.apply([&](auto&... values) {
-                ((static_cast<const Views&>(view_pack)(i) += values), ...);
-              });
-            }
-          );
+          // Kokkos::single(
+          //   Kokkos::PerTeam(team_member),
+          //   [&]() {
+          //     total.apply([&](auto&... values) {
+          //       ((static_cast<const Views&>(view_pack)(i) += values), ...);
+          //     });
+          //   }
+          // );
         }
       );
     }
