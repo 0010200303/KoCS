@@ -25,10 +25,8 @@ namespace kocs::pair_finders {
     PositionsView positions;
     detail::ViewPack<Views...> view_pack;
 
-    template<typename... Forces>
-    void evaluate_force(Forces... forces) {
-      static_assert(sizeof...(Forces) > 0, "At least one force must be provided");
-
+    template<typename Force>
+    void evaluate_force_one(Force force) {
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
@@ -53,7 +51,7 @@ namespace kocs::pair_finders {
 
               // TODO: check this
               local.apply([&](auto&... values) {
-                (forces(i, j, displacement, Kokkos::sqrt(distance_squared), values...), ...);
+                force(i, j, displacement, Kokkos::sqrt(distance_squared), values...);
               });
             },
             total
@@ -72,6 +70,12 @@ namespace kocs::pair_finders {
           );
         }
       );
+    }
+
+    // TODO: fix this
+    template<typename... Forces>
+    void evaluate_force(Forces... forces) {
+      (evaluate_force_one(forces), ...);
     }
 
     template<typename RandomPool, typename Force>
