@@ -42,8 +42,8 @@ namespace kocs::pair_finders {
               if (i == j)
                 return;
 
-              // const auto displacement = position_i - positions(j);
-              // const auto distance_squared = displacement.length_squared();
+              const auto displacement = position_i - positions(j);
+              const auto distance_squared = displacement.length_squared();
 
               // if (distance_squared >= cutoff_distance_squared)
               //   return;
