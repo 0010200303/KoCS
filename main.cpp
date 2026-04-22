@@ -14,7 +14,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  Simulation<SimulationConfig> sim(16);
+  Simulation<SimulationConfig> sim(2);
   auto& positions = sim.get_view<Field<Vector*, "positions">>();
   auto& masses = sim.get_view<Field<float*, "masses">>();
 

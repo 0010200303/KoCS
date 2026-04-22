@@ -34,7 +34,7 @@ namespace kocs::pair_finders {
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
 
-          // Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
+          Kokkos::printf("%d %d\n", agent_count, positions.extent(0));
         }
       );
     }
