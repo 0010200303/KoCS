@@ -2,6 +2,7 @@
 #define KOCS_SIMULATION_HPP
 
 #include <array>
+#include <optional>
 #include <tuple>
 #include <string>
 #include <type_traits>
@@ -15,6 +16,11 @@
 #include "utils.hpp"
 #include "vector.hpp"
 #include "forces/kernel_fuser.hpp"
+
+#include "initializers/line.hpp"
+#include "initializers/spheres.hpp"
+
+#include "io/writer.hpp"
 
 namespace kocs {
   namespace detail {
@@ -94,16 +100,25 @@ namespace kocs {
     using Storage = typename detail::FieldStorageFromList<Fields>::type;
 
     public:
-      Simulation(const unsigned int agent_count_, const uint64_t seed = 2807)
+      // TODO: maybe better option for no writer than empty default string
+      Simulation(
+        const unsigned int agent_count_,
+        const std::string& output_path = "",
+        const uint64_t seed = 2807)
         : agent_count(agent_count_)
         , storage((get_runtime_guard(), Storage(agent_count_)))
-        , random_pool(seed) { }
+        , random_pool(seed)
+        , writer(output_path.empty() ? std::nullopt : std::optional<Writer<SimulationConfig>>(std::in_place, output_path))
+        , current_step(0) { }
 
     private:
       const unsigned int agent_count;
       Storage storage;
 
       RandomPool random_pool;
+
+      std::optional<Writer<SimulationConfig>> writer;
+      unsigned int current_step;
 
       static RuntimeGuard& get_runtime_guard() {
         static RuntimeGuard guard;
@@ -146,14 +161,30 @@ namespace kocs {
       }
     
     public:
+      inline void init_line() {
+        initializers::Line<SimulationConfig> initializer(std::get<0>(get_views()));
+        init(initializer);
+      }
+
+      inline void init_random_hollow_sphere(Scalar radius) {
+        initializers::RandomHollowSphere<SimulationConfig> initializer(std::get<0>(get_views()), radius);
+        init(initializer);
+      }
+
+      inline void init_random_filled_sphere(Scalar radius) {
+        initializers::RandomFilledSphere<SimulationConfig> initializer(std::get<0>(get_views()), radius);
+        init(initializer);
+      }
+
       template<typename Initializer>
       inline void init(Initializer initializer) {
-        Kokkos::parallel_for("init", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          Random generator = random_pool.get_state();
+        auto& random_pool_ = random_pool;
+        Kokkos::parallel_for("init", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
+          Random generator = random_pool_.get_state();
 
           initializer(i, generator);
 
-          random_pool.free_state(generator);
+          random_pool_.free_state(generator);
         });
       }
 
@@ -163,7 +194,7 @@ namespace kocs {
       // }
 
       template<typename... Forces>
-      void take_step(double dt, Forces&&... forces) {
+      inline void take_step(double dt, Forces&&... forces) {
         auto fused_forces = detail::fuse_forces(static_cast<Forces&&>(forces)...);
 
         std::apply([&](auto&&... args) {
@@ -180,6 +211,15 @@ namespace kocs {
       template<typename Force>
       void take_step_rng(double dt, Force force) {
         std::apply([this, dt, force](auto&&... args) { take_step_rng(dt, force, args...); }, get_views());
+      }
+
+      inline void write() {
+        if (!writer)
+          return;
+
+        std::apply([&](auto&&... args) {
+          writer->write(current_step++, static_cast<decltype(args)&&>(args)...);
+        }, get_views());
       }
   };
 } // namespace kocs

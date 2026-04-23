@@ -66,6 +66,7 @@ namespace kocs::detail {
     }, selected);
   }
 
+  // TODO: add more tags
   template<typename... Forces>
   auto fuse_forces(Forces&&... forces) {
     return std::make_tuple(

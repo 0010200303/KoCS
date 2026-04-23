@@ -21,19 +21,13 @@ int main() {
     force += displacement * (L_0 - distance) / distance;
   };
 
-  Simulation<DefaultSimulationConfig> sim(n_bodies);
-  auto& positions = sim.get_view<FIELD(Vector, "positions")>();
-
-  initializers::RandomHollowSphere<DefaultSimulationConfig> init(2.0, positions);
-  sim.init(init);
-
-  // writes to output/springs.h5 & output/springs.xmf
-  Writer<DefaultSimulationConfig> writer("./output/springs");
-  writer.write(0, sim); // write full simulation data
+  Simulation<DefaultSimulationConfig> sim(n_bodies, "./output/springs");
+  sim.init_random_hollow_sphere(2.0);
+  sim.write();
 
   for (int i = 1; i <= steps; ++i) {
     sim.take_step(dt, pairwise_force);
-    writer.write(i, sim);
+    sim.write();
   }
 
   return 0;

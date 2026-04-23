@@ -12,15 +12,9 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  Simulation<SimulationConfig> sim(128);
-  auto& positions = sim.get_view<FIELD(Vector, "positions")>();
-  auto& masses = sim.get_view<FIELD(float, "masses")>();
-
-  initializers::RandomHollowSphere<SimulationConfig> init(2.0, positions);
-  sim.init(init);
-
-  Writer<SimulationConfig> writer("./output/tust");
-  writer.write(0, sim);
+  Simulation<SimulationConfig> sim(128, "./output/tust");
+  sim.init_random_hollow_sphere(2.0);
+  sim.write();
 
   auto generic_force_mass = GENERIC_FORCE(unsigned int i, Vector& force, float& mass) {
     mass += 1.0;
@@ -70,8 +64,8 @@ int main() {
       generic_force_pos, generic_force_mass
     );
 
-    writer.write(i, sim);
+    sim.write();
   }
-  
+
   return 0;
 }

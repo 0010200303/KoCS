@@ -199,14 +199,15 @@ namespace kocs {
         write_xmf_grid_end();
       }
 
-      template<typename... ExtraViews>
-      void write(unsigned int step, const Simulation<SimulationConfig>& simulation, const ExtraViews&... extra_views) {
-        auto views = simulation.get_views();
-        auto _extra_views = std::tuple<const ExtraViews&...>(extra_views...);
-        auto all_views = std::tuple_cat(views, _extra_views);
+      // TODO: fix this
+      // template<typename... ExtraViews>
+      // void write(unsigned int step, const Simulation<SimulationConfig>& simulation, const ExtraViews&... extra_views) {
+      //   auto views = simulation.get_views();
+      //   auto _extra_views = std::tuple<const ExtraViews&...>(extra_views...);
+      //   auto all_views = std::tuple_cat(views, _extra_views);
 
-        std::apply([this, step](auto&&... args) { write(step, args...); }, all_views);
-      }
+      //   std::apply([this, step](auto&&... args) { write(step, args...); }, all_views);
+      // }
   };
 }
 

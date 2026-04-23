@@ -77,7 +77,7 @@ double benchmark_kernel(
   Simulation<DefaultSimulationConfig> sim(n_agents);
   auto& positions = sim.get_view<FIELD(Vector, "positions")>();
 
-  initializers::RandomHollowSphere<DefaultSimulationConfig> init(16.0, positions);
+  initializers::RandomHollowSphere<DefaultSimulationConfig> init(positions, 16.0);
   sim.init(init);
 
   Kokkos::fence();
@@ -114,7 +114,7 @@ double benchmark_split_kernel(
   Simulation<DefaultSimulationConfig> sim(n_agents);
   auto& positions = sim.get_view<FIELD(Vector, "positions")>();
 
-  initializers::RandomHollowSphere<DefaultSimulationConfig> init(16.0, positions);
+  initializers::RandomHollowSphere<DefaultSimulationConfig> init(positions, 16.0);
   sim.init(init);
 
   Kokkos::fence();
