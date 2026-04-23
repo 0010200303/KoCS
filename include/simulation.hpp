@@ -14,6 +14,7 @@
 #include "runtime_guard.hpp"
 #include "utils.hpp"
 #include "vector.hpp"
+#include "forces/kernel_fuser.hpp"
 
 namespace kocs {
   namespace detail {
@@ -127,6 +128,22 @@ namespace kocs {
       inline auto get_views() const {
         return detail::ViewsFromStorage<Fields, Storage>::get(storage);
       }
+
+    private:
+      template<typename... Forces>
+      void take_step_impl(double dt, Forces&&... forces) {
+        std::apply(
+          [&](auto&&... views) {
+            auto integrator = Integrator<
+              PairFinder<Kokkos::View<Vector*>, std::decay_t<decltype(views)>...>,
+              std::decay_t<decltype(views)>...
+            >{ agent_count, views... };
+
+            integrator.integrate(dt, static_cast<Forces&&>(forces)...);
+          },
+          get_views()
+        );
+      }
     
     public:
       template<typename Initializer>
@@ -145,20 +162,13 @@ namespace kocs {
         // Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... }.integrate(dt, force);
       // }
 
-      // TODO: fix this mess
       template<typename... Forces>
-      void take_step(double dt, Forces... forces) {
-        std::apply(
-          [&](auto&&... views) {
-            auto integrator = Integrator<
-              PairFinder<Kokkos::View<Vector*>, std::decay_t<decltype(views)>...>,
-              std::decay_t<decltype(views)>...
-            >{ agent_count, views... };
+      void take_step(double dt, Forces&&... forces) {
+        auto fused_forces = detail::fuse_forces(static_cast<Forces&&>(forces)...);
 
-            integrator.integrate(dt, forces...);
-          },
-          get_views()
-        );
+        std::apply([&](auto&&... args) {
+          take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
+        }, fused_forces);
       }
 
       template<typename Force, typename... Views>

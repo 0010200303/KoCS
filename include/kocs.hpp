@@ -7,6 +7,7 @@
 
 #include "integrators/base.hpp"
 #include "forces/detail.hpp"
+#include "forces/kernel_fuser.hpp"
 
 #include "initializers/line.hpp"
 #include "initializers/spheres.hpp"
