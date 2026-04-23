@@ -52,16 +52,16 @@ def main():
         by_machine[row["machine"]].append(row)
 
     marker_by_benchmark = {
-        "ViewOfVectors": "o",
-        "ViewOfArrays": "s",
-        "ViewOfArraysRaw": None,
-        "ViewOfScalars": "^",
+        "ControlKernel": "o",
+        "SplitKernel": "s",
+        "UserFusedKernel": "*",
+        "AutoFusedKernel": "^",
     }
     color_by_benchmark = {
-        "ViewOfVectors": "red",
-        "ViewOfArrays": "blue",
-        "ViewOfArraysRaw": "orange",
-        "ViewOfScalars": "green",
+        "ControlKernel": "red",
+        "SplitKernel": "blue",
+        "UserFusedKernel": "orange",
+        "AutoFusedKernel": "green",
     }
 
     for machine, machine_rows in by_machine.items():
@@ -79,7 +79,7 @@ def main():
                 times,
                 marker=marker_by_benchmark.get(benchmark, "o"),
                 linewidth=2,
-                linestyle="--" if benchmark == "ViewOfArraysRaw" else "-",
+                linestyle="--",
                 color=color_by_benchmark.get(benchmark, None),
                 label=benchmark,
             )
@@ -106,7 +106,7 @@ def main():
             times,
             marker=marker_by_benchmark.get(benchmark, "o"),
             linewidth=2.5,
-            linestyle="--" if benchmark == "ViewOfArraysRaw" else "-",
+            linestyle="--",
             color=color_by_benchmark.get(benchmark, None),
             alpha=0.8,
             label=f"{benchmark} (avg)",
