@@ -1,5 +1,4 @@
 #include <Kokkos_Core.hpp>
-#include <tuple>
 
 #include "include/kocs.hpp"
 
@@ -12,43 +11,39 @@ struct SimulationConfig : public DefaultSimulationConfig {
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-template <std::size_t I = 0, typename... Forces>
-KOKKOS_INLINE_FUNCTION void invoke_merged_force(
-  const std::tuple<Forces...>& forces,
-  unsigned int i,
-  unsigned int j,
-  const Vector& displacement,
-  const Scalar& distance,
-  Vector& force,
-  float& mass
-) {
-  if constexpr (I < sizeof...(Forces)) {
-    std::get<I>(forces)(i, j, displacement, distance, force, mass);
-    invoke_merged_force<I + 1>(forces, i, j, displacement, distance, force, mass);
+
+template<typename Force>
+struct Merger {
+  Merger(Force force_) : force(force_) { }
+
+  Force force;
+
+  KOKKOS_INLINE_FUNCTION
+  void operator() (
+    unsigned int i,
+    unsigned int j,
+    const Vector& displacement,
+    const Scalar& distance,
+    Vector& out_force,
+    float& mass
+  ) const {
+    this->force(i, j, displacement, distance, out_force, mass);
   }
-}
+};
 
 template<typename... Forces>
-struct MergedForce {
-  std::tuple<Forces...> forces;
-
-  KOKKOS_INLINE_FUNCTION void operator()(
+auto merge(Forces... forces) {
+  return PAIRWISE_FORCE(
     unsigned int i,
     unsigned int j,
     const Vector& displacement,
     const Scalar& distance,
     Vector& force,
     float& mass
-  ) const {
-    invoke_merged_force(forces, i, j, displacement, distance, force, mass);
-  }
-};
-
-template<typename... Forces>
-auto merge(Forces... forces) {
-  return MergedForce<Forces...>{std::make_tuple(forces...)} | detail::pairwise_force;
+  ) {
+    (forces(i, j, displacement, distance, force, mass), ...);
+  };
 }
-
 
 
 int main() {
@@ -121,7 +116,8 @@ int main() {
 
     // sim.take_step(0.001, pairwise_force_x, pairwise_force_y, pairwise_force_z);
 
-    sim.take_step(0.001, merge(pairwise_force_x, pairwise_force_y, pairwise_force_z));
+    sim.take_step(0.001, Merger(pairwise_force_x) | detail::pairwise_force);
+    // sim.take_step(0.001, Merger(pairwise_force_x, pairwise_force_y, pairwise_force_z));
 
     writer.write(i, sim);
   }
