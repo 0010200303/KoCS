@@ -214,7 +214,7 @@ int main() {
   const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
   const int steps = 100;
   const int repetitions = 10;
-  const float dt = 0.001;
+  const float dt = 0.000001;
 
   Kokkos::initialize();
   {
