@@ -11,27 +11,42 @@ struct SimulationConfig : public DefaultSimulationConfig {
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
+template<typename... Forces>
+struct Merger;
 
-template<typename Force>
-struct Merger {
-  Merger(Force force_) : force(force_) { }
+template<>
+struct Merger<> {
+  Merger() = default;
 
-  Force force;
+  template<typename... Args>
+  KOKKOS_INLINE_FUNCTION
+  void operator()(Args&&...) const { }
+};
+
+template<typename FirstForce, typename... RestForces>
+struct Merger<FirstForce, RestForces...> : Merger<RestForces...> {
+  using base_type = Merger<RestForces...>;
+
+  FirstForce force;
 
   KOKKOS_INLINE_FUNCTION
-  void operator() (
-    unsigned int i,
-    unsigned int j,
-    const Vector& displacement,
-    const Scalar& distance,
-    Vector& out_force,
-    float& mass
-  ) const {
-    this->force(i, j, displacement, distance, out_force, mass);
+  Merger() = default;
+
+  KOKKOS_INLINE_FUNCTION
+  Merger(FirstForce first, RestForces... rest)
+    : base_type(rest...)
+    , force(first) { }
+
+  template<typename... Args>
+  KOKKOS_INLINE_FUNCTION
+  void operator()(Args&&... args) const {
+    force(static_cast<Args&&>(args)...);
+    static_cast<const base_type&>(*this)(static_cast<Args&&>(args)...);
   }
 };
 
-
+template<typename... Forces>
+Merger(Forces...) -> Merger<Forces...>;
 
 int main() {
   Simulation<SimulationConfig> sim(128);
@@ -103,8 +118,8 @@ int main() {
 
     // sim.take_step(0.001, pairwise_force_x, pairwise_force_y, pairwise_force_z);
 
-    sim.take_step(0.001, Merger(pairwise_force_x) | detail::pairwise_force);
-    // sim.take_step(0.001, Merger(pairwise_force_x, pairwise_force_y, pairwise_force_z));
+    auto merged = Merger{pairwise_force_x, pairwise_force_y, pairwise_force_z};
+    sim.take_step(0.001, merged | detail::pairwise_force);
 
     writer.write(i, sim);
   }
