@@ -11,6 +11,21 @@ struct SimulationConfig : public DefaultSimulationConfig {
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
+template<typename... Forces>
+auto merge(Forces... forces) {
+  return PAIRWISE_FORCE(
+    unsigned int i,
+    unsigned int j,
+    const Vector& displacement,
+    const Scalar& distance,
+    Vector& force,
+    float& mass
+  ) {
+    (forces(i, j, displacement, distance, force, mass), ...);
+  };
+}
+
+
 int main() {
   Simulation<SimulationConfig> sim(128);
   auto& positions = sim.get_view<FIELD(Vector, "positions")>();
@@ -60,13 +75,28 @@ int main() {
     force.z() += displacement.z() * (stiffness - distance) / distance;
   };
 
+  auto pairwise_force_merged = PAIRWISE_FORCE(
+    unsigned int i,
+    unsigned int j,
+    const Vector& displacement,
+    const Scalar& distance,
+    Vector& force,
+    float& mass
+  ) {
+    pairwise_force_x(i, j, displacement, distance, force, mass);
+    pairwise_force_y(i, j, displacement, distance, force, mass);
+    pairwise_force_z(i, j, displacement, distance, force, mass);
+  };
+
   for (int i = 1; i <= 10; ++i) {
     sim.take_step_rng(0.001, generic_force);
     // sim.take_step(0.001, pairwise_force_x);
     // sim.take_step(0.001, pairwise_force_y);
     // sim.take_step(0.001, pairwise_force_z);
 
-    sim.take_step(0.001, pairwise_force_x, pairwise_force_y, pairwise_force_z);
+    // sim.take_step(0.001, pairwise_force_x, pairwise_force_y, pairwise_force_z);
+
+    sim.take_step(0.001, merge(pairwise_force_x, pairwise_force_y, pairwise_force_z));
 
     writer.write(i, sim);
   }

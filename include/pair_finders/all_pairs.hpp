@@ -78,6 +78,8 @@ namespace kocs::pair_finders {
       (evaluate_force_one(forces), ...);
     }
 
+    
+
     template<typename RandomPool, typename Force>
     void evaluate_force_rng(RandomPool& random_pool, Force force) {
       Kokkos::parallel_for(
