@@ -31,19 +31,6 @@ struct Merger {
   }
 };
 
-template<typename... Forces>
-auto merge(Forces... forces) {
-  return PAIRWISE_FORCE(
-    unsigned int i,
-    unsigned int j,
-    const Vector& displacement,
-    const Scalar& distance,
-    Vector& force,
-    float& mass
-  ) {
-    (forces(i, j, displacement, distance, force, mass), ...);
-  };
-}
 
 
 int main() {
