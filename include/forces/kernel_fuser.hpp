@@ -48,61 +48,31 @@ namespace kocs::detail {
   template<typename Tag, typename... Forces>
   KernelFuser(Tag, Forces...) -> KernelFuser<Tag, Forces...>;
 
-  template<typename Tag1, typename Tag2, typename Force>
-  auto collect_tagged_for_two_tags(Force&& force) {
-    using force_t = std::decay_t<Force>;
-
-    if constexpr (std::is_same_v<typename force_t::tag, Tag1>) {
+  template<typename Tag, typename Force>
+  auto collect_tagged_force(Force&& force) {
+    if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>) {
       using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).force)>;
-      return std::pair{
-        std::tuple<pure_force_t>(std::forward<Force>(force).force),
-        std::tuple<>{}
-      };
-    } else if constexpr (std::is_same_v<typename force_t::tag, Tag2>) {
-      using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).force)>;
-      return std::pair{
-        std::tuple<>{},
-        std::tuple<pure_force_t>(std::forward<Force>(force).force)
-      };
+      return std::tuple<pure_force_t>(std::forward<Force>(force).force);
     } else {
-      return std::pair{std::tuple<>{}, std::tuple<>{}};
+      return std::tuple<>{};
     }
   }
 
-  template<typename Tag1, typename Tag2>
-  auto partition_forces() {
-    return std::pair{std::tuple<>{}, std::tuple<>{}};
-  }
-
-  template<typename Tag1, typename Tag2, typename Force, typename... Rest>
-  auto partition_forces(Force&& force, Rest&&... rest) {
-    auto tail = partition_forces<Tag1, Tag2>(std::forward<Rest>(rest)...);
-    auto head = collect_tagged_for_two_tags<Tag1, Tag2>(std::forward<Force>(force));
-
-    return std::pair{
-      std::tuple_cat(std::move(head.first), std::move(tail.first)),
-      std::tuple_cat(std::move(head.second), std::move(tail.second))
-    };
+  template<typename Tag, typename... Forces>
+  auto fuse_forces_for_tag(Forces&&... forces) {
+    return std::apply([](auto&&... kernels) {
+      return KernelFuser<Tag, std::decay_t<decltype(kernels)>...> {
+        std::forward<decltype(kernels)>(kernels)...
+      };
+    }, std::tuple_cat(collect_tagged_force<Tag>(std::forward<Forces>(forces))...));
   }
 
   // TODO: add more tags
   template<typename... Forces>
   auto fuse_forces(Forces&&... forces) {
-    auto grouped = partition_forces<detail::GenericForceTag, detail::PairwiseForceTag>(
-      std::forward<Forces>(forces)...
-    );
-
     return std::make_tuple(
-      std::apply([](auto&&... kernels) {
-        return KernelFuser<detail::GenericForceTag, std::decay_t<decltype(kernels)>...>{
-          std::forward<decltype(kernels)>(kernels)...
-        };
-      }, std::move(grouped.first)),
-      std::apply([](auto&&... kernels) {
-        return KernelFuser<detail::PairwiseForceTag, std::decay_t<decltype(kernels)>...>{
-          std::forward<decltype(kernels)>(kernels)...
-        };
-      }, std::move(grouped.second))
+      fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)
+      // fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
     );
   }
 } // namespace kocs::detail
