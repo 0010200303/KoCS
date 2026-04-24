@@ -51,8 +51,8 @@ namespace kocs::detail {
   template<typename Tag, typename Force>
   auto collect_tagged_force(Force&& force) {
     if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>) {
-      using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).force)>;
-      return std::tuple<pure_force_t>(std::forward<Force>(force).force);
+      using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).get_force())>;
+      return std::tuple<pure_force_t>(std::forward<Force>(force).get_force());
     } else {
       return std::tuple<>{};
     }
