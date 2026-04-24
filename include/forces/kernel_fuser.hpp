@@ -15,8 +15,6 @@ namespace kocs::detail {
 
   template<typename Tag>
   struct KernelFuser<Tag> {
-    // KernelFuser() = default;
-
     using tag = Tag;
 
     template<typename... Args>
@@ -30,10 +28,6 @@ namespace kocs::detail {
 
     FirstForce force;
 
-    KOKKOS_INLINE_FUNCTION
-    KernelFuser() = default;
-
-    KOKKOS_INLINE_FUNCTION
     KernelFuser(FirstForce first, RestForces... rest)
       : base_type(std::move(rest)...), force(std::move(first)) { }
 
@@ -69,11 +63,10 @@ namespace kocs::detail {
 
   template<typename T>
   auto as_tuple_if_not_empty(T&& value) {
-    if constexpr (std::is_empty_v<std::decay_t<T>>) {
+    if constexpr (std::is_empty_v<std::decay_t<T>>)
       return std::tuple<>{};
-    } else {
+    else
       return std::tuple<std::decay_t<T>>(std::forward<T>(value));
-    }
   }
 
   // TODO: add more tags
@@ -82,13 +75,6 @@ namespace kocs::detail {
     return std::tuple_cat(
       as_tuple_if_not_empty(fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)),
       as_tuple_if_not_empty(fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...))
-    );
-  }
-
-  template<typename Tag, typename... Forces>
-  auto _fuse_forces(Forces&&... forces) {
-    return std::make_tuple(
-      fuse_forces_for_tag<Tag>(std::forward<Forces>(forces)...)
     );
   }
 } // namespace kocs::detail
