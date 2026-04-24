@@ -56,9 +56,6 @@ namespace kocs::detail {
     } else {
       return std::tuple<>{};
     }
-
-    // using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).force)>;
-    // return std::tuple<pure_force_t>(std::forward<Force>(force).force);
   }
 
   template<typename Tag, typename... Forces>
@@ -77,8 +74,7 @@ namespace kocs::detail {
   auto fuse_forces(Forces&&... forces) {
     return std::make_tuple(
       fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...),
-      fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)
-      // fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
+      fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
     );
   }
 } // namespace kocs::detail
