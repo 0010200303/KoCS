@@ -96,7 +96,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
     force += Vector(1.0, 1.0, 1.0);
   };
 
-  auto rng_kernel = KOKKOS_LAMBDA(
+  auto rng_kernel = GENERIC_FORCE(
     unsigned int i,
     // Random& rng,
     Vector& force
