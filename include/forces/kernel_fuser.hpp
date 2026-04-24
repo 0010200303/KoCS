@@ -34,8 +34,7 @@ namespace kocs::detail {
     KernelFuser() = default;
 
     KOKKOS_INLINE_FUNCTION
-    KernelFuser(FirstForce first, RestForces... rest)
-      : base_type(std::move(rest)...), force(std::move(first)) { }
+    KernelFuser(FirstForce first, RestForces... rest) : base_type(rest...), force(first) { }
 
     template<typename... Args>
     KOKKOS_INLINE_FUNCTION
@@ -50,21 +49,21 @@ namespace kocs::detail {
 
   template<typename Tag, typename Force>
   auto collect_tagged_force(Force&& force) {
-    if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>) {
-      using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).get_force())>;
-      return std::tuple<pure_force_t>(std::forward<Force>(force).get_force());
-    } else {
+    if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>)
+      return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
+    else
       return std::tuple<>{};
-    }
+
+    // return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
   }
 
   template<typename Tag, typename... Forces>
   auto fuse_forces_for_tag(Forces&&... forces) {
     auto selected = std::tuple_cat(collect_tagged_force<Tag>(std::forward<Forces>(forces))...);
 
-    return std::apply([](auto&&... kernels) {
-      return KernelFuser<Tag, std::decay_t<decltype(kernels)>...> {
-        std::forward<decltype(kernels)>(kernels)...
+    return std::apply([](auto&&... tagged_kernels) {
+      return KernelFuser<Tag, std::decay_t<decltype(tagged_kernels)>...> {
+        std::forward<decltype(tagged_kernels)>(tagged_kernels)...
       };
     }, selected);
   }

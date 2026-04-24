@@ -13,27 +13,6 @@ namespace kocs::detail {
     TaggedForce(Force force_) : force(force_) { }
 
     using tag = Tag;
-    using force_type = Force;
-
-    KOKKOS_INLINE_FUNCTION
-    decltype(auto) get_force() & {
-      return (force);
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    decltype(auto) get_force() const & {
-      return (force);
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    decltype(auto) get_force() && {
-      return static_cast<Force&&>(force);
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    decltype(auto) get_force() const && {
-      return static_cast<const Force&&>(force);
-    }
 
     template<typename... Args>
     KOKKOS_INLINE_FUNCTION
