@@ -9,6 +9,7 @@ namespace kocs::detail {
   struct TaggedForce {
     Force force;
 
+    KOKKOS_INLINE_FUNCTION
     TaggedForce(Force force_) : force(force_) { }
 
     using tag = Tag;
