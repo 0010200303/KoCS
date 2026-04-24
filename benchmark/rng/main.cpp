@@ -138,7 +138,7 @@ int main() {
     for (int agents : agent_counts)
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::RNG);
     for (int agents : agent_counts)
-      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Control;
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Control);
   }
   Kokkos::finalize();
 
