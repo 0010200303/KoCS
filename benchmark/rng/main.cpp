@@ -136,9 +136,9 @@ int main() {
     std::cout << "benchmark,agents,steps,repetitions,dt,time_per_step_ms,checksum\n";
 
     for (int agents : agent_counts)
-      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Control);
-    for (int agents : agent_counts)
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::RNG);
+    for (int agents : agent_counts)
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Control;
   }
   Kokkos::finalize();
 
