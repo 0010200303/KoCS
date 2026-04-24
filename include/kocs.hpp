@@ -20,6 +20,7 @@
 #include "simulation_config.hpp"
 #include "simulation.hpp"
 
-#include "io/writer.hpp"
+#include "io/dummy.hpp"
+#include "io/hdf5_writer.hpp"
 
 #endif // KOCS_HPP

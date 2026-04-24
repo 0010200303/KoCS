@@ -1,8 +1,6 @@
 #ifndef KOCS_SIMULATION_HPP
 #define KOCS_SIMULATION_HPP
 
-#include <array>
-#include <optional>
 #include <tuple>
 #include <string>
 #include <type_traits>
@@ -19,8 +17,6 @@
 
 #include "initializers/line.hpp"
 #include "initializers/spheres.hpp"
-
-#include "io/writer.hpp"
 
 namespace kocs {
   namespace detail {
@@ -100,15 +96,15 @@ namespace kocs {
     using Storage = typename detail::FieldStorageFromList<Fields>::type;
 
     public:
-      // TODO: maybe better option for no writer than empty default string
       Simulation(
         const unsigned int agent_count_,
-        const std::string& output_path = "",
-        const uint64_t seed = 2807)
+        const std::string& output_path,
+        const uint64_t seed = 2807
+      )
         : agent_count(agent_count_)
         , storage((get_runtime_guard(), Storage(agent_count_)))
         , random_pool(seed)
-        , writer(output_path.empty() ? std::nullopt : std::optional<Writer<SimulationConfig>>(std::in_place, output_path))
+        , writer(output_path)
         , current_step(0) { }
 
     private:
@@ -117,7 +113,7 @@ namespace kocs {
 
       RandomPool random_pool;
 
-      std::optional<Writer<SimulationConfig>> writer;
+      Writer writer;
       unsigned int current_step;
 
       static RuntimeGuard& get_runtime_guard() {
@@ -214,11 +210,8 @@ namespace kocs {
       }
 
       inline void write() {
-        if (!writer)
-          return;
-
         std::apply([&](auto&&... args) {
-          writer->write(current_step++, static_cast<decltype(args)&&>(args)...);
+          writer.write(current_step++, static_cast<decltype(args)&&>(args)...);
         }, get_views());
       }
   };

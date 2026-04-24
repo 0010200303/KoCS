@@ -6,6 +6,7 @@
 #include "integrators/detail.hpp"
 #include "integrators/euler.hpp"
 #include "pair_finders/all_pairs.hpp"
+#include "io/hdf5_writer.hpp"
 
 namespace kocs {
   namespace detail {
@@ -14,6 +15,9 @@ namespace kocs {
 
     template<template<typename...> typename PairFinderT, typename... Views>
     using pair_finder_t = PairFinderT<first_type_t<Views...>, Views...>;
+
+    template<template<typename> typename WriterT, typename SimulationConfig>
+    using writer_t = WriterT<SimulationConfig>;
   } // namespace detail
 
   template <std::size_t N>
@@ -58,6 +62,10 @@ namespace kocs {
   template<typename PositionsView, typename... Views> \
   using PairFinderT = kocs::detail::pair_finder_t<__PAIR_FINDER_TYPE__, Views...>;
 
+#define CONFIG_WRITER(__WRITER__) \
+  template<typename SimulationConfig> \
+  using WriterT = kocs::detail::writer_t<__WRITER__, SimulationConfig>;
+
 #define FIELD(__SCALAR_TYPE__, __FIELD_NAME__) \
   kocs::Field<__SCALAR_TYPE__, __FIELD_NAME__>
 
@@ -75,6 +83,8 @@ namespace kocs {
     CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
     CONFIG_INTEGRATOR(integrators::Euler)
     CONFIG_PAIR_FINDER(pair_finders::NaiveAllPairs)
+
+    CONFIG_WRITER(writers::HDF5_Writer)
 
     CONFIG_FIELDS(
       FIELD(Vector, "positions")

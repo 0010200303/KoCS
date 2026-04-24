@@ -100,7 +100,8 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation_config.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation.hpp
 
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/io/writer.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/io/dummy.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/io/hdf5_writer.hpp
 )
 
 

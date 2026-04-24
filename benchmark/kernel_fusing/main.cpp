@@ -2,8 +2,11 @@
 #include "../../include/kocs.hpp"
 
 using namespace kocs;
+struct SimulationConfig : public DefaultSimulationConfig {
+  CONFIG_WRITER(writers::Dummy)
+};
 
-EXTRACT_TYPES_FROM_SIMULATION_CONFIG(DefaultSimulationConfig)
+EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 enum class BenchmarkType { ControlKernel, SplitKernel, UserFusedKernel, AutoFusedKernel };
 
@@ -74,10 +77,10 @@ double benchmark_kernel(
     return sum;
   };
 
-  Simulation<DefaultSimulationConfig> sim(n_agents);
+  Simulation<SimulationConfig> sim(n_agents, "");
   auto& positions = sim.get_view<FIELD(Vector, "positions")>();
 
-  initializers::RandomHollowSphere<DefaultSimulationConfig> init(positions, 16.0);
+  initializers::RandomHollowSphere<SimulationConfig> init(positions, 16.0);
   sim.init(init);
 
   Kokkos::fence();
@@ -111,10 +114,10 @@ double benchmark_split_kernel(
     return sum;
   };
 
-  Simulation<DefaultSimulationConfig> sim(n_agents);
+  Simulation<SimulationConfig> sim(n_agents, "");
   auto& positions = sim.get_view<FIELD(Vector, "positions")>();
 
-  initializers::RandomHollowSphere<DefaultSimulationConfig> init(positions, 16.0);
+  initializers::RandomHollowSphere<SimulationConfig> init(positions, 16.0);
   sim.init(init);
 
   Kokkos::fence();

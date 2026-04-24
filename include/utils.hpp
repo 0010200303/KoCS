@@ -11,8 +11,6 @@
 #include <Kokkos_Random.hpp>
 
 #include "vector.hpp"
-#include "simulation_config.hpp"
-#include "forces/detail.hpp"
 
 namespace kocs {
   // extract types from Fields
@@ -94,10 +92,11 @@ namespace kocs {
   template<typename... Views> \
   using Integrator = typename __SIMULATION_CONFIG__::template IntegratorT<Views...>; \
   template<typename PositionsView, typename... Views> \
-  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<PositionsView, Views...>;
+  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<PositionsView, Views...>; \
+  using Writer = typename __SIMULATION_CONFIG__::template WriterT<__SIMULATION_CONFIG__>;
 
-#define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-  struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
-  EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__)
+// #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
+//   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
+//   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__)
 
 #endif // KOCS_UTILS_HPP

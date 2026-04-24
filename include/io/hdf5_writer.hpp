@@ -15,13 +15,13 @@
 
 #include "../utils.hpp"
 
-namespace kocs {
+namespace kocs::writers {
   template<typename SimulationConfig>
-  class Writer {
+  class HDF5_Writer {
     public:
       EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-      Writer(const std::string& path, const std::size_t flush_threshold = 65536)
+      HDF5_Writer(const std::string& path, const std::size_t flush_threshold = 65536)
         : buffer_threshold(flush_threshold) {
         std::filesystem::path _path(path);
         std::filesystem::create_directories(_path.parent_path());
@@ -31,7 +31,7 @@ namespace kocs {
         init_xmf(path);
       }
 
-      ~Writer() {
+      ~HDF5_Writer() {
         finalize_xmf();
       }
 
@@ -209,6 +209,6 @@ namespace kocs {
       //   std::apply([this, step](auto&&... args) { write(step, args...); }, all_views);
       // }
   };
-}
+} // namespace kocs::writers
 
 #endif // KOCS_IO_WRITER_HPP
