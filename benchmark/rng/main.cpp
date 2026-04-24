@@ -46,8 +46,8 @@ double benchmark_kernel(
   Kokkos::Timer timer;
 
   for (int i = 0; i < steps; ++i) {
-    sim.take_step(dt, kernel);
-    sim.take_step(dt, kernel_rng);
+    // sim.take_step(dt, kernel);
+    sim.take_step(dt, kernel, kernel_rng);
   }
 
   Kokkos::fence();
