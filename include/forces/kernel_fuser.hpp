@@ -71,8 +71,8 @@ namespace kocs::detail {
   template<typename... Forces>
   auto fuse_forces(Forces&&... forces) {
     return std::make_tuple(
-      fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)
-      // fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
+      fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...),
+      fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
     );
   }
 } // namespace kocs::detail
