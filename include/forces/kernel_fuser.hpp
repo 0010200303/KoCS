@@ -34,7 +34,7 @@ namespace kocs::detail {
     KernelFuser() = default;
 
     KOKKOS_INLINE_FUNCTION
-    KernelFuser(FirstForce first, RestForces... rest) : base_type(rest...), force(first.force) { }
+    KernelFuser(FirstForce first, RestForces... rest) : base_type(rest.force...), force(first.force) { }
 
     template<typename... Args>
     KOKKOS_INLINE_FUNCTION
