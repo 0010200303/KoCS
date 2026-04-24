@@ -1,6 +1,9 @@
 #ifndef KOCS_FORCES_DETAIL_HPP
 #define KOCS_FORCES_DETAIL_HPP
 
+#include <type_traits>
+#include <utility>
+
 namespace kocs::detail {
   struct GenericForceTag { };
   struct PairwiseForceTag { };
@@ -37,7 +40,65 @@ namespace kocs::detail {
   constexpr ForceTagger<GenericForceTag> generic_force{};
   constexpr ForceTagger<PairwiseForceTag> pairwise_force{};
 
+  template<typename T, typename = void>
+  struct HasMemberForce : std::false_type { };
 
+  template<typename T>
+  struct HasMemberForce<T, std::void_t<decltype(std::declval<T&>().force)>> : std::true_type { };
+
+  template<typename T>
+  inline constexpr bool has_member_force_v = HasMemberForce<T>::value;
+
+  template<typename T, bool = has_member_force_v<std::remove_reference_t<T>>>
+  struct ForceCallable;
+
+  template<typename T>
+  struct ForceCallable<T, true> {
+    using type = std::remove_reference_t<decltype(std::declval<std::remove_reference_t<T>&>().force)>;
+  };
+
+  template<typename T>
+  struct ForceCallable<T, false> {
+    using type = std::remove_reference_t<T>;
+  };
+
+  template<typename T>
+  using force_callable_t = typename ForceCallable<T>::type;
+
+  template<typename RandomPool>
+  using random_state_t = std::remove_reference_t<decltype(std::declval<RandomPool&>().get_state())>;
+
+  template<typename Force, typename RandomPool, typename... Args>
+  constexpr bool force_takes_rng_v = std::is_invocable_v<
+    std::add_lvalue_reference_t<const force_callable_t<Force>>,
+    unsigned int,
+    random_state_t<RandomPool>&,
+    Args...
+  >;
+
+  template<typename Force>
+  KOKKOS_INLINE_FUNCTION
+  decltype(auto) force_target(Force&& force) {
+    if constexpr (has_member_force_v<std::remove_reference_t<Force>>) {
+      return (force.force);
+    } else {
+      return (force);
+    }
+  }
+
+  template<typename Force, typename RandomPool, typename... Args>
+  KOKKOS_INLINE_FUNCTION
+  void invoke_force_with_optional_rng(Force&& force, RandomPool& random_pool, unsigned int i, Args&&... args) {
+    auto&& target = force_target(force);
+
+    if constexpr (force_takes_rng_v<Force, RandomPool, Args...>) {
+      auto generator = random_pool.get_state();
+      target(i, generator, static_cast<Args&&>(args)...);
+      random_pool.free_state(generator);
+    } else {
+      target(i, static_cast<Args&&>(args)...);
+    }
+  }
 
   template<typename T>
   struct AccumulatorSlot {

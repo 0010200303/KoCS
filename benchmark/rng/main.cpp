@@ -45,7 +45,7 @@ double benchmark_kernel(
   Kokkos::Timer timer;
 
   for (int i = 0; i < steps; ++i) {
-    sim.take_step(dt, kernel);
+    sim.take_step_rng(dt, kernel);
   }
 
   Kokkos::fence();
@@ -125,8 +125,8 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
 
 int main() {
   const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
-  const int steps = 100;
-  const int repetitions = 10;
+  const int steps = 1;
+  const int repetitions = 1;
   const float dt = 0.000001;
 
   Kokkos::initialize();

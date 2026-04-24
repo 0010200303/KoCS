@@ -3,6 +3,8 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
+#include <type_traits>
+#include <utility>
 
 #include "detail.hpp"
 #include "../forces/detail.hpp"
@@ -52,8 +54,6 @@ namespace kocs::integrators {
       (evaluate_force_one(forces, view_pack), ...);
     }
 
-
-
     template<typename Force>
     void evaluate_force_impl_single(
       Force force,
@@ -92,8 +92,6 @@ namespace kocs::integrators {
       evaluate_force_impl_single(force, typename Force::tag{}, view_pack);
     }
 
-
-
     template<typename RandomPool, typename Force>
     void evaluate_force_impl_rng(
       RandomPool& random_pool,
@@ -101,17 +99,18 @@ namespace kocs::integrators {
       detail::GenericForceTag,
       detail::ViewPack<Views...>& view_pack
     ) {
+      // if constexpr (force_takes_rng)
+      //   Kokkos::printf("RNG");
+      // else
+      //   Kokkos::printf("No RNG");
+
       Kokkos::parallel_for(
         "apply_generic_force_rng",
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
-          auto generator = random_pool.get_state();
-
           view_pack.apply([&](auto&... views) {
-            force(i, generator, views(i)...);
+            detail::invoke_force_with_optional_rng(force, random_pool, i, views(i)...);
           });
-
-          random_pool.free_state(generator);
         }
       );
     }
