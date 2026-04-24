@@ -34,7 +34,7 @@ namespace kocs::detail {
     KernelFuser() = default;
 
     KOKKOS_INLINE_FUNCTION
-    KernelFuser(FirstForce first, RestForces... rest) : base_type(rest...), force(first) { }
+    KernelFuser(FirstForce first, RestForces... rest) : base_type(rest...), force(first.force) { }
 
     template<typename... Args>
     KOKKOS_INLINE_FUNCTION
@@ -53,8 +53,6 @@ namespace kocs::detail {
       return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
     else
       return std::tuple<>{};
-
-    // return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
   }
 
   template<typename Tag, typename... Forces>
