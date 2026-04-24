@@ -40,7 +40,7 @@ namespace kocs::detail {
     KOKKOS_INLINE_FUNCTION
     void operator()(Args&&... args) const {
       force(static_cast<Args&&>(args)...);
-      // static_cast<const base_type&>(*this)(static_cast<Args&&>(args)...);
+      static_cast<const base_type&>(*this)(static_cast<Args&&>(args)...);
     }
   };
 
