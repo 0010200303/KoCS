@@ -101,7 +101,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
     Random& rng,
     Vector& force
   ) {
-    force += Vector(1.0, 1.0, 1.0);
+    force += Vector(rng.frand(0.0, 1.0), rng.frand(0.0, 1.0), rng.frand(0.0, 1.0));
   };
 
   double checksum = 0.0;
