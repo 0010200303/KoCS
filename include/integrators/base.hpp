@@ -20,21 +20,31 @@ namespace kocs::integrators {
     unsigned int agent_count;
     detail::StagePack<N, Views...> stage_pack;
 
-    template<typename Force>
-    void evaluate_force_impl(Force force, detail::GenericForceTag, detail::ViewPack<Views...>& view_pack) {
+    template<typename RandomPool, typename Force>
+    void evaluate_force_impl(
+      RandomPool& random_pool,
+      Force force,
+      detail::GenericForceTag,
+      detail::ViewPack<Views...>& view_pack
+    ) {
       Kokkos::parallel_for(
         "apply_generic_force",
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
           view_pack.apply([&](auto&... views) {
-            force(i, views(i)...);
+            detail::invoke_force_with_optional_rng(force, random_pool, i, views(i)...);
           });
         }
       );
     }
 
-    template<typename Force>
-    void evaluate_force_impl(Force force, detail::PairwiseForceTag, detail::ViewPack<Views...>& view_pack) {
+    template<typename RandomPool, typename Force>
+    void evaluate_force_impl(
+      RandomPool& random_pool,
+      Force force,
+      detail::PairwiseForceTag,
+      detail::ViewPack<Views...>& view_pack
+    ) {
       auto pair_finders = pair_finders::NaiveAllPairs(
         agent_count,
         10000.0f,
@@ -44,15 +54,19 @@ namespace kocs::integrators {
       pair_finders.evaluate_force(force);
     }
 
-    template<typename Force>
-    void evaluate_force_one(Force force, detail::ViewPack<Views...>& view_pack) {
-      evaluate_force_impl(force, typename Force::tag{}, view_pack);
+    template<typename RandomPool, typename Force>
+    void evaluate_force_one(RandomPool& random_pool, Force force, detail::ViewPack<Views...>& view_pack) {
+      evaluate_force_impl(random_pool, force, typename Force::tag{}, view_pack);
     }
 
-    template<typename... Forces>
-    void evaluate_force(detail::ViewPack<Views...>& view_pack, Forces... forces) {
-      (evaluate_force_one(forces, view_pack), ...);
+    template<typename RandomPool, typename... Forces>
+    void evaluate_force(RandomPool& random_pool, detail::ViewPack<Views...>& view_pack, Forces... forces) {
+      (evaluate_force_one(random_pool, forces, view_pack), ...);
     }
+
+
+
+
 
     template<typename Force>
     void evaluate_force_impl_single(
@@ -99,17 +113,14 @@ namespace kocs::integrators {
       detail::GenericForceTag,
       detail::ViewPack<Views...>& view_pack
     ) {
-      // if constexpr (force_takes_rng)
-      //   Kokkos::printf("RNG");
-      // else
-      //   Kokkos::printf("No RNG");
-
       Kokkos::parallel_for(
         "apply_generic_force_rng",
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
           view_pack.apply([&](auto&... views) {
-            detail::invoke_force_with_optional_rng(force, random_pool, i, views(i)...);
+            auto generator = random_pool.get_state();
+            force(i, generator, views(i)...);
+            random_pool.free_state(generator);
           });
         }
       );

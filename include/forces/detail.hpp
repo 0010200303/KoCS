@@ -40,6 +40,8 @@ namespace kocs::detail {
   constexpr ForceTagger<GenericForceTag> generic_force{};
   constexpr ForceTagger<PairwiseForceTag> pairwise_force{};
 
+
+
   template<typename T, typename = void>
   struct HasMemberForce : std::false_type { };
 
@@ -99,6 +101,8 @@ namespace kocs::detail {
       target(i, static_cast<Args&&>(args)...);
     }
   }
+
+  
 
   template<typename T>
   struct AccumulatorSlot {

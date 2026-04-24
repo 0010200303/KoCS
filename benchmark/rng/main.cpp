@@ -20,9 +20,10 @@ inline const char* benchmark_name(BenchmarkType b) {
   return "UNKNOWN";
 }
 
-template<typename Force>
+template<typename Force, typename ForceRNG>
 double benchmark_kernel(
   Force kernel,
+  ForceRNG kernel_rng,
   const int steps,
   const float dt,
   int n_agents,
@@ -45,7 +46,8 @@ double benchmark_kernel(
   Kokkos::Timer timer;
 
   for (int i = 0; i < steps; ++i) {
-    sim.take_step_rng(dt, kernel);
+    sim.take_step(dt, kernel);
+    sim.take_step(dt, kernel_rng);
   }
 
   Kokkos::fence();
@@ -54,9 +56,10 @@ double benchmark_kernel(
   return time;
 }
 
-template<typename Force>
+template<typename Force, typename ForceRNG>
 double benchmark_rng_kernel(
   Force kernel,
+  ForceRNG kernel_rng,
   const int steps,
   const float dt,
   int n_agents,
@@ -79,7 +82,8 @@ double benchmark_rng_kernel(
   Kokkos::Timer timer;
 
   for (int i = 0; i < steps; ++i) {
-    sim.take_step_rng(dt, kernel);
+    sim.take_step_single(dt, kernel);
+    sim.take_step_rng(dt, kernel_rng);
   }
 
   Kokkos::fence();
@@ -89,7 +93,7 @@ double benchmark_rng_kernel(
 }
 
 void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, BenchmarkType bench) {
-  auto control_kernel = GENERIC_FORCE(
+  auto kernel = GENERIC_FORCE(
     unsigned int i,
     Vector& force
   ) {
@@ -108,9 +112,9 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
   double total_time = 0.0;
   for (int i = 0; i < n_reps; ++i) {
     if (bench == BenchmarkType::Control) {
-      total_time += benchmark_kernel(control_kernel, n_steps, dt_in, n_agents, checksum);
+      total_time += benchmark_kernel(kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
     } else if (bench == BenchmarkType::RNG) {
-      total_time += benchmark_rng_kernel(rng_kernel, n_steps, dt_in, n_agents, checksum);
+      total_time += benchmark_rng_kernel(kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
     }
   }
   double avg = total_time / static_cast<double>(n_reps);

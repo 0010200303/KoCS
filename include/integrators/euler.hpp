@@ -24,9 +24,9 @@ namespace kocs::integrators {
       );
     }
 
-    template<typename... Forces>
-    void integrate(double dt, Forces... forces) {
-      this->evaluate_force(this->stage_pack[1], forces...);
+    template<typename RandomPool, typename... Forces>
+    void integrate(double dt, RandomPool& random_pool, Forces... forces) {
+      this->evaluate_force(random_pool, this->stage_pack[1], forces...);
       apply_euler(dt);
     }
 

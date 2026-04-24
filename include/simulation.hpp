@@ -150,7 +150,7 @@ namespace kocs {
               std::decay_t<decltype(views)>...
             >{ agent_count, views... };
 
-            integrator.integrate(dt, static_cast<Forces&&>(forces)...);
+            integrator.integrate(dt, random_pool, static_cast<Forces&&>(forces)...);
           },
           get_views()
         );
