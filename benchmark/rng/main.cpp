@@ -45,7 +45,7 @@ double benchmark_kernel(
   Kokkos::Timer timer;
 
   for (int i = 0; i < steps; ++i) {
-    sim.take_step_single(dt, kernel);
+    sim.take_step(dt, kernel);
   }
 
   Kokkos::fence();
@@ -79,7 +79,7 @@ double benchmark_rng_kernel(
   Kokkos::Timer timer;
 
   for (int i = 0; i < steps; ++i) {
-    sim.take_step_rng(dt, kernel);
+    sim.take_step_single(dt, kernel);
   }
 
   Kokkos::fence();
@@ -98,7 +98,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
 
   auto rng_kernel = GENERIC_FORCE(
     unsigned int i,
-    Random& rng,
+    // Random& rng,
     Vector& force
   ) {
     force += Vector(1.0, 1.0, 1.0);
