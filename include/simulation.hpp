@@ -202,10 +202,10 @@ namespace kocs {
 
       template<typename Force, typename... Views>
       void take_step_single(double dt, Force force, Views... views) {
-        auto fused_force = detail::fuse_forces(static_cast<Force&&>(force));
+        // auto fused_force = detail::fuse_forces(static_cast<Force&&>(force));
 
         auto integrator = Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... };
-        integrator.integrate_single(dt, std::get<0>(fused_force));
+        integrator.integrate_single(dt, std::get<0>(force));
       }
 
       template<typename Force>
