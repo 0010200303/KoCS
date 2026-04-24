@@ -77,6 +77,19 @@ namespace kocs::detail {
     }, selected);
   }
 
+  // template<typename Tag, typename... Forces>
+  // auto fuse_forces_for_tag(Forces&&... forces) {
+  //   return std::apply([](auto&&... kernels) {
+  //     return KernelFuser<Tag, std::decay_t<decltype(kernels)>...>{
+  //       std::forward<decltype(kernels)>(kernels)...
+  //     };
+  //   }, std::tuple_cat(
+  //     (std::is_same_v<typename std::decay_t<Forces>::tag, Tag>
+  //       ? std::tuple{std::forward<Forces>(forces)}
+  //       : std::tuple<>{})...
+  //   ));
+  // }
+
   // TODO: add more tags
   template<typename... Forces>
   auto fuse_forces(Forces&&... forces) {
