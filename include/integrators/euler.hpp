@@ -30,6 +30,12 @@ namespace kocs::integrators {
       apply_euler(dt);
     }
 
+    template<typename Force>
+    void integrate_single(double dt, Force force) {
+      this->evaluate_force_single(force, this->stage_pack[1]);
+      apply_euler(dt);
+    }
+
     template<typename RandomPool, typename Force>
     void integrate_rng(double dt, RandomPool& random_pool, Force force) {
       this->evaluate_force_rng(random_pool, force, this->stage_pack[1]);

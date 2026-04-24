@@ -54,6 +54,46 @@ namespace kocs::integrators {
 
 
 
+    template<typename Force>
+    void evaluate_force_impl_single(
+      Force force,
+      detail::GenericForceTag,
+      detail::ViewPack<Views...>& view_pack
+    ) {
+      Kokkos::parallel_for(
+        "apply_generic_force_single",
+        agent_count,
+        KOKKOS_LAMBDA(const unsigned int i) {
+          view_pack.apply([&](auto&... views) {
+            force(i, views(i)...);
+          });
+        }
+      );
+    }
+
+    template<typename RandomPool, typename Force>
+    void evaluate_force_impl_single(
+      RandomPool& random_pool,
+      Force force,
+      detail::PairwiseForceTag,
+      detail::ViewPack<Views...>& view_pack
+    ) {
+      auto pair_finders = pair_finders::NaiveAllPairs(
+        agent_count,
+        10000.0f,
+        detail::first(this->stage_pack[0]),
+        view_pack
+      );
+      pair_finders.evaluate_force_single(force);
+    }
+
+    template<typename Force>
+    void evaluate_force_single(Force force, detail::ViewPack<Views...>& view_pack) {
+      evaluate_force_impl_single(force, typename Force::tag{}, view_pack);
+    }
+
+
+
     template<typename RandomPool, typename Force>
     void evaluate_force_impl_rng(
       RandomPool& random_pool,

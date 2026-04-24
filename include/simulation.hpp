@@ -199,6 +199,17 @@ namespace kocs {
       }
 
       template<typename Force, typename... Views>
+      void take_step_single(double dt, Force force, Views... views) {
+        auto integrator = Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... };
+        integrator.integrate_single(dt, force);
+      }
+
+      template<typename Force>
+      void take_step_single(double dt, Force force) {
+        std::apply([this, dt, force](auto&&... args) { take_step_single(dt, force, args...); }, get_views());
+      }
+
+      template<typename Force, typename... Views>
       void take_step_rng(double dt, Force force, Views... views) {
         auto integrator = Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... };
         integrator.integrate_rng(dt, random_pool, force);
