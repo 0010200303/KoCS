@@ -191,7 +191,7 @@ namespace kocs {
 
       template<typename... Forces>
       inline void take_step(double dt, Forces&&... forces) {
-        auto fused_forces = detail::_fuse_forces<detail::GenericForceTag>(static_cast<Forces&&>(forces)...);
+        auto fused_forces = detail::fuse_forces(static_cast<Forces&&>(forces)...);
 
         std::apply([&](auto&&... args) {
           take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
@@ -202,8 +202,6 @@ namespace kocs {
 
       template<typename Force, typename... Views>
       void take_step_single(double dt, Force force, Views... views) {
-        // auto fused_force = detail::fuse_forces(static_cast<Force&&>(force));
-
         auto integrator = Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... };
         integrator.integrate_single(dt, force);
       }
