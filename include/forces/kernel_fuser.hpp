@@ -64,7 +64,7 @@ namespace kocs::detail {
       return KernelFuser<Tag, std::decay_t<decltype(kernels)>...> {
         std::forward<decltype(kernels)>(kernels)...
       };
-    }, collect_tagged_force<Tag>(std::forward<Forces>(forces))...);
+    }, std::tuple_cat(collect_tagged_force<Tag>(std::forward<Forces>(forces))...));
   }
 
   // TODO: add more tags

@@ -194,7 +194,19 @@ namespace kocs {
         auto fused_forces = detail::fuse_forces(static_cast<Forces&&>(forces)...);
 
         std::apply([&](auto&&... args) {
-          take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
+          // take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
+
+          std::apply(
+            [&](auto&&... views) {
+              auto integrator = Integrator<
+                PairFinder<Kokkos::View<Vector*>, std::decay_t<decltype(views)>...>,
+                std::decay_t<decltype(views)>...
+              >{ agent_count, views... };
+
+              integrator.integrate(dt, static_cast<std::decay_t<decltype(args)>&&>(args)...);
+            },
+            get_views()
+          );
         }, fused_forces);
       }
 
