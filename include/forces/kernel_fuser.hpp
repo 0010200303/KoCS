@@ -49,12 +49,12 @@ namespace kocs::detail {
 
   template<typename Tag, typename Force>
   auto collect_tagged_force(Force&& force) {
-    // if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>)
-      // return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
-    // else
-      // return std::tuple<>{};
+    if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>)
+      return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
+    else
+      return std::tuple<>{};
 
-    return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
+    // return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
   }
 
   template<typename Tag, typename... Forces>
@@ -72,8 +72,8 @@ namespace kocs::detail {
   template<typename... Forces>
   auto fuse_forces(Forces&&... forces) {
     return std::make_tuple(
-      fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)
-      // fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
+      fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...),
+      fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
     );
   }
 } // namespace kocs::detail
