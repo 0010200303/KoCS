@@ -191,11 +191,16 @@ namespace kocs {
 
       template<typename... Forces>
       inline void take_step(double dt, Forces&&... forces) {
-        auto fused_forces = detail::_fuse_forces<detail::GenericForceTag>(static_cast<Forces&&>(forces)...);
+        auto fused_generics = detail::_fuse_forces<detail::GenericForceTag>(static_cast<Forces&&>(forces)...);
+        auto fused_pairwises = detail::_fuse_forces<detail::PairwiseForceTag>(static_cast<Forces&&>(forces)...);
 
         std::apply([&](auto&&... args) {
           take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
-        }, fused_forces);
+        }, fused_generics);
+
+        std::apply([&](auto&&... args) {
+          take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
+        }, fused_pairwises);
       }
 
 
