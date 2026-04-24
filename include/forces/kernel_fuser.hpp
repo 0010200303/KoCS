@@ -60,13 +60,11 @@ namespace kocs::detail {
 
   template<typename Tag, typename... Forces>
   auto fuse_forces_for_tag(Forces&&... forces) {
-    // auto selected = std::tuple_cat(collect_tagged_force<Tag>(std::forward<Forces>(forces))...);
-
     return std::apply([](auto&&... kernels) {
       return KernelFuser<Tag, std::decay_t<decltype(kernels)>...> {
         std::forward<decltype(kernels)>(kernels)...
       };
-    }, std::tuple_cat(collect_tagged_force<Tag>(std::forward<Forces>(forces))...));
+    }, collect_tagged_force<Tag>(std::forward<Forces>(forces))...);
   }
 
   // TODO: add more tags
