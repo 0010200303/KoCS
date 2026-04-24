@@ -80,6 +80,7 @@ double benchmark_rng_kernel(
 
   for (int i = 0; i < steps; ++i) {
     sim.take_step(dt, kernel);
+    Kokkos::fence();
   }
 
   Kokkos::fence();
@@ -127,7 +128,7 @@ int main() {
   const std::vector<int> agent_counts = {65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608};
   const int steps = 100;
   const int repetitions = 10;
-  const float dt = 0.000000001;
+  const float dt = 0.000001;
 
   Kokkos::initialize();
   {
