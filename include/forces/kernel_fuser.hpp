@@ -15,7 +15,8 @@ namespace kocs::detail {
 
   template<typename Tag>
   struct KernelFuser<Tag> {
-    // KernelFuser() = default;
+    KOKKOS_INLINE_FUNCTION
+    KernelFuser() = default;
 
     using tag = Tag;
 
