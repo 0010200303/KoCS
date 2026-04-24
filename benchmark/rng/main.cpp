@@ -124,7 +124,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
 }
 
 int main() {
-  const std::vector<int> agent_counts = {65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608};
+  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
   const int steps = 100;
   const int repetitions = 10;
   const float dt = 0.000001;
@@ -136,9 +136,9 @@ int main() {
     std::cout << "benchmark,agents,steps,repetitions,dt,time_per_step_ms,checksum\n";
 
     for (int agents : agent_counts)
-      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::RNG);
-    for (int agents : agent_counts)
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Control);
+    for (int agents : agent_counts)
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::RNG);
   }
   Kokkos::finalize();
 
