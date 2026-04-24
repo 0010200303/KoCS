@@ -48,14 +48,22 @@ namespace kocs::detail {
   template<typename Tag, typename... Forces>
   KernelFuser(Tag, Forces...) -> KernelFuser<Tag, Forces...>;
 
-  template<typename Tag, typename Force>
+  // template<typename Tag, typename Force>
+  // auto collect_tagged_force(Force&& force) {
+  //   if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>) {
+  //     using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).force)>;
+  //     return std::tuple<pure_force_t>(std::forward<Force>(force).force);
+  //   } else {
+  //     return std::tuple<>{};
+  //   }
+  // }
+
+  template<typename Tag, typename... Forces>
   auto collect_tagged_force(Force&& force) {
-    if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>) {
-      using pure_force_t = std::decay_t<decltype(std::forward<Force>(force).force)>;
-      return std::tuple<pure_force_t>(std::forward<Force>(force).force);
-    } else {
+    if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>)
+      return std::tuple<std::decay_t<Force>>(std::forward<Force>(force));
+    else
       return std::tuple<>{};
-    }
   }
 
   template<typename Tag, typename... Forces>
