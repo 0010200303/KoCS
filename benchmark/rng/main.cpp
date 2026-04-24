@@ -97,7 +97,26 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
     unsigned int i,
     Vector& force
   ) {
-    force += Vector(1.0, 1.0, 1.0);
+    const double idx = static_cast<double>(i);
+    const double phase = static_cast<double>(i % 97);
+
+    force += Vector(
+      0.20 + 0.001 * phase,
+      0.10 + 0.0005 * phase,
+      0.30 + 0.0015 * phase
+    );
+
+    if ((i & 1u) == 0u) {
+      force += Vector(0.05 * idx, -0.02 * idx, 0.01 * idx);
+    } else {
+      force += Vector(-0.03 * idx, 0.015 * idx, -0.005 * idx);
+    }
+
+    force += Vector(
+      0.001 * static_cast<double>(i % 7),
+      0.0005 * static_cast<double>(i % 11),
+      0.00025 * static_cast<double>(i % 13)
+    );
   };
 
   auto rng_kernel = GENERIC_FORCE(
@@ -105,7 +124,28 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
     Random& rng,
     Vector& force
   ) {
-    force += Vector(rng.frand(0.0, 1.0), rng.frand(0.0, 1.0), rng.frand(0.0, 1.0));
+    const double r1 = rng.frand(-1.0, 1.0);
+    const double r2 = rng.frand(-1.0, 1.0);
+    const double r3 = rng.frand(-1.0, 1.0);
+    const double r4 = rng.frand(0.0, 1.0);
+
+    force += Vector(
+      r1 + 0.25 * r2,
+      r2 - 0.50 * r3,
+      r3 + 0.10 * r1
+    );
+
+    if (r4 > 0.5) {
+      force += Vector(r4, -0.5 * r4, 0.25 * r4);
+    } else {
+      force += Vector(-r4, 0.25 * r4, -0.5 * r4);
+    }
+
+    force += Vector(
+      0.01 * static_cast<double>(i % 5),
+      0.01 * static_cast<double>(i % 3),
+      0.005 * static_cast<double>(i % 7)
+    );
   };
 
   double checksum = 0.0;
