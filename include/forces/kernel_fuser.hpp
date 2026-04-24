@@ -67,12 +67,21 @@ namespace kocs::detail {
     }, std::tuple_cat(collect_tagged_force<Tag>(std::forward<Forces>(forces))...));
   }
 
+  template<typename T>
+  auto as_tuple_if_not_empty(T&& value) {
+    if constexpr (std::is_empty_v<std::decay_t<T>>) {
+      return std::tuple<>{};
+    } else {
+      return std::tuple<std::decay_t<T>>(std::forward<T>(value));
+    }
+  }
+
   // TODO: add more tags
   template<typename... Forces>
   auto fuse_forces(Forces&&... forces) {
-    return std::make_tuple(
-      fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)
-      // fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)
+    return std::tuple_cat(
+      as_tuple_if_not_empty(fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)),
+      as_tuple_if_not_empty(fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...))
     );
   }
 
