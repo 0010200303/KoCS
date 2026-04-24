@@ -198,9 +198,9 @@ namespace kocs {
           take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
         }, fused_generics);
 
-        std::apply([&](auto&&... args) {
-          take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
-        }, fused_pairwises);
+        // std::apply([&](auto&&... args) {
+          // take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
+        // }, fused_pairwises);
       }
 
 
