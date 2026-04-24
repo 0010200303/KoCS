@@ -205,7 +205,7 @@ namespace kocs {
         auto fused_force = detail::fuse_forces(static_cast<Force&&>(force));
 
         auto integrator = Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... };
-        integrator.integrate_single(dt, fused_force);
+        integrator.integrate_single(dt, std::get<0>(fused_force));
       }
 
       template<typename Force>
