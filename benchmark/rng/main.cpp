@@ -110,7 +110,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
     if (bench == BenchmarkType::Control) {
       total_time += benchmark_kernel(control_kernel, n_steps, dt_in, n_agents, checksum);
     } else if (bench == BenchmarkType::RNG) {
-      total_time += benchmark_rng_kernel(control_kernel, n_steps, dt_in, n_agents, checksum);
+      total_time += benchmark_kernel(control_kernel, n_steps, dt_in, n_agents, checksum);
     }
   }
   double avg = total_time / static_cast<double>(n_reps);
