@@ -54,12 +54,14 @@ def main():
     marker_by_benchmark = {
         "Single_RNG": "o",
         "RNG_RNG": "s",
-        "Fused": "^",
+        "Fused": "*",
+        "Fused_RNG": "^",
     }
     color_by_benchmark = {
         "Single_RNG": "red",
         "RNG_RNG": "blue",
         "Fused": "orange",
+        "Fused_RNG": "green",
     }
 
     for machine, machine_rows in by_machine.items():
