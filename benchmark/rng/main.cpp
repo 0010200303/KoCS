@@ -8,56 +8,22 @@ struct SimulationConfig : public DefaultSimulationConfig {
 
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-enum class BenchmarkType { Control, RNG };
+enum class BenchmarkType { Single_RNG, RNG_RNG, Fused };
 
 inline const char* benchmark_name(BenchmarkType b) {
   switch (b) {
-    case BenchmarkType::Control:
-      return "Control";
-    case BenchmarkType::RNG:
-      return "RNG";
+    case BenchmarkType::Single_RNG:
+      return "Single_RNG";
+    case BenchmarkType::RNG_RNG:
+      return "RNG_RNG";
+    case BenchmarkType::Fused:
+      return "Fused";
   }
   return "UNKNOWN";
 }
 
 template<typename Force, typename ForceRNG>
-double benchmark_kernel(
-  Force kernel,
-  ForceRNG kernel_rng,
-  const int steps,
-  const float dt,
-  int n_agents,
-  double& checksum_out
-) {
-  auto checksum = [&](const VectorView& positions) {
-    auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
-    double sum = 0.0;
-    for (int i = 0; i < host_pos.extent(0); ++i)
-      sum += host_pos(i).x() + host_pos(i).y() + host_pos(i).z();
-    return sum;
-  };
-
-  Simulation<SimulationConfig> sim(n_agents, "");
-  sim.init_random_hollow_sphere(16.0);
-  
-  auto& positions = sim.get_view<FIELD(Vector, "positions")>();
-
-  Kokkos::fence();
-  Kokkos::Timer timer;
-
-  for (int i = 0; i < steps; ++i) {
-    sim.take_step(dt, kernel);
-    sim.take_step(dt, kernel_rng);
-  }
-
-  Kokkos::fence();
-  const double time = timer.seconds();
-  checksum_out = checksum(positions);
-  return time;
-}
-
-template<typename Force, typename ForceRNG>
-double benchmark_rng_kernel(
+double benchmark_single_rng(
   Force kernel,
   ForceRNG kernel_rng,
   const int steps,
@@ -92,9 +58,107 @@ double benchmark_rng_kernel(
   return time;
 }
 
+template<typename ForceRNG1, typename ForceRNG2>
+double benchmark_rng_rng(
+  ForceRNG1 kernel,
+  ForceRNG2 kernel_rng,
+  const int steps,
+  const float dt,
+  int n_agents,
+  double& checksum_out
+) {
+  auto checksum = [&](const VectorView& positions) {
+    auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
+    double sum = 0.0;
+    for (int i = 0; i < host_pos.extent(0); ++i)
+      sum += host_pos(i).x() + host_pos(i).y() + host_pos(i).z();
+    return sum;
+  };
+
+  Simulation<SimulationConfig> sim(n_agents, "");
+  sim.init_random_hollow_sphere(16.0);
+  
+  auto& positions = sim.get_view<FIELD(Vector, "positions")>();
+
+  Kokkos::fence();
+  Kokkos::Timer timer;
+
+  for (int i = 0; i < steps; ++i) {
+    sim.take_step_rng(dt, kernel);
+    sim.take_step_rng(dt, kernel_rng);
+  }
+
+  Kokkos::fence();
+  const double time = timer.seconds();
+  checksum_out = checksum(positions);
+  return time;
+}
+
+template<typename Force, typename ForceRNG>
+double benchmark_fused(
+  Force kernel,
+  ForceRNG kernel_rng,
+  const int steps,
+  const float dt,
+  int n_agents,
+  double& checksum_out
+) {
+  auto checksum = [&](const VectorView& positions) {
+    auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
+    double sum = 0.0;
+    for (int i = 0; i < host_pos.extent(0); ++i)
+      sum += host_pos(i).x() + host_pos(i).y() + host_pos(i).z();
+    return sum;
+  };
+
+  Simulation<SimulationConfig> sim(n_agents, "");
+  sim.init_random_hollow_sphere(16.0);
+  
+  auto& positions = sim.get_view<FIELD(Vector, "positions")>();
+
+  Kokkos::fence();
+  Kokkos::Timer timer;
+
+  for (int i = 0; i < steps; ++i) {
+    sim.take_step(dt, kernel, kernel_rng);
+  }
+
+  Kokkos::fence();
+  const double time = timer.seconds();
+  checksum_out = checksum(positions);
+  return time;
+}
+
 void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, BenchmarkType bench) {
   auto kernel = GENERIC_FORCE(
     unsigned int i,
+    Vector& force
+  ) {
+    const double idx = static_cast<double>(i);
+    const double phase = static_cast<double>(i % 97);
+
+    force += Vector(
+      0.20 + 0.001 * phase,
+      0.10 + 0.0005 * phase,
+      0.30 + 0.0015 * phase
+    );
+
+    if ((i & 1u) == 0u) {
+      force += Vector(0.05 * idx, -0.02 * idx, 0.01 * idx);
+    } else {
+      force += Vector(-0.03 * idx, 0.015 * idx, -0.005 * idx);
+    }
+
+    force += Vector(
+      0.001 * static_cast<double>(i % 7),
+      0.0005 * static_cast<double>(i % 11),
+      0.00025 * static_cast<double>(i % 13)
+    );
+  };
+
+  auto kernel_rng = GENERIC_FORCE(
+    unsigned int i,
+    Random& rng,
     Vector& force
   ) {
     const double idx = static_cast<double>(i);
@@ -151,10 +215,12 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
   double checksum = 0.0;
   double total_time = 0.0;
   for (int i = 0; i < n_reps; ++i) {
-    if (bench == BenchmarkType::Control) {
-      total_time += benchmark_kernel(kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
-    } else if (bench == BenchmarkType::RNG) {
-      total_time += benchmark_rng_kernel(kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
+    if (bench == BenchmarkType::Single_RNG) {
+      total_time += benchmark_single_rng(kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
+    } else if (bench == BenchmarkType::RNG_RNG) {
+      total_time += benchmark_rng_rng(kernel_rng, rng_kernel, n_steps, dt_in, n_agents, checksum);
+    } else if (bench == BenchmarkType::Fused) {
+      total_time += benchmark_fused(kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
     }
   }
   double avg = total_time / static_cast<double>(n_reps);
@@ -180,9 +246,11 @@ int main() {
     std::cout << "benchmark,agents,steps,repetitions,dt,time_per_step_ms,checksum\n";
 
     for (int agents : agent_counts)
-      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Control);
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Single_RNG);
     for (int agents : agent_counts)
-      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::RNG);
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::RNG_RNG);
+    for (int agents: agent_counts)
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Fused);
   }
   Kokkos::finalize();
 
