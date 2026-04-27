@@ -52,12 +52,14 @@ def main():
         by_machine[row["machine"]].append(row)
 
     marker_by_benchmark = {
-        "Control": "o",
-        "RNG": "s",
+        "Single_RNG": "o",
+        "RNG_RNG": "s",
+        "Fused": "^",
     }
     color_by_benchmark = {
-        "Control": "red",
-        "RNG": "blue",
+        "Single_RNG": "red",
+        "RNG_RNG": "blue",
+        "Fused": "orange",
     }
 
     for machine, machine_rows in by_machine.items():

@@ -235,7 +235,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
 }
 
 int main() {
-  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
+  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
   const int steps = 1;
   const int repetitions = 1;
   const float dt = 0.000001;
