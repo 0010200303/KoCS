@@ -8,7 +8,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
 
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-enum class BenchmarkType { Single_RNG, RNG_RNG, Fused };
+enum class BenchmarkType { Single_RNG, RNG_RNG, Fused, Fused_RNG };
 
 inline const char* benchmark_name(BenchmarkType b) {
   switch (b) {
@@ -18,6 +18,8 @@ inline const char* benchmark_name(BenchmarkType b) {
       return "RNG_RNG";
     case BenchmarkType::Fused:
       return "Fused";
+    case BenchmarkType::Fused_RNG:
+      return "Fused_RNG";
   }
   return "UNKNOWN";
 }
@@ -120,8 +122,42 @@ double benchmark_fused(
   Kokkos::Timer timer;
 
   for (int i = 0; i < steps; ++i) {
-    sim.take_step(dt, kernel, kernel);
-    sim.take_step(dt, kernel_rng);
+    sim.take_step(dt, kernel, kernel_rng);
+  }
+
+  Kokkos::fence();
+  const double time = timer.seconds();
+  checksum_out = checksum(positions);
+  return time;
+}
+
+template<typename ForceRNG1, typename ForceRNG2>
+double benchmark_fused_rng(
+  ForceRNG1 kernel,
+  ForceRNG2 kernel_rng,
+  const int steps,
+  const float dt,
+  int n_agents,
+  double& checksum_out
+) {
+  auto checksum = [&](const VectorView& positions) {
+    auto host_pos = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), positions);
+    double sum = 0.0;
+    for (int i = 0; i < host_pos.extent(0); ++i)
+      sum += host_pos(i).x() + host_pos(i).y() + host_pos(i).z();
+    return sum;
+  };
+
+  Simulation<SimulationConfig> sim(n_agents, "");
+  sim.init_random_hollow_sphere(16.0);
+  
+  auto& positions = sim.get_view<FIELD(Vector, "positions")>();
+
+  Kokkos::fence();
+  Kokkos::Timer timer;
+
+  for (int i = 0; i < steps; ++i) {
+    sim.take_step_rng(dt, kernel, kernel_rng);
   }
 
   Kokkos::fence();
@@ -222,6 +258,8 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
       total_time += benchmark_rng_rng(kernel_rng, rng_kernel, n_steps, dt_in, n_agents, checksum);
     } else if (bench == BenchmarkType::Fused) {
       total_time += benchmark_fused(kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
+    } else if (bench == BenchmarkType::Fused_RNG) {
+      total_time += benchmark_fused(rng_kernel, rng_kernel, n_steps, dt_in, n_agents, checksum);
     }
   }
   double avg = total_time / static_cast<double>(n_reps);
@@ -252,6 +290,8 @@ int main() {
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::RNG_RNG);
     for (int agents: agent_counts)
       run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Fused);
+    for (int agents: agent_counts)
+      run_benchmark_case(agents, steps, repetitions, dt, BenchmarkType::Fused_RNG);
   }
   Kokkos::finalize();
 
