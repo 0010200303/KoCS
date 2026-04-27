@@ -16,6 +16,7 @@ int main() {
     unsigned int j,
     const Vector& displacement,
     const Scalar& distance,
+    Random& rng,
     Vector& force
   ) {
     force += displacement * (L_0 - distance) / distance;

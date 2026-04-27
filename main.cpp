@@ -16,12 +16,22 @@ int main() {
   sim.init_random_hollow_sphere(2.0);
   sim.write();
 
-  auto generic_force_mass = GENERIC_FORCE(unsigned int i, Vector& force, float& mass) {
-    mass += 1.0;
+  auto generic_force_mass = GENERIC_FORCE(
+    unsigned int i,
+    Random& rng,
+    Vector& force,
+    float& mass
+  ) {
+    mass += rng.frand(-1.0, 1.0);
   };
 
-  auto generic_force_pos = GENERIC_FORCE(unsigned int i, Vector& force, float& mass) {
-    force += Vector(100.0, 0.0, 0.0);
+  auto generic_force_pos = GENERIC_FORCE(
+    unsigned int i,
+    Random& rng,
+    Vector& force,
+    float& mass
+  ) {
+    force += Vector(0.0, 100.0, 0.0);
   };
 
   const float stiffness = 0.1f;
@@ -30,6 +40,7 @@ int main() {
     unsigned int j,
     const Vector& displacement,
     const Scalar& distance,
+    Random& rng,
     Vector& force,
     float& mass
   ) {
@@ -41,6 +52,7 @@ int main() {
     unsigned int j,
     const Vector& displacement,
     const Scalar& distance,
+    Random& rng,
     Vector& force,
     float& mass
   ) {
@@ -52,6 +64,7 @@ int main() {
     unsigned int j,
     const Vector& displacement,
     const Scalar& distance,
+    Random& rng,
     Vector& force,
     float& mass
   ) {

@@ -1,6 +1,9 @@
 #include <Kokkos_Core.hpp>
 #include "../../include/kocs.hpp"
 
+// testing the performance impact of splitting forces across multiple kernels and 
+// auto fusing them vs. user defined fusion vs. just evaluating split kernels
+
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_WRITER(writers::Dummy)

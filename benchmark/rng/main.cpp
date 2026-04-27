@@ -1,6 +1,10 @@
 #include <Kokkos_Core.hpp>
 #include "../../include/kocs.hpp"
 
+// testing if always passing a random generator to the forces has a performance impact
+// vs. detect if the force needs a random generator
+// Also tested for single force evaluations vs. fused forces with random generators / detection
+
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_WRITER(writers::Dummy)

@@ -32,7 +32,9 @@ namespace kocs::integrators {
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
           view_pack.apply([&](auto&... views) {
-            detail::invoke_force_with_optional_rng(force, random_pool, i, views(i)...);
+            auto generator = random_pool.get_state();
+            force(i, generator, views(i)...);
+            random_pool.free_state(generator);
           });
         }
       );
@@ -51,100 +53,19 @@ namespace kocs::integrators {
         detail::first(this->stage_pack[0]),
         view_pack
       );
-      pair_finders.evaluate_force(force);
+      pair_finders.evaluate_force(random_pool, force);
     }
 
+    // TODO: pick evaluate_force implementation based on attributes not based on Tags 
+    // (useful for friction later)
     template<typename RandomPool, typename Force>
     void evaluate_force_one(RandomPool& random_pool, Force force, detail::ViewPack<Views...>& view_pack) {
       evaluate_force_impl(random_pool, force, typename Force::tag{}, view_pack);
     }
 
     template<typename RandomPool, typename... Forces>
-    void evaluate_force(RandomPool& random_pool, detail::ViewPack<Views...>& view_pack, Forces... forces) {
+    void evaluate_forces(RandomPool& random_pool, detail::ViewPack<Views...>& view_pack, Forces... forces) {
       (evaluate_force_one(random_pool, forces, view_pack), ...);
-    }
-
-
-
-
-
-    template<typename Force>
-    void evaluate_force_impl_single(
-      Force force,
-      detail::GenericForceTag,
-      detail::ViewPack<Views...>& view_pack
-    ) {
-      Kokkos::parallel_for(
-        "apply_generic_force_single",
-        agent_count,
-        KOKKOS_LAMBDA(const unsigned int i) {
-          view_pack.apply([&](auto&... views) {
-            force(i, views(i)...);
-          });
-        }
-      );
-    }
-
-    template<typename RandomPool, typename Force>
-    void evaluate_force_impl_single(
-      RandomPool& random_pool,
-      Force force,
-      detail::PairwiseForceTag,
-      detail::ViewPack<Views...>& view_pack
-    ) {
-      auto pair_finders = pair_finders::NaiveAllPairs(
-        agent_count,
-        10000.0f,
-        detail::first(this->stage_pack[0]),
-        view_pack
-      );
-      pair_finders.evaluate_force_single(force);
-    }
-
-    template<typename Force>
-    void evaluate_force_single(Force force, detail::ViewPack<Views...>& view_pack) {
-      evaluate_force_impl_single(force, typename Force::tag{}, view_pack);
-    }
-
-    template<typename RandomPool, typename Force>
-    void evaluate_force_impl_rng(
-      RandomPool& random_pool,
-      Force force,
-      detail::GenericForceTag,
-      detail::ViewPack<Views...>& view_pack
-    ) {
-      Kokkos::parallel_for(
-        "apply_generic_force_rng",
-        agent_count,
-        KOKKOS_LAMBDA(const unsigned int i) {
-          view_pack.apply([&](auto&... views) {
-            auto generator = random_pool.get_state();
-            force(i, generator, views(i)...);
-            random_pool.free_state(generator);
-          });
-        }
-      );
-    }
-
-    template<typename RandomPool, typename Force>
-    void evaluate_force_impl_rng(
-      RandomPool& random_pool,
-      Force force,
-      detail::PairwiseForceTag,
-      detail::ViewPack<Views...>& view_pack
-    ) {
-      auto pair_finders = pair_finders::NaiveAllPairs(
-        agent_count,
-        10000.0f,
-        detail::first(this->stage_pack[0]),
-        view_pack
-      );
-      pair_finders.evaluate_force_rng(random_pool, force);
-    }
-
-    template<typename RandomPool, typename Force>
-    void evaluate_force_rng(RandomPool& random_pool, Force force, detail::ViewPack<Views...>& view_pack) {
-      evaluate_force_impl_rng(random_pool, force, typename Force::tag{}, view_pack);
     }
   };
 } // namespace kocs::integrators
