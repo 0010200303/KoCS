@@ -3,12 +3,9 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
-#include <type_traits>
-#include <utility>
 
 #include "detail.hpp"
 #include "../forces/detail.hpp"
-
 #include "../pair_finders/all_pairs.hpp"
 
 namespace kocs::integrators {
@@ -40,6 +37,7 @@ namespace kocs::integrators {
       );
     }
 
+    // TODO: make pair finder selectable
     template<typename RandomPool, typename Force>
     void evaluate_force_impl(
       RandomPool& random_pool,
@@ -47,13 +45,13 @@ namespace kocs::integrators {
       detail::PairwiseForceTag,
       detail::ViewPack<Views...>& view_pack
     ) {
-      auto pair_finders = pair_finders::NaiveAllPairs(
+      auto pair_finder = pair_finders::NaiveAllPairs(
         agent_count,
         10000.0f,
         detail::first(this->stage_pack[0]),
         view_pack
       );
-      pair_finders.evaluate_force(random_pool, force);
+      pair_finder.evaluate_force(random_pool, force);
     }
 
     // TODO: pick evaluate_force implementation based on attributes not based on Tags 
@@ -64,7 +62,7 @@ namespace kocs::integrators {
     }
 
     template<typename RandomPool, typename... Forces>
-    void evaluate_forces(RandomPool& random_pool, detail::ViewPack<Views...>& view_pack, Forces... forces) {
+    void evaluate_forces(RandomPool& random_pool, detail::ViewPack<Views...>& view_pack, Forces... forces) {      
       (evaluate_force_one(random_pool, forces, view_pack), ...);
     }
   };

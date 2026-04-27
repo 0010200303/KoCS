@@ -19,81 +19,11 @@
 #include "initializers/spheres.hpp"
 
 namespace kocs {
-  namespace detail {
-    template<typename U>
-    struct pointer_depth { static constexpr std::size_t value = 0; };
-    template<typename U>
-    struct pointer_depth<U*> { static constexpr std::size_t value = 1 + pointer_depth<U>::value; };
-
-    template <typename Field>
-    struct ViewFromField {
-      using field_type = std::remove_cv_t<typename Field::type>;
-      static_assert(pointer_depth<field_type>::value <= 1,
-                    "Field element types must not be pointer-to-pointer or higher (depth >= 2)");
-      using type = Kokkos::View<std::remove_pointer_t<field_type>*>;
-    };
-
-    template <typename Field>
-    auto make_view(std::size_t n) {
-      using view_type = typename ViewFromField<Field>::type;
-      // TODO: maybe use string_view instead
-      return view_type(std::string(Field::name), n);
-    }
-
-    
-
-    template <typename Field>
-    struct FieldHolder {
-      using view_type = typename ViewFromField<Field>::type;
-      view_type view;
-
-      FieldHolder(view_type v) : view(v) { }
-    };
-
-    template <typename... Fields>
-    struct FieldStorage : FieldHolder<Fields>... {
-      FieldStorage(std::size_t n) : FieldHolder<Fields>{make_view<Fields>(n)}... { }
-    };
-
-    template <typename FieldList>
-    struct FieldStorageFromList;
-
-    template <typename... Fields>
-    struct FieldStorageFromList<FieldList<Fields...>> {
-      using type = FieldStorage<Fields...>;
-    };
-
-    template <typename Field, typename Storage>
-    inline auto& get(Storage& s) {
-      using holder = FieldHolder<Field>;
-      return static_cast<holder&>(s).view;
-    }
-
-    template <typename Field, typename Storage>
-    inline const auto& get(const Storage& s) {
-      using holder = FieldHolder<Field>;
-      return static_cast<const holder&>(s).view;
-    }
-
-    template <typename FieldList, typename Storage>
-    struct ViewsFromStorage;
-
-    template <typename... Fields, typename Storage>
-    struct ViewsFromStorage<FieldList<Fields...>, Storage> {
-      static auto get(Storage& storage) {
-        return std::forward_as_tuple(detail::get<Fields>(storage)...);
-      }
-
-      static auto get(const Storage& storage) {
-        return std::forward_as_tuple(detail::get<Fields>(storage)...);
-      }
-    };
-  } // namespace detail
-
   template<typename SimulationConfig>
   class Simulation {
     EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
     using Storage = typename detail::FieldStorageFromList<Fields>::type;
+    // using IntegratorType = typename detail::IntegratorFromFields<SimulationConfig, Fields>::type;
 
     public:
       Simulation(
@@ -104,6 +34,7 @@ namespace kocs {
         : agent_count(agent_count_)
         , storage((get_runtime_guard(), Storage(agent_count_)))
         , random_pool(seed)
+        , integrator(make_integrator(agent_count_, storage))
         , writer(output_path)
         , current_step(0) { }
 
@@ -112,6 +43,7 @@ namespace kocs {
       Storage storage;
 
       RandomPool random_pool;
+      Integrator integrator;
 
       Writer writer;
       unsigned int current_step;
@@ -119,6 +51,15 @@ namespace kocs {
       static RuntimeGuard& get_runtime_guard() {
         static RuntimeGuard guard;
         return guard;
+      }
+
+      static Integrator make_integrator(unsigned int agent_count_, Storage& storage_) {
+        return std::apply(
+          [&](auto&... views) {
+            return Integrator(agent_count_, views...);
+          },
+          detail::ViewsFromStorage<Fields, Storage>::get(storage_)
+        );
       }
     
     public:
@@ -143,19 +84,9 @@ namespace kocs {
     private:
       template<typename... Forces>
       void take_step_impl(double dt, Forces&&... forces) {
-        std::apply(
-          [&](auto&&... views) {
-            auto integrator = Integrator<
-              PairFinder<Kokkos::View<Vector*>, std::decay_t<decltype(views)>...>,
-              std::decay_t<decltype(views)>...
-            >{ agent_count, views... };
-
-            integrator.integrate(dt, random_pool, static_cast<Forces&&>(forces)...);
-          },
-          get_views()
-        );
+        integrator.integrate(dt, random_pool, static_cast<Forces&&>(forces)...);
       }
-    
+
     public:
       inline void init_line() {
         initializers::Line<SimulationConfig> initializer(std::get<0>(get_views()));
@@ -184,11 +115,6 @@ namespace kocs {
         });
       }
 
-      // template<typename Force, typename... Views>
-      // void take_step(double dt, Force force, Views... views) {
-        // Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... }.integrate(dt, force);
-      // }
-
       template<typename... Forces>
       inline void take_step(double dt, Forces&&... forces) {
         auto fused_forces = detail::fuse_forces(static_cast<Forces&&>(forces)...);
@@ -196,32 +122,6 @@ namespace kocs {
         std::apply([&](auto&&... args) {
           take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
         }, fused_forces);
-      }
-
-
-
-      template<typename Force, typename... Views>
-      void take_step_single(double dt, Force force, Views... views) {
-        auto integrator = Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... };
-        integrator.integrate_single(dt, force);
-      }
-
-      template<typename Force>
-      void take_step_single(double dt, Force force) {
-        std::apply([this, dt, force](auto&&... args) { take_step_single(dt, force, args...); }, get_views());
-      }
-
-
-
-      template<typename Force, typename... Views>
-      void take_step_rng(double dt, Force force, Views... views) {
-        auto integrator = Integrator<PairFinder<Force, Views...>, Views...>{ agent_count, views... };
-        integrator.integrate_rng(dt, random_pool, force);
-      }
-
-      template<typename Force>
-      void take_step_rng(double dt, Force force) {
-        std::apply([this, dt, force](auto&&... args) { take_step_rng(dt, force, args...); }, get_views());
       }
 
       inline void write() {

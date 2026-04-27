@@ -89,10 +89,8 @@ namespace kocs {
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   using Fields = typename __SIMULATION_CONFIG__::Fields; \
-  template<typename... Views> \
-  using Integrator = typename __SIMULATION_CONFIG__::template IntegratorT<Views...>; \
-  template<typename PositionsView, typename... Views> \
-  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<PositionsView, Views...>; \
+  using Integrator = typename __SIMULATION_CONFIG__::template IntegratorT<__SIMULATION_CONFIG__>; \
+  using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<__SIMULATION_CONFIG__>; \
   using Writer = typename __SIMULATION_CONFIG__::template WriterT<__SIMULATION_CONFIG__>;
 
 // #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
