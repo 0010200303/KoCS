@@ -91,12 +91,6 @@ namespace kocs::detail {
   template<typename... Views>
   using first_type_t = typename first_type<Views...>::type;
 
-  // template<typename... Views>
-  // KOKKOS_INLINE_FUNCTION
-  // auto make_accumulator_pack(const ViewPack<Views...>&) {
-    // return ViewPack<typename Views::value_type...>(typename Views::value_type{}...);
-  // }
-
   template<int N, typename... Views>
   struct StagePack {
     static_assert(N > 0, "StagePack must contain at least one stage");

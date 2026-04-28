@@ -75,7 +75,6 @@ namespace kocs::detail {
     }
   };
 
-  // TODO: remove default constructor?
   template<typename... Slots>
   struct AccumulatorPack : Slots... {
     KOKKOS_INLINE_FUNCTION

@@ -8,7 +8,7 @@
 #include "../forces/detail.hpp"
 
 namespace kocs::pair_finders {
-  template<typename PositionsView, typename... Views>
+  template<typename PositionsView>
   struct NaiveAllPairs {
     NaiveAllPairs(
       unsigned int agent_count_,
@@ -22,7 +22,7 @@ namespace kocs::pair_finders {
     float cutoff_distance_squared;
     PositionsView positions;
 
-    template<typename RandomPool, typename Force>
+    template<typename RandomPool, typename Force, typename... Views>
     void evaluate_force(detail::ViewPack<Views...> view_pack, RandomPool& random_pool, Force force) {
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
