@@ -57,14 +57,21 @@ namespace kocs {
       return view_type(std::string(Field::name), n);
     }
 
+    template <typename FieldList>
+    struct FirstFieldFromList;
 
+    template <typename Field, typename... Rest>
+    struct FirstFieldFromList<FieldList<Field, Rest...>> {
+      using type = Field;
+    };
 
     template <template<typename...> typename PairFinderT, typename SimulationConfig, typename FieldList>
     struct PairFinderFromFields;
 
     template <template<typename...> typename PairFinderT, typename SimulationConfig, typename... Fields>
     struct PairFinderFromFields<PairFinderT, SimulationConfig, FieldList<Fields...>> {
-      using type = PairFinderT<SimulationConfig>;
+      using FirstField = typename FirstFieldFromList<FieldList<Fields...>>::type;
+      using type = PairFinderT<typename ViewFromField<FirstField>::type>;
     };
 
     template <template<typename, typename...> typename IntegratorT, typename SimulationConfig, typename FieldList>
@@ -73,7 +80,7 @@ namespace kocs {
     template <template<typename, typename...> typename IntegratorT, typename SimulationConfig, typename... Fields>
     struct IntegratorFromFields<IntegratorT, SimulationConfig, FieldList<Fields...>> {
       using type = IntegratorT<
-        typename PairFinderFromFields<IntegratorT, SimulationConfig, FieldList<Fields...>>::type,
+        typename SimulationConfig::template PairFinderT<SimulationConfig>,
         typename ViewFromField<Fields>::type...
       >;
     };

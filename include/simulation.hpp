@@ -23,7 +23,6 @@ namespace kocs {
   class Simulation {
     EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
     using Storage = typename detail::FieldStorageFromList<Fields>::type;
-    // using IntegratorType = typename detail::IntegratorFromFields<SimulationConfig, Fields>::type;
 
     public:
       Simulation(
@@ -34,7 +33,8 @@ namespace kocs {
         : agent_count(agent_count_)
         , storage((get_runtime_guard(), Storage(agent_count_)))
         , random_pool(seed)
-        , integrator(make_integrator(agent_count_, storage))
+        , pair_finder(make_pair_finder(agent_count_, storage))
+        , integrator(make_integrator(agent_count_, pair_finder, storage))
         , writer(output_path)
         , current_step(0) { }
 
@@ -43,6 +43,9 @@ namespace kocs {
       Storage storage;
 
       RandomPool random_pool;
+
+      // TODO: maybe add some specific options to construct these
+      PairFinder pair_finder;
       Integrator integrator;
 
       Writer writer;
@@ -53,10 +56,26 @@ namespace kocs {
         return guard;
       }
 
-      static Integrator make_integrator(unsigned int agent_count_, Storage& storage_) {
+      static PairFinder make_pair_finder(
+        unsigned int agent_count_,
+        Storage& storage_,
+        float cutoff_distance = 10'000.0f
+      ) {
+        return PairFinder(
+          agent_count_,
+          cutoff_distance,
+          std::get<0>(detail::ViewsFromStorage<Fields, Storage>::get(storage_))
+        );
+      }
+
+      static Integrator make_integrator(
+        unsigned int agent_count_,
+        PairFinder pair_finder_,
+        Storage& storage_
+      ) {
         return std::apply(
           [&](auto&... views) {
-            return Integrator(agent_count_, views...);
+            return Integrator(agent_count_, pair_finder_, views...);
           },
           detail::ViewsFromStorage<Fields, Storage>::get(storage_)
         );
@@ -81,6 +100,10 @@ namespace kocs {
         return detail::ViewsFromStorage<Fields, Storage>::get(storage);
       }
 
+      inline auto get_positions_view() const {
+        return std::get<0>(get_views());
+      }
+
     private:
       template<typename... Forces>
       void take_step_impl(double dt, Forces&&... forces) {
@@ -89,17 +112,17 @@ namespace kocs {
 
     public:
       inline void init_line() {
-        initializers::Line<SimulationConfig> initializer(std::get<0>(get_views()));
+        initializers::Line<SimulationConfig> initializer(get_positions_view());
         init(initializer);
       }
 
       inline void init_random_hollow_sphere(Scalar radius) {
-        initializers::RandomHollowSphere<SimulationConfig> initializer(std::get<0>(get_views()), radius);
+        initializers::RandomHollowSphere<SimulationConfig> initializer(get_positions_view(), radius);
         init(initializer);
       }
 
       inline void init_random_filled_sphere(Scalar radius) {
-        initializers::RandomFilledSphere<SimulationConfig> initializer(std::get<0>(get_views()), radius);
+        initializers::RandomFilledSphere<SimulationConfig> initializer(get_positions_view(), radius);
         init(initializer);
       }
 

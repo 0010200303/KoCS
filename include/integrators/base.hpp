@@ -11,8 +11,15 @@
 namespace kocs::integrators {
   template<typename PairFinder, const unsigned int N, typename... Views>
   struct Base {
-    Base(unsigned int agent_count_, Views... views)
-      : agent_count(agent_count_), stage_pack(detail::ViewPack<Views...>(views...)) { }
+    Base(
+      unsigned int agent_count_,
+      PairFinder& pair_finder_,
+      Views... views)
+      : agent_count(agent_count_)
+      , pair_finder(pair_finder_)
+      , stage_pack(detail::ViewPack<Views...>(views...)) { }
+    
+    PairFinder pair_finder;
 
     unsigned int agent_count;
     detail::StagePack<N, Views...> stage_pack;
@@ -45,13 +52,7 @@ namespace kocs::integrators {
       detail::PairwiseForceTag,
       detail::ViewPack<Views...>& view_pack
     ) {
-      auto pair_finder = pair_finders::NaiveAllPairs(
-        agent_count,
-        10000.0f,
-        detail::first(this->stage_pack[0]),
-        view_pack
-      );
-      pair_finder.evaluate_force(random_pool, force);
+      pair_finder.evaluate_force(view_pack, random_pool, force);
     }
 
     // TODO: pick evaluate_force implementation based on attributes not based on Tags 

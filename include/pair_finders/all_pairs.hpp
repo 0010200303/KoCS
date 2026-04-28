@@ -13,26 +13,23 @@ namespace kocs::pair_finders {
     NaiveAllPairs(
       unsigned int agent_count_,
       float cutoff_distance,
-      PositionsView& positions_,
-      detail::ViewPack<Views...>& view_pack_)
+      PositionsView& positions_)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
-      , positions(positions_)
-      , view_pack(view_pack_) { }
+      , positions(positions_) { }
     
     unsigned int agent_count;
     float cutoff_distance_squared;
     PositionsView positions;
-    detail::ViewPack<Views...> view_pack;
 
     template<typename RandomPool, typename Force>
-    void evaluate_force(RandomPool& random_pool, Force force) {
+    void evaluate_force(detail::ViewPack<Views...> view_pack, RandomPool& random_pool, Force force) {
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
-          auto& position_i = positions(i); 
+          auto& position_i = positions(i);
 
           auto total = detail::make_accumulator_pack(view_pack);
 
