@@ -33,18 +33,20 @@ namespace kocs::integrators {
       RandomPool& random_pool,
       Force force,
       detail::GenericForceTag,
-      PositionsView& input_positions,
-      detail::ViewPack<Views...>& view_pack
+      detail::ViewPack<Views...>& in_view_pack,
+      detail::ViewPack<Views...>& out_view_pack
     ) {
       Kokkos::parallel_for(
         "apply_generic_force",
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
-          view_pack.apply([&](auto&... views) {
-            auto generator = random_pool.get_state();
-            force(i, generator, views(i)...);
-            random_pool.free_state(generator);
+          auto generator = random_pool.get_state();
+          in_view_pack.apply([&](auto&... in_views) {
+            out_view_pack.apply([&](auto&... out_views) {
+              force(i, generator, detail::GenericFieldRef{in_views(i), out_views(i)}...);
+            });
           });
+          random_pool.free_state(generator);
         }
       );
     }
@@ -54,30 +56,30 @@ namespace kocs::integrators {
       RandomPool& random_pool,
       Force force,
       detail::PairwiseForceTag,
-      PositionsView& input_positions,
-      detail::ViewPack<Views...>& view_pack
+      detail::ViewPack<Views...>& in_view_pack,
+      detail::ViewPack<Views...>& out_view_pack
     ) {
-      pair_finder.evaluate_force(input_positions, view_pack, old_velocities, random_pool, force);
+      pair_finder.evaluate_force(in_view_pack, out_view_pack, old_velocities, random_pool, force);
     }
 
     template<typename RandomPool, typename Force>
     void evaluate_force_one(
       RandomPool& random_pool,
       Force force,
-      PositionsView& input_positions,
-      detail::ViewPack<Views...>& view_pack
+      detail::ViewPack<Views...>& in_view_pack,
+      detail::ViewPack<Views...>& out_view_pack
     ) {
-      evaluate_force_impl(random_pool, force, typename Force::tag{}, input_positions, view_pack);
+      evaluate_force_impl(random_pool, force, typename Force::tag{}, in_view_pack, out_view_pack);
     }
 
     template<typename RandomPool, typename... Forces>
     void evaluate_forces(
       RandomPool& random_pool,
-      PositionsView& input_positions,
-      detail::ViewPack<Views...>& view_pack,
+      detail::ViewPack<Views...>& in_view_pack,
+      detail::ViewPack<Views...>& out_view_pack,
       Forces... forces
     ) {      
-      (evaluate_force_one(random_pool, forces, input_positions, view_pack), ...);
+      (evaluate_force_one(random_pool, forces, in_view_pack, out_view_pack), ...);
     }
   };
 } // namespace kocs::integrators

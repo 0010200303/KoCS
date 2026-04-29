@@ -53,10 +53,10 @@ namespace kocs::integrators {
 
     template<typename RandomPool, typename... Forces>
     void integrate(double dt, RandomPool& random_pool, Forces... forces) {
-      this->evaluate_forces(random_pool, this->stage_pack[0].first(), this->stage_pack[1], forces...);
+      this->evaluate_forces(random_pool, this->stage_pack[0], this->stage_pack[1], forces...);
       apply_euler_predictor(dt);
 
-      this->evaluate_forces(random_pool, this->stage_pack[2].first(), this->stage_pack[3], forces...);
+      this->evaluate_forces(random_pool, this->stage_pack[2], this->stage_pack[3], forces...);
       apply_heun_corrector(dt);
     }
   };

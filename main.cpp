@@ -5,7 +5,8 @@
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_FIELDS(
-    FIELD(Vector, "positions")
+    FIELD(Vector, "positions"),
+    FIELD(float, "masses")
   )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -18,15 +19,16 @@ int main() {
   auto generic_force_pos = GENERIC_FORCE(
     unsigned int i,
     Random& rng,
-    Vector& force
+    detail::GenericFieldRef<Vector> position,
+    detail::GenericFieldRef<float> mass
   ) {
     if (i == 0)
       return;
 
     if (i == 1)
-      force += Vector(0.0, 100.0, 0.0);
+      position.delta += Vector(0.0, 100.0, 0.0);
     else
-      force += Vector(0.0, -100.0, 0.0);
+      position.delta += Vector(0.0, -100.0, 0.0);
   };
 
   auto friction = PAIRWISE_FORCE(
@@ -36,7 +38,8 @@ int main() {
     const Scalar& distance,
     Random& rng,
     Scalar& friction,
-    Vector& force
+    detail::PairwiseFieldRef<Vector> position,
+    detail::PairwiseFieldRef<float> mass
   ) {
     friction += 1.0;
   };

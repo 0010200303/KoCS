@@ -6,7 +6,7 @@ using namespace kocs;
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(DefaultSimulationConfig)
 
 const int n_cells = 100;
-const int steps = 2048;
+const int steps = 300;
 const double dt = 0.05;
 const Scalar r_min = 0.5;
 const Scalar r_max = 1.0;

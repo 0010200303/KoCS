@@ -23,8 +23,8 @@ namespace kocs::pair_finders {
 
     template<typename RandomPool, typename Force, typename... Views>
     void evaluate_force(
-      PositionsView& input_positions,
-      detail::ViewPack<Views...> view_pack,
+      detail::ViewPack<Views...>& in_view_pack,
+      detail::ViewPack<Views...>& out_view_pack,
       PositionsView& old_velocities,
       RandomPool& random_pool,
       Force force
@@ -34,9 +34,10 @@ namespace kocs::pair_finders {
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
-          auto& position_i = input_positions(i);
+          const auto& input_positions = in_view_pack.first();
+          const auto& position_i = input_positions(i);
 
-          auto total_delta_i = detail::make_accumulator_pack(view_pack);
+          auto total_delta_i = detail::make_accumulator_pack(out_view_pack);
           // TODO: float should be Scalar
           float total_friction_i = 0.0;
           typename PositionsView::value_type total_velocity_i{0.0};
@@ -48,7 +49,8 @@ namespace kocs::pair_finders {
               if (i == j)
                 return;
 
-              const auto displacement = position_i - input_positions(j);
+              const auto& position_j = input_positions(j);
+              const auto displacement = position_i - position_j;
               const auto distance_squared = displacement.length_squared();
 
               if (distance_squared >= cutoff_distance_squared)
@@ -58,8 +60,13 @@ namespace kocs::pair_finders {
               float pair_friction = 0.0;
 
               auto generator = random_pool.get_state();
-              local_delta.apply([&](auto&... values) {
-                force(i, j, displacement, distance, generator, pair_friction, values...);
+              in_view_pack.apply([&](auto&... views) {
+                local_delta.apply([&](auto&... deltas) {
+                  force(
+                    i, j, displacement, distance, generator, pair_friction,
+                    detail::PairwiseFieldRef{views(i), views(j), deltas}...
+                  );
+                });
               });
               random_pool.free_state(generator);
 
@@ -74,16 +81,16 @@ namespace kocs::pair_finders {
           Kokkos::single(
             Kokkos::PerTeam(team_member),
             [&]() {
-              view_pack.apply([&](auto&... views) {
+              out_view_pack.apply([&](auto&... views) {
                 total_delta_i.apply([&](auto&... values) {
                   ((views(i) += values), ...);
                 });
               });
 
               // TODO: don't branch here, instead:
-              // view_pack.first()(i) += total_velocity / max(total_friction, epsilon);
+              // out_view_pack.first()(i) += total_velocity_i / max(total_friction_i, epsilon);
               if (total_friction_i != 0.0)
-                view_pack.first()(i) += total_velocity_i / total_friction_i;
+                out_view_pack.first()(i) += total_velocity_i / total_friction_i;
             }
           );
         }

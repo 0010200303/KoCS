@@ -109,6 +109,21 @@ namespace kocs::detail {
       AccumulatorSlot<typename Views::value_type>{}...
     );
   }
+
+
+
+  template<typename T>
+  struct GenericFieldRef {
+    const T& i;
+    T& delta;
+  };
+
+  template<typename T>
+  struct PairwiseFieldRef {
+    const T& i;
+    const T& j;
+    T& delta;
+  };
 } // namespace kocs::detail
 
 namespace Kokkos {

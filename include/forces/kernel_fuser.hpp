@@ -69,7 +69,6 @@ namespace kocs::detail {
       return std::tuple<std::decay_t<T>>(std::forward<T>(value));
   }
 
-  // TODO: add more tags
   template<typename... Forces>
   auto fuse_forces(Forces&&... forces) {
     return std::tuple_cat(
