@@ -41,8 +41,8 @@ namespace kocs::integrators {
                   ((current_views(i) += (delta_views_0(i) + delta_views_1(i)) * 0.5 * dt), ...);
 
                   // clear views
-                  ((delta_views_0(i) = 0), ...);
-                  ((delta_views_1(i) = 0), ...);
+                  // ((delta_views_0(i) = 0), ...);
+                  // ((delta_views_1(i) = 0), ...);
                 });
               });
             });
