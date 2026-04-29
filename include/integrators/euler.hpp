@@ -22,7 +22,7 @@ namespace kocs::integrators {
             this->stage_pack[1].apply([&](auto&... delta_views) {
               ((current_views(i) += delta_views(i) * dt), ...);
 
-              // clear views (faster than new deep_copy)
+              // clear views (faster than new deep_copy call)
               ((delta_views(i) = 0), ...);
             });
           });

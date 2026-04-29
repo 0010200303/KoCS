@@ -4,7 +4,7 @@
 #include <string_view>
 
 #include "integrators/detail.hpp"
-#include "integrators/euler.hpp"
+#include "integrators/heun.hpp"
 #include "pair_finders/all_pairs.hpp"
 #include "io/hdf5_writer.hpp"
 
@@ -185,7 +185,7 @@ namespace kocs {
 
     CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)
     CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
-    CONFIG_INTEGRATOR(kocs::integrators::Euler)
+    CONFIG_INTEGRATOR(kocs::integrators::Heun)
 
     CONFIG_WRITER(kocs::writers::HDF5_Writer)
   };

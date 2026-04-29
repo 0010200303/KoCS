@@ -26,7 +26,7 @@ int main() {
     if (i == 1)
       force += Vector(0.0, 100.0, 0.0);
     else
-      force += Vector(0.0, 000.0, 100.0);
+      force += Vector(0.0, -100.0, 0.0);
   };
 
   auto friction = PAIRWISE_FORCE(
@@ -38,11 +38,7 @@ int main() {
     Scalar& friction,
     Vector& force
   ) {
-    if (i != 0)
-      return;
-
     friction += 1.0;
-    // friction += 0.0000001;
   };
 
   for (int i = 1; i <= 10; ++i) {

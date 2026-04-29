@@ -7,7 +7,7 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(DefaultSimulationConfig)
 
 const int n_bodies = 1024;
 const int steps = 100;
-const float dt = 0.0001;
+const float dt = 0.001;
 const float L_0 = 0.5f;
 
 int main() {
@@ -24,7 +24,7 @@ int main() {
   };
 
   Simulation<DefaultSimulationConfig> sim(n_bodies, "./output/springs");
-  sim.init_random_hollow_sphere(2.0);
+  sim.init_random_filled_sphere(3.0);
   sim.write();
 
   for (int i = 1; i <= steps; ++i) {

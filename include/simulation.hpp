@@ -33,7 +33,7 @@ namespace kocs {
         : agent_count(agent_count_)
         , storage((get_runtime_guard(), Storage(agent_count_)))
         , random_pool(seed)
-        , pair_finder(make_pair_finder(agent_count_, storage))
+        , pair_finder(make_pair_finder(agent_count_))
         , integrator(make_integrator(agent_count_, pair_finder, storage))
         , writer(output_path)
         , current_step(0) { }
@@ -58,13 +58,11 @@ namespace kocs {
 
       static PairFinder make_pair_finder(
         unsigned int agent_count_,
-        Storage& storage_,
         float cutoff_distance = 10'000.0f
       ) {
         return PairFinder(
           agent_count_,
-          cutoff_distance,
-          std::get<0>(detail::ViewsFromStorage<Fields, Storage>::get(storage_))
+          cutoff_distance
         );
       }
 

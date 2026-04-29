@@ -16,6 +16,7 @@
 
 #include "integrators/base.hpp"
 #include "integrators/euler.hpp"
+#include "integrators/heun.hpp"
 
 #include "simulation_config.hpp"
 #include "simulation.hpp"

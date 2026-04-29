@@ -14,19 +14,16 @@ namespace kocs::pair_finders {
 
     NaiveAllPairs(
       unsigned int agent_count_,
-      float cutoff_distance,
-      PositionsView& positions_)
+      float cutoff_distance)
       : agent_count(agent_count_)
-      , cutoff_distance_squared(cutoff_distance * cutoff_distance)
-      , positions(positions_) { }
+      , cutoff_distance_squared(cutoff_distance * cutoff_distance) { }
     
     unsigned int agent_count;
     float cutoff_distance_squared;
 
-    PositionsView positions;
-
     template<typename RandomPool, typename Force, typename... Views>
     void evaluate_force(
+      PositionsView& input_positions,
       detail::ViewPack<Views...> view_pack,
       PositionsView& old_velocities,
       RandomPool& random_pool,
@@ -37,7 +34,7 @@ namespace kocs::pair_finders {
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
-          auto& position_i = positions(i);
+          auto& position_i = input_positions(i);
 
           auto total_delta_i = detail::make_accumulator_pack(view_pack);
           // TODO: float should be Scalar
@@ -51,7 +48,7 @@ namespace kocs::pair_finders {
               if (i == j)
                 return;
 
-              const auto displacement = position_i - positions(j);
+              const auto displacement = position_i - input_positions(j);
               const auto distance_squared = displacement.length_squared();
 
               if (distance_squared >= cutoff_distance_squared)
