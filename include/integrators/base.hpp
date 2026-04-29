@@ -17,12 +17,14 @@ namespace kocs::integrators {
       Views... views)
       : agent_count(agent_count_)
       , pair_finder(pair_finder_)
-      , stage_pack(detail::ViewPack<Views...>(views...)) { }
+      , stage_pack(detail::ViewPack<Views...>(views...))
+      , old_velocities("integrator_base_old_velocities", agent_count_) { }
     
     PairFinder pair_finder;
 
     unsigned int agent_count;
     detail::StagePack<N, Views...> stage_pack;
+    typename PairFinder::positions_view_type  old_velocities;
 
     template<typename RandomPool, typename Force>
     void evaluate_force_impl(
@@ -44,7 +46,6 @@ namespace kocs::integrators {
       );
     }
 
-    // TODO: make pair finder selectable
     template<typename RandomPool, typename Force>
     void evaluate_force_impl(
       RandomPool& random_pool,
@@ -52,11 +53,9 @@ namespace kocs::integrators {
       detail::PairwiseForceTag,
       detail::ViewPack<Views...>& view_pack
     ) {
-      pair_finder.evaluate_force(view_pack, random_pool, force);
+      pair_finder.evaluate_force(view_pack, old_velocities, random_pool, force);
     }
 
-    // TODO: pick evaluate_force implementation based on attributes not based on Tags 
-    // (useful for friction later)
     template<typename RandomPool, typename Force>
     void evaluate_force_one(RandomPool& random_pool, Force force, detail::ViewPack<Views...>& view_pack) {
       evaluate_force_impl(random_pool, force, typename Force::tag{}, view_pack);

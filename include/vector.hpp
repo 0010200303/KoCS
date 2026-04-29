@@ -292,4 +292,16 @@ namespace kocs {
   using Vector4 = VectorN<Scalar, 4>;
 } // namespace kocs
 
+namespace Kokkos {
+  template<typename Scalar, unsigned int dimensions, unsigned int Align>
+  struct reduction_identity<kocs::VectorN<Scalar, dimensions, Align>> {
+    using value_type = kocs::VectorN<Scalar, dimensions, Align>;
+
+    KOKKOS_FORCEINLINE_FUNCTION
+    static constexpr value_type sum() {
+      return value_type{};
+    }
+  };
+} // namespace Kokkos
+
 #endif // KOCS_VECTOR_HPP

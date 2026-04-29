@@ -111,4 +111,22 @@ namespace kocs::detail {
   }
 } // namespace kocs::detail
 
+namespace Kokkos {
+  template<typename T>
+  struct reduction_identity<kocs::detail::AccumulatorSlot<T>> {
+    KOKKOS_INLINE_FUNCTION
+    static constexpr kocs::detail::AccumulatorSlot<T> sum() {
+      return kocs::detail::AccumulatorSlot<T>{};
+    }
+  };
+
+  template<typename... Slots>
+  struct reduction_identity<kocs::detail::AccumulatorPack<Slots...>> {
+    KOKKOS_INLINE_FUNCTION
+    static constexpr kocs::detail::AccumulatorPack<Slots...> sum() {
+      return kocs::detail::AccumulatorPack<Slots...>{};
+    }
+  };
+} // namespace Kokkos
+
 #endif // KOCS_FORCES_DETAIL_HPP

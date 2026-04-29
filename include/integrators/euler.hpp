@@ -15,15 +15,15 @@ namespace kocs::integrators {
         "apply_euler",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+          // write old velocities
+          this->old_velocities(i) = this->stage_pack[1].first()(i);
+
           this->stage_pack[0].apply([&](auto&... current_views) {
             this->stage_pack[1].apply([&](auto&... delta_views) {
               ((current_views(i) += delta_views(i) * dt), ...);
 
               // clear views (faster than new deep_copy)
               ((delta_views(i) = 0), ...);
-
-              // heun for later
-              // ((delta_views_1(i) = (delta_views_1(i) + delta_views_2(i)) * 0.5), ...);
             });
           });
         }
