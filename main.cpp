@@ -38,7 +38,7 @@ int main() {
     const Scalar& distance,
     Random& rng,
     Scalar& friction,
-    detail::PairwiseFieldRef<Vector> position,
+    auto position,
     detail::PairwiseFieldRef<float> mass
   ) {
     friction += 1.0;
