@@ -166,7 +166,7 @@ namespace kocs {
   using WriterT = kocs::detail::writer_t<__WRITER__, SimulationConfig>;
 
 #define FIELD(__SCALAR_TYPE__, __FIELD_NAME__) \
-  kocs::detail::Field<__SCALAR_TYPE__, __FIELD_NAME__>
+  kocs::detail::Field<__SCALAR_TYPE__, #__FIELD_NAME__>
 
 #define CONFIG_FIELDS(...) \
   using Fields = kocs::detail::FieldList<__VA_ARGS__>;
@@ -180,7 +180,7 @@ namespace kocs {
     using VectorView = Kokkos::View<Vector*>;
 
     CONFIG_FIELDS(
-      FIELD(Vector, "positions")
+      FIELD(Vector, positions)
     )
 
     CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)

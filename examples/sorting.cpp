@@ -16,28 +16,20 @@ int main() {
   sim.init_random_filled_sphere(1.5);
 
   Kokkos::View<int*> types("types", n_cells);
-  auto types_init = GENERIC_FORCE(unsigned int i) {
+  auto types_init = GENERIC_FORCE_IMPL(unsigned int i) {
     types(i) = (i < n_cells / 2) ? 0 : 1;
   };
   Kokkos::parallel_for("init_types", n_cells, types_init);
 
   sim.write(types);
 
-  auto differential_adhesion = PAIRWISE_FORCE(
-    unsigned int i,
-    unsigned int j,
-    const Vector& displacement,
-    const Scalar& distance,
-    Random& rng,
-    Scalar& friction,
-    Vector& force
-  ) {
+  auto differential_adhesion = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position)) {
     if (distance > r_max)
       return;
     
     Scalar strength = (1 + 2 * (j < n_cells / 2)) * (1 + 2 * (i < n_cells / 2));
     Scalar F = 2 * (r_min - distance) * (r_max - distance) + Kokkos::pow(r_max - distance, 2);
-    force += strength * displacement * F / distance;
+    position.delta += strength * displacement * F / distance;
   };
 
   for (int i = 1; i <= steps; ++i) {

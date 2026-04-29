@@ -73,12 +73,25 @@ namespace kocs {
 } // namespace kocs
 
 // force macros
-#define GENERIC_FORCE kocs::detail::generic_force | KOKKOS_LAMBDA
-#define PAIRWISE_FORCE kocs::detail::pairwise_force | KOKKOS_LAMBDA
+#define GENERIC_FORCE_IMPL kocs::detail::generic_force | KOKKOS_LAMBDA
+#define PAIRWISE_FORCE_IMPL kocs::detail::pairwise_force | KOKKOS_LAMBDA
 
-#define GENERIC_REF(__TYPE__) detail::GenericFieldRef<__TYPE__>
-#define PAIRWISE_REF(__TYPE__) detail::PairwiseFieldRef<__TYPE__>
+#define GENERIC_REF_IMPL(__TYPE__) detail::GenericFieldRef<__TYPE__>
+#define PAIRWISE_REF_IMPL(__TYPE__) detail::PairwiseFieldRef<__TYPE__>
 
+#define GENERIC_REF(__TYPE__, __NAME__) GENERIC_REF_IMPL(__TYPE__) __NAME__
+#define PAIRWISE_REF(__TYPE__, __NAME__) PAIRWISE_REF_IMPL(__TYPE__) __NAME__
+
+#define GENERIC_FORCE(...) GENERIC_FORCE_IMPL( \
+  const unsigned int i, \
+  Random& rng __VA_OPT__(,) __VA_ARGS__)
+#define PAIRWISE_FORCE(...) PAIRWISE_FORCE_IMPL( \
+  const unsigned int i, \
+  const unsigned int j, \
+  const Vector& displacement, \
+  const Scalar& distance, \
+  Random& rng, \
+  Scalar& friction __VA_OPT__(,) __VA_ARGS__)
 
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \

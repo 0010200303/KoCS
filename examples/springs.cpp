@@ -15,16 +15,8 @@ int main() {
   sim.init_random_filled_sphere(3.0);
   sim.write();
 
-  auto spring = PAIRWISE_FORCE(
-    unsigned int i,
-    unsigned int j,
-    const Vector& displacement,
-    const Scalar& distance,
-    Random& rng,
-    Scalar& friction,
-    Vector& force
-  ) {
-    force += displacement * (L_0 - distance) / distance;
+  auto spring = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position)) {
+    position.delta += displacement * (L_0 - distance) / distance;
   };
 
   for (int i = 1; i <= steps; ++i) {
