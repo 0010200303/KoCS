@@ -150,6 +150,17 @@ namespace kocs {
           writer.write(current_step++, static_cast<decltype(args)&&>(args)...);
         }, get_views());
       }
+
+      template<typename... Views>
+      inline void write(Views&&... additional_views) {
+        std::apply([&](auto&&... args) {
+          writer.write(
+            current_step++,
+            static_cast<decltype(args)&&>(args)...,
+            std::forward<Views>(additional_views)...
+          );
+        }, get_views());
+      }
   };
 } // namespace kocs
 
