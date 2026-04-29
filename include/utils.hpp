@@ -76,6 +76,9 @@ namespace kocs {
 #define GENERIC_FORCE kocs::detail::generic_force | KOKKOS_LAMBDA
 #define PAIRWISE_FORCE kocs::detail::pairwise_force | KOKKOS_LAMBDA
 
+#define GENERIC_REF(__TYPE__) detail::GenericFieldRef<__TYPE__>
+#define PAIRWISE_REF(__TYPE__) detail::PairwiseFieldRef<__TYPE__>
+
 
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \

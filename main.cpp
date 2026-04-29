@@ -19,8 +19,8 @@ int main() {
   auto generic_force_pos = GENERIC_FORCE(
     unsigned int i,
     Random& rng,
-    detail::GenericFieldRef<Vector> position,
-    detail::GenericFieldRef<float> mass
+    GENERIC_REF(Vector) position,
+    GENERIC_REF(float) mass
   ) {
     if (i == 0)
       return;
@@ -38,8 +38,8 @@ int main() {
     const Scalar& distance,
     Random& rng,
     Scalar& friction,
-    auto position,
-    detail::PairwiseFieldRef<float> mass
+    PAIRWISE_REF(Vector) position,
+    PAIRWISE_REF(float) mass
   ) {
     friction += 1.0;
   };
