@@ -67,22 +67,23 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     constexpr Vector3<Scalar> to_vector3() const {
-      return to_vector3(this);
+      return to_vector3(*this);
     }
 
     KOKKOS_INLINE_FUNCTION
     constexpr Scalar dot(const Polarity_& rhs) const {
-      return Kokkos::sin(this[0]) * Kokkos::sin(rhs[0]) * Kokkos::cos(this[1] - rhs[1]) +
-        Kokkos::cos(this[0]) * Kokkos::cos(rhs[0]);
+      return Kokkos::sin(this->data[0]) * Kokkos::sin(rhs[0]) *
+        Kokkos::cos(this->data[1] - rhs[1]) +
+        Kokkos::cos(this->data[0]) * Kokkos::cos(rhs[0]);
     }
 
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_ unidirectional_polarization_force(const Polarity_& other) const {
       Polarity_ result{dot(other), 0};
 
-      Scalar sin_theta = Kokkos::sin(this[0]);
+      Scalar sin_theta = Kokkos::sin(this->data[0]);
       if (Kokkos::abs(sin_theta) > epsilon)
-        result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this[1] * other[1]) / sin_theta;
+        result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this->data[1] * other[1]) / sin_theta;
       return result;
     }
 
@@ -97,7 +98,7 @@ namespace kocs {
       const Vector3<Scalar>& displacement,
       const Polarity_& other_polarity,
       const Scalar distance
-    ) {
+    ) const {
       BendingForceResult result{};
 
       Vector3<Scalar> this_vector = to_vector3();
