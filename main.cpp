@@ -25,7 +25,7 @@ int main() {
   // };
 
   for (int i = 1; i <= 10; ++i) {
-    sim.take_step(0.001, generic_force_pos, friction);
+    sim.take_step(0.001, generic_force_pos);
     sim.write();
   }
 
