@@ -38,20 +38,11 @@ namespace kocs::integrators {
 
           stage_pack[0].zip_apply([&](auto& current, const auto& delta_0, const auto& delta_1) {
             current(i) += (delta_0(i) + delta_1(i)) * 0.5 * dt;
-          }, stage_pack[1], stage_pack[3]);
 
-          stage_pack[1].zip_apply([&](auto& view) {
-            using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(view(i))>>;
-            view(i) = ValueT{};
-          });
-          stage_pack[2].zip_apply([&](auto& view) {
-            using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(view(i))>>;
-            view(i) = ValueT{};
-          });
-          stage_pack[3].zip_apply([&](auto& view) {
-            using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(view(i))>>;
-            view(i) = ValueT{};
-          });
+            // clear deltas
+            delta_0(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_0(i))>>{};
+            delta_1(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_1(i))>>{};
+          }, stage_pack[1], stage_pack[3]);
         }
       );
     }
