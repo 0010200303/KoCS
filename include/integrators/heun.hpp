@@ -1,6 +1,8 @@
 #ifndef KOCS_INTEGRATORS_HEUN_HPP
 #define KOCS_INTEGRATORS_HEUN_HPP
 
+#include <type_traits>
+
 #include <Kokkos_Core.hpp>
 
 #include "base.hpp"
@@ -40,11 +42,11 @@ namespace kocs::integrators {
                 this->stage_pack[3].apply([&](auto&... delta_views_1) {
                   ((current_views(i) += (delta_views_0(i) + delta_views_1(i)) * 0.5 * dt), ...);
 
-                  ((delta_views_1(i) = 0), ...);
+                  ((delta_views_1(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_views_1(i))>>{}), ...);
                 });
               });
 
-              ((delta_views_0(i) = 0), ...);
+              ((delta_views_0(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_views_0(i))>>{}), ...);
             });
           });
         }

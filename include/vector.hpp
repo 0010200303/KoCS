@@ -24,7 +24,7 @@ namespace kocs {
         data[i] = value;
     }
 
-    template<typename... Args, typename = std::enable_if<sizeof...(Args) == dimensions>>
+    template<typename... Args, std::enable_if_t<sizeof...(Args) == dimensions, int> = 0>
     KOKKOS_INLINE_FUNCTION
     constexpr VectorN(Args... args) : data{static_cast<Scalar>(args)...} { }
 

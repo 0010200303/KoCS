@@ -178,6 +178,7 @@ namespace kocs {
 
     using Vector = kocs::VectorN<Scalar, dimensions>;
     using VectorView = Kokkos::View<Vector*>;
+    using Polarity = kocs::Polarity_<Scalar>;
 
     CONFIG_FIELDS(
       FIELD(Vector, positions)

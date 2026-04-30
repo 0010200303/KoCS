@@ -99,6 +99,7 @@ namespace kocs {
   static constexpr unsigned int dimensions = __SIMULATION_CONFIG__::dimensions; \
   using Vector = kocs::VectorN<Scalar, dimensions>; \
   using VectorView = Kokkos::View<Vector*>; \
+  using Polarity = kocs::Polarity_<Scalar>; \
   using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT; \
   using Random = typename RandomPool::generator_type;
 

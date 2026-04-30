@@ -4,6 +4,7 @@
 #include "utils.hpp"
 
 #include "vector.hpp"
+#include "polarity.hpp"
 
 #include "integrators/base.hpp"
 #include "forces/detail.hpp"
