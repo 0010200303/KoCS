@@ -20,7 +20,7 @@ namespace kocs::integrators {
           this->stage_pack[2].apply([&](auto&... predicted_views) {
             this->stage_pack[1].apply([&](auto&... delta_views) {
               this->stage_pack[0].apply([&](auto&... current_views) {
-                ((predicted_views(i) = current_views(i) + delta_views(i) * dt), ...);
+                ((predicted_views(i) += current_views(i) + delta_views(i) * dt), ...);
               });
             });
           });
@@ -44,6 +44,8 @@ namespace kocs::integrators {
 
                   ((delta_views_1(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_views_1(i))>>{}), ...);
                 });
+
+                ((predicted_views(i) = std::remove_cv_t<std::remove_reference_t<decltype(predicted_views(i))>>{}), ...);
               });
 
               ((delta_views_0(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_views_0(i))>>{}), ...);
