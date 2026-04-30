@@ -42,7 +42,7 @@ namespace kocs::detail {
 
 
 
-  template<typename T>
+  template<std::size_t Index, typename T>
   struct AccumulatorSlot {
     T value{};
 
@@ -102,12 +102,18 @@ namespace kocs::detail {
     }
   };
 
+  template<typename... Views, std::size_t... Is>
+  KOKKOS_INLINE_FUNCTION
+  static auto make_accumulator_pack_impl(std::index_sequence<Is...>) {
+    return AccumulatorPack<AccumulatorSlot<Is, typename Views::value_type>...>(
+      AccumulatorSlot<Is, typename Views::value_type>{}...
+    );
+  }
+
   template<typename... Views>
   KOKKOS_INLINE_FUNCTION
   static auto make_accumulator_pack(const ViewPack<Views...>& pack) {
-    return AccumulatorPack<AccumulatorSlot<typename Views::value_type>...>(
-      AccumulatorSlot<typename Views::value_type>{}...
-    );
+    return make_accumulator_pack_impl<Views...>(std::index_sequence_for<Views...>{});
   }
 
 
@@ -128,10 +134,10 @@ namespace kocs::detail {
 
 namespace Kokkos {
   template<typename T>
-  struct reduction_identity<kocs::detail::AccumulatorSlot<T>> {
+  struct reduction_identity<kocs::detail::AccumulatorSlot<0, T>> {
     KOKKOS_INLINE_FUNCTION
-    static constexpr kocs::detail::AccumulatorSlot<T> sum() {
-      return kocs::detail::AccumulatorSlot<T>{};
+    static constexpr kocs::detail::AccumulatorSlot<0, T> sum() {
+      return kocs::detail::AccumulatorSlot<0, T>{};
     }
   };
 

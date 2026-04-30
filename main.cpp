@@ -6,6 +6,7 @@ using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_FIELDS(
     FIELD(Vector, positions),
+    FIELD(Vector, velocities),
     FIELD(Polarity, polarities)
   )
 };
@@ -16,16 +17,16 @@ int main() {
   sim.init_random_filled_sphere(2.0);
   sim.write();
 
-  auto generic_force_pos = GENERIC_FORCE(GENERIC_REF(Vector, position), GENERIC_REF(Polarity, polarity)) {
-
-  };
-
-  auto friction = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Vector3<float>, polarity)) {
+  auto interactions_mech = PAIRWISE_FORCE(
+    PAIRWISE_REF(Vector, position),
+    PAIRWISE_REF(Vector, velocitiy),
+    PAIRWISE_REF(Polarity, polarity)
+  ) {
 
   };
 
   for (int i = 1; i <= 10; ++i) {
-    sim.take_step(0.001, generic_force_pos);
+    sim.take_step(0.001, interactions_mech);
     sim.write();
   }
 
