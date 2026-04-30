@@ -18,6 +18,12 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_(Scalar theta, Scalar phi) : Base(theta, phi) { }
 
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& theta() { return this->data[0]; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& phi() { return this->data[1]; }
+
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& theta() const { return this->data[0]; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& phi() const { return this->data[1]; }
+
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_& operator=(const Base& rhs) {
       this->data[0] = rhs.data[0];
@@ -31,12 +37,6 @@ namespace kocs {
       this->data[1] = value;
       return *this;
     }
-
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& theta() { return this->data[0]; }
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& phi() { return this->data[1]; }
-
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& theta() const { return this->data[0]; }
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& phi() const { return this->data[1]; }
   };
 }
 
