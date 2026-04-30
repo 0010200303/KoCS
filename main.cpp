@@ -6,7 +6,7 @@ using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_FIELDS(
     FIELD(Vector, positions),
-    FIELD(Polarity, polarities)
+    FIELD(Vector2<float>, polarities)
   )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -16,11 +16,11 @@ int main() {
   sim.init_random_filled_sphere(2.0);
   sim.write();
 
-  auto generic_force_pos = GENERIC_FORCE(GENERIC_REF(Vector, position), GENERIC_REF(Polarity, polarity)) {
+  auto generic_force_pos = GENERIC_FORCE(GENERIC_REF(Vector, position), GENERIC_REF(Vector2<float>, polarity)) {
 
   };
 
-  auto friction = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
+  auto friction = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Vector2<float>, polarity)) {
 
   };
 
