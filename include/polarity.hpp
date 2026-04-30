@@ -9,6 +9,13 @@ namespace kocs {
     using Base = VectorN<Scalar, 2, Align>;
     using Base::Base;
 
+    static const constexpr Scalar epsilon = 1e-6;
+
+    struct BendingForceResult {
+      Vector3<Scalar> vector;
+      Polarity_ polarity;
+    };
+
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_() = default;
 
@@ -18,6 +25,21 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_(Scalar theta, Scalar phi) : Base(theta, phi) { }
 
+    KOKKOS_INLINE_FUNCTION
+    constexpr Polarity_(const Base& value) : Base(value) { }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr Polarity_(const Vector3<Scalar>& vector, const Scalar distance) : Base(
+      Kokkos::acos(vector[2] / distance),
+      Kokkos::atan2(vector[1] / vector[0])
+    ) { }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr Polarity_(const Vector3<Scalar>& vector) : Base(
+      Kokkos::acos(vector[2] / vector.length()),
+      Kokkos::atan2(vector[1] / vector[0])
+    ) { }
+
     KOKKOS_INLINE_FUNCTION constexpr Scalar& theta() { return this->data[0]; }
     KOKKOS_INLINE_FUNCTION constexpr Scalar& phi() { return this->data[1]; }
 
@@ -25,17 +47,72 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION constexpr const Scalar& phi() const { return this->data[1]; }
 
     KOKKOS_INLINE_FUNCTION
-    constexpr Polarity_& operator=(const Base& rhs) {
-      this->data[0] = rhs.data[0];
-      this->data[1] = rhs.data[1];
-      return *this;
+    static constexpr Polarity_ from_vector3(const Vector3<Scalar>& vector, const Scalar distance) {
+      return Polarity_(vector, distance);
     }
 
     KOKKOS_INLINE_FUNCTION
-    constexpr Polarity_& operator=(Scalar value) {
-      this->data[0] = value;
-      this->data[1] = value;
-      return *this;
+    static constexpr Polarity_ from_vector3(const Vector3<Scalar>& vector) {
+      return Polarity_(vector);
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    static constexpr Vector3<Scalar> to_vector3(const Polarity_& polarity) {
+      return Vector3<Scalar>{
+        Kokkos::sin(polarity[0]) * Kokkos::cos(polarity[1]),
+        Kokkos::sin(polarity[0]) * Kokkos::sin(polarity[1]),
+        Kokkos::cos(polarity[0])
+      };
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr Vector3<Scalar> to_vector3() const {
+      return to_vector3(this);
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr Scalar dot(const Polarity_& rhs) const {
+      return Kokkos::sin(this[0]) * Kokkos::sin(rhs[0]) * Kokkos::cos(this[1] - rhs[1]) +
+        Kokkos::cos(this[0]) * Kokkos::cos(rhs[0]);
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr Polarity_ unidirectional_polarization_force(const Polarity_& other) const {
+      Polarity_ result{dot(other), 0};
+
+      Scalar sin_theta = Kokkos::sin(this[0]);
+      if (Kokkos::abs(sin_theta) > epsilon)
+        result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this[1] * other[1]) / sin_theta;
+      return result;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr Polarity_ bidirectional_polarization_force(const Polarity_& other) const {
+      return dot(other) * unidirectional_polarization_force(other);
+    }
+
+    // TODO: optimize
+    KOKKOS_INLINE_FUNCTION
+    constexpr BendingForceResult bending_force(
+      const Vector3<Scalar>& displacement,
+      const Polarity_& other_polarity,
+      const Scalar distance
+    ) {
+      BendingForceResult result{};
+
+      Vector3<Scalar> this_vector = to_vector3();
+      Scalar prod_i = dot(displacement) / distance;
+      Polarity_ r_hat = from_vector3(displacement, distance);
+
+      result.polarity = -prod_i * unidirectional_polarization_force(r_hat);
+      result.vector = -prod_i / distance * this_vector + Kokkos::pow(prod_i, 2) / Kokkos::pow(distance, 2) * displacement;
+
+      Vector3<Scalar> other_vector = to_vector3(other_polarity);
+      Scalar prod_j = other_vector.dot(displacement) / distance;
+
+      result.vector += -prod_j / distance * other_vector * Kokkos::pow(prod_j, 2) / Kokkos::pow(distance, 2) * displacement;
+
+      return result;
     }
   };
 }

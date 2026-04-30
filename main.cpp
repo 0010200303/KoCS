@@ -20,9 +20,9 @@ int main() {
 
   };
 
-  // auto friction = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Vector3<float>, polarity)) {
+  auto friction = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Vector3<float>, polarity)) {
 
-  // };
+  };
 
   for (int i = 1; i <= 10; ++i) {
     sim.take_step(0.001, generic_force_pos);
