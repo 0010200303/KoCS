@@ -85,13 +85,7 @@ namespace kocs {
 #define GENERIC_FORCE(...) GENERIC_FORCE_IMPL( \
   const unsigned int i, \
   Random& rng __VA_OPT__(,) __VA_ARGS__)
-#define PAIRWISE_FORCE(...) PAIRWISE_FORCE_IMPL( \
-  const unsigned int i, \
-  const unsigned int j, \
-  const Vector& displacement, \
-  const Scalar& distance, \
-  Random& rng, \
-  Scalar& friction __VA_OPT__(,) __VA_ARGS__)
+#define PAIRWISE_FORCE(...) PAIRWISE_FORCE_IMPL(__VA_ARGS__)
 
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
