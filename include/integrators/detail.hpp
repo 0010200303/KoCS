@@ -1,6 +1,8 @@
 #ifndef KOCS_INTEGRATORS_DETAIL_HPP
 #define KOCS_INTEGRATORS_DETAIL_HPP
 
+#include <type_traits>
+
 namespace kocs::detail {
   template<typename... Views>
   struct ViewPack;
@@ -81,6 +83,11 @@ namespace kocs::detail {
     template<typename F, typename... OtherPacks>
     KOKKOS_INLINE_FUNCTION
     void zip_apply(F&& f, OtherPacks&&... others) {
+      static_assert(
+        (view_pack_size_v<OtherPacks> == size && ...),
+        "ViewPack::zip_apply pack size mismatch"
+      );
+
       f(first_value, others.first()...);
       base_type::zip_apply(
         std::forward<F>(f),
@@ -91,6 +98,11 @@ namespace kocs::detail {
     template<typename F, typename... OtherPacks>
     KOKKOS_INLINE_FUNCTION
     void zip_apply(F&& f, OtherPacks&&... others) const {
+      static_assert(
+        (view_pack_size_v<OtherPacks> == size && ...),
+        "ViewPack::zip_apply pack size mismatch"
+      );
+
       f(first_value, others.first()...);
       static_cast<const base_type&>(*this).zip_apply(
         std::forward<F>(f),
