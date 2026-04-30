@@ -20,6 +20,14 @@ namespace kocs::detail {
     decltype(auto) apply(F&& f) {
       return static_cast<F&&>(f)();
     }
+
+    template<typename F, typename... OtherPacks>
+    KOKKOS_INLINE_FUNCTION
+    void zip_apply(F&&, OtherPacks&&...) { }
+
+    template<typename F, typename... OtherPacks>
+    KOKKOS_INLINE_FUNCTION
+    void zip_apply(F&&, OtherPacks&&...) const { }
   };
 
   template<typename FirstView, typename... RestViews>
@@ -67,6 +75,26 @@ namespace kocs::detail {
         [&](const auto&... rest_values) -> decltype(auto) {
           return static_cast<F&&>(f)(first_value, rest_values...);
         }
+      );
+    }
+
+    template<typename F, typename... OtherPacks>
+    KOKKOS_INLINE_FUNCTION
+    void zip_apply(F&& f, OtherPacks&&... others) {
+      f(first_value, others.first()...);
+      base_type::zip_apply(
+        std::forward<F>(f),
+        static_cast<base_type&>(others)...
+      );
+    }
+
+    template<typename F, typename... OtherPacks>
+    KOKKOS_INLINE_FUNCTION
+    void zip_apply(F&& f, OtherPacks&&... others) const {
+      f(first_value, others.first()...);
+      static_cast<const base_type&>(*this).zip_apply(
+        std::forward<F>(f),
+        static_cast<const base_type&>(others)...
       );
     }
   };
