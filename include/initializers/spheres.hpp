@@ -16,8 +16,8 @@ namespace kocs::initializers {
     Scalar radius;
     VectorView positions_view;
 
-    RandomHollowSphere(VectorView positions, Scalar r)
-      : positions_view(positions), radius(r) { }
+    RandomHollowSphere(VectorView positions, Scalar radius_)
+      : positions_view(positions), radius(radius_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i, Random& generator) const {
@@ -42,8 +42,8 @@ namespace kocs::initializers {
     Scalar radius;
     VectorView positions_view;
 
-    RandomFilledSphere(VectorView positions, Scalar r)
-      : positions_view(positions), radius(r) { }
+    RandomFilledSphere(VectorView positions, Scalar radius_)
+      : positions_view(positions), radius(radius_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i, Random& generator) const {

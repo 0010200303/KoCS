@@ -124,6 +124,11 @@ namespace kocs {
         init(initializer);
       }
 
+      inline void init_regular_hexagon(Scalar distance_to_neighbour) {
+        initializers::RegularHexagon<SimulationConfig> initializer(get_positions_view(), distance_to_neighbour);
+        init(initializer);
+      }
+
       template<typename Initializer>
       inline void init(Initializer initializer) {
         auto& random_pool_ = random_pool;
