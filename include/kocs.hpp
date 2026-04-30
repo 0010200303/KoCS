@@ -15,6 +15,7 @@
 #include "initializers/hexagon.hpp"
 
 #include "pair_finders/all_pairs.hpp"
+#include "pair_finders/gabriel.hpp"
 
 #include "integrators/base.hpp"
 #include "integrators/euler.hpp"

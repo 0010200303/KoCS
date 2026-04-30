@@ -12,7 +12,7 @@ namespace kocs::integrators {
     using Base<PairFinder, 4, Views...>::Base;
 
   public:
-    void apply_euler_predictor(float dt) {
+    void apply_euler_predictor(double dt) {
       auto& stage_pack = this->stage_pack;
 
       Kokkos::parallel_for(

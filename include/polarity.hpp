@@ -79,11 +79,15 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_ unidirectional_polarization_force(const Polarity_& other) const {
-      Polarity_ result{dot(other), 0};
+      Polarity_ result{
+        Kokkos::cos(this->data[0]) * Kokkos::sin(other[0]) * Kokkos::cos(this->data[1] - other[1]) - 
+        Kokkos::sin(this->data[0]) * Kokkos::cos(other[0]),
+        0
+      };
 
       Scalar sin_theta = Kokkos::sin(this->data[0]);
       if (Kokkos::abs(sin_theta) > epsilon)
-        result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this->data[1] * other[1]) / sin_theta;
+        result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this->data[1] - other[1]) / sin_theta;
       return result;
     }
 
@@ -102,7 +106,7 @@ namespace kocs {
       BendingForceResult result{};
 
       Vector3<Scalar> this_vector = to_vector3();
-      Scalar prod_i = dot(displacement) / distance;
+      Scalar prod_i = this_vector.dot(displacement) / distance;
       Polarity_ r_hat = from_vector3(displacement, distance);
 
       result.polarity = -prod_i * unidirectional_polarization_force(r_hat);
@@ -111,7 +115,7 @@ namespace kocs {
       Vector3<Scalar> other_vector = to_vector3(other_polarity);
       Scalar prod_j = other_vector.dot(displacement) / distance;
 
-      result.vector += -prod_j / distance * other_vector * Kokkos::pow(prod_j, 2) / Kokkos::pow(distance, 2) * displacement;
+      result.vector += -prod_j / distance * other_vector + Kokkos::pow(prod_j, 2) / Kokkos::pow(distance, 2) * displacement;
 
       return result;
     }

@@ -95,6 +95,7 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/hexagon.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/all_pairs.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/gabriel.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/base.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/euler.hpp
