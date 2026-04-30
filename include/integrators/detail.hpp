@@ -7,8 +7,22 @@ namespace kocs::detail {
   template<typename... Views>
   struct ViewPack;
 
+  template<typename Pack>
+  struct view_pack_size;
+
+  template<typename... Views>
+  struct view_pack_size<ViewPack<Views...>> {
+    static constexpr std::size_t value = sizeof...(Views);
+  };
+
+  template<typename Pack>
+  inline constexpr std::size_t view_pack_size_v =
+    view_pack_size<std::remove_cv_t<std::remove_reference_t<Pack>>>::value;
+
   template<>
   struct ViewPack<> {
+    static constexpr std::size_t size = 0;
+
     ViewPack() = default;
 
     template<typename F>
@@ -35,6 +49,7 @@ namespace kocs::detail {
   template<typename FirstView, typename... RestViews>
   struct ViewPack<FirstView, RestViews...> : ViewPack<RestViews...> {
     using base_type = ViewPack<RestViews...>;
+    static constexpr std::size_t size = 1 + base_type::size;
 
     FirstView first_value;
 
@@ -84,7 +99,7 @@ namespace kocs::detail {
     KOKKOS_INLINE_FUNCTION
     void zip_apply(F&& f, OtherPacks&&... others) {
       static_assert(
-        (view_pack_size_v<OtherPacks> == size && ...),
+        ((view_pack_size_v<OtherPacks> == size) && ...),
         "ViewPack::zip_apply pack size mismatch"
       );
 
@@ -99,7 +114,7 @@ namespace kocs::detail {
     KOKKOS_INLINE_FUNCTION
     void zip_apply(F&& f, OtherPacks&&... others) const {
       static_assert(
-        (view_pack_size_v<OtherPacks> == size && ...),
+        ((view_pack_size_v<OtherPacks> == size) && ...),
         "ViewPack::zip_apply pack size mismatch"
       );
 
