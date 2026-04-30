@@ -11,44 +11,6 @@ namespace kocs::integrators {
   struct Heun : public Base<PairFinder, 4, Views...> {
     using Base<PairFinder, 4, Views...>::Base;
 
-  private:
-    template<typename FirstView, typename... RestViews>
-    KOKKOS_INLINE_FUNCTION
-    static void reset_pack_at(detail::ViewPack<FirstView, RestViews...>& pack, const unsigned int i) {
-      pack.zip_apply([&](auto& view) {
-        using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(view(i))>>;
-        view(i) = ValueT{};
-      });
-    }
-
-    template<typename FirstView, typename... RestViews>
-    KOKKOS_INLINE_FUNCTION
-    static void predict_pack_at(
-      detail::ViewPack<FirstView, RestViews...>& dst,
-      const detail::ViewPack<FirstView, RestViews...>& current,
-      const detail::ViewPack<FirstView, RestViews...>& delta,
-      const unsigned int i,
-      const double dt
-    ) {
-      dst.zip_apply([&](auto& d, const auto& c, const auto& del) {
-        d(i) = c(i) + del(i) * dt;
-      }, current, delta);
-    }
-
-    template<typename FirstView, typename... RestViews>
-    KOKKOS_INLINE_FUNCTION
-    static void correct_pack_at(
-      detail::ViewPack<FirstView, RestViews...>& current,
-      const detail::ViewPack<FirstView, RestViews...>& delta0,
-      const detail::ViewPack<FirstView, RestViews...>& delta1,
-      const unsigned int i,
-      const double dt
-    ) {
-      current.zip_apply([&](auto& c, const auto& d0, const auto& d1) {
-        c(i) += (d0(i) + d1(i)) * 0.5 * dt;
-      }, delta0, delta1);
-    }
-
   public:
     void apply_euler_predictor(float dt) {
       auto& stage_pack = this->stage_pack;
@@ -72,14 +34,24 @@ namespace kocs::integrators {
         "apply_heun_corrector",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          old_velocities(i) =
-            (stage_pack[1].first()(i) + stage_pack[3].first()(i)) * 0.5;
+          old_velocities(i) = (stage_pack[1].first()(i) + stage_pack[3].first()(i)) * 0.5;
 
-          correct_pack_at(stage_pack[0], stage_pack[1], stage_pack[3], i, dt);
+          stage_pack[0].zip_apply([&](auto& current, const auto& delta_0, const auto& delta_1) {
+            current(i) += (delta_0(i) + delta_1(i)) * 0.5 * dt;
+          }, stage_pack[1], stage_pack[3]);
 
-          reset_pack_at(stage_pack[1], i);
-          reset_pack_at(stage_pack[2], i);
-          reset_pack_at(stage_pack[3], i);
+          stage_pack[1].zip_apply([&](auto& view) {
+            using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(view(i))>>;
+            view(i) = ValueT{};
+          });
+          stage_pack[2].zip_apply([&](auto& view) {
+            using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(view(i))>>;
+            view(i) = ValueT{};
+          });
+          stage_pack[3].zip_apply([&](auto& view) {
+            using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(view(i))>>;
+            view(i) = ValueT{};
+          });
         }
       );
     }
@@ -90,7 +62,7 @@ namespace kocs::integrators {
       apply_euler_predictor(dt);
 
       this->evaluate_forces(random_pool, this->stage_pack[2], this->stage_pack[3], forces...);
-      // apply_heun_corrector(dt);
+      apply_heun_corrector(dt);
     }
   };
 } // namespace kocs::integrators
