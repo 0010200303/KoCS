@@ -31,13 +31,13 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_(const Vector3<Scalar>& vector, const Scalar distance) : Base(
       Kokkos::acos(vector[2] / distance),
-      Kokkos::atan2(vector[1] / vector[0])
+      Kokkos::atan2(vector[1], vector[0])
     ) { }
 
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_(const Vector3<Scalar>& vector) : Base(
       Kokkos::acos(vector[2] / vector.length()),
-      Kokkos::atan2(vector[1] / vector[0])
+      Kokkos::atan2(vector[1], vector[0])
     ) { }
 
     KOKKOS_INLINE_FUNCTION constexpr Scalar& theta() { return this->data[0]; }
