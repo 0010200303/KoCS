@@ -12,7 +12,7 @@ namespace kocs::integrators {
   struct Heun : public Base<PairFinder, 4, Views...> {
     using Base<PairFinder, 4, Views...>::Base;
 
-    void apply_euler_predictor(double dt) {
+    void apply_euler_predictor(float dt) {
       Kokkos::parallel_for(
         "apply_euler_predictor",
         this->agent_count,
