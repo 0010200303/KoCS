@@ -7,7 +7,7 @@ namespace kocs::com_fixers {
   template<typename SimulationConfig>
   struct NoComFixer {
     template<typename DeltaView>
-    auto fix(DeltaView positions_delta_view) {
+    typename DeltaView::non_const_value_type fix(DeltaView positions_delta_view) {
       using DeltaType = typename DeltaView::non_const_value_type;
       return DeltaType{};
     }
@@ -16,7 +16,7 @@ namespace kocs::com_fixers {
   template<typename SimulationConfig>
   struct GlobalComFixer {
     template<typename DeltaView>
-    auto fix(DeltaView& position_delta_view) const {
+    typename DeltaView::non_const_value_type fix(DeltaView& position_delta_view) const {
       using DeltaType = typename DeltaView::non_const_value_type;
       DeltaType total_delta{};
 
