@@ -8,21 +8,23 @@
 #include "../forces/detail.hpp"
 
 namespace kocs::pair_finders {
-  template<typename PositionsView>
+  template<typename PositionsView, typename Scalar>
   struct NaiveGabriel {
     using positions_view_type = PositionsView;
 
     NaiveGabriel(
       unsigned int agent_count_,
-      float cutoff_distance,
-      float gabriel_coefficient_ = 0.8f)
+      Scalar cutoff_distance,
+      Scalar gabriel_coefficient_ = 0.8f)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
       , gabriel_coefficient(gabriel_coefficient_) { }
     
+    static const constexpr Scalar epsilon = Scalar(1e-6);
+
     unsigned int agent_count;
-    float cutoff_distance_squared;
-    float gabriel_coefficient;
+    Scalar cutoff_distance_squared;
+    Scalar gabriel_coefficient;
 
     template<typename RandomPool, typename Force, typename... Views>
     void evaluate_force(
@@ -41,11 +43,9 @@ namespace kocs::pair_finders {
           const auto& position_i = input_positions(i);
 
           auto total_delta_i = detail::make_accumulator_pack(out_view_pack);
-          // TODO: float should be Scalar
-          float total_friction_i = 0.0;
+          Scalar total_friction_i = 0.0;
           typename PositionsView::value_type total_velocity_i{0.0};
 
-          // TODO: maybe you can actually have the total be references into the current view???
           Kokkos::parallel_reduce(
             Kokkos::TeamThreadRange(team_member, agent_count),
             [&](const int j, auto& local_delta, auto& local_friction, auto& local_velocity) {
@@ -72,7 +72,7 @@ namespace kocs::pair_finders {
 
               const auto distance = Kokkos::sqrt(distance_squared);
 
-              float pair_friction = 0.0;
+              Scalar pair_friction = 0.0;
 
               auto generator = random_pool.get_state();
               in_view_pack.apply([&](auto&... views) {
@@ -89,7 +89,7 @@ namespace kocs::pair_finders {
               local_velocity += pair_friction * old_velocities(j);
             },
             Kokkos::Sum<decltype(total_delta_i)>(total_delta_i),
-            Kokkos::Sum<float>(total_friction_i),
+            Kokkos::Sum<Scalar>(total_friction_i),
             Kokkos::Sum<typename PositionsView::value_type>(total_velocity_i)
           );
 
@@ -102,10 +102,7 @@ namespace kocs::pair_finders {
                 });
               });
 
-              // TODO: don't branch here, instead:
-              // out_view_pack.first()(i) += total_velocity_i / max(total_friction_i, epsilon);
-              if (total_friction_i != 0.0)
-                out_view_pack.first()(i) += total_velocity_i / total_friction_i;
+              out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
             }
           );
         }

@@ -54,7 +54,6 @@ namespace kocs {
     template <typename Field>
     auto make_view(std::size_t n) {
       using view_type = typename ViewFromField<Field>::type;
-      // TODO: maybe use string_view instead
       return view_type(std::string(Field::name), n);
     }
 
@@ -72,7 +71,7 @@ namespace kocs {
     template <template<typename...> typename PairFinderT, typename SimulationConfig, typename... Fields>
     struct PairFinderFromFields<PairFinderT, SimulationConfig, FieldList<Fields...>> {
       using FirstField = typename FirstFieldFromList<FieldList<Fields...>>::type;
-      using type = PairFinderT<typename ViewFromField<FirstField>::type>;
+      using type = PairFinderT<typename ViewFromField<FirstField>::type, typename SimulationConfig::Scalar>;
     };
 
     template <template<typename, typename...> typename IntegratorT, typename SimulationConfig, typename FieldList>

@@ -13,6 +13,9 @@
 #include "vector.hpp"
 
 namespace kocs {
+  template<typename T>
+  using View = Kokkos::View<T*>;
+
   // extract types from Fields
   template<typename Tuple>
   struct extract_types;
@@ -92,6 +95,8 @@ namespace kocs {
   const Scalar& distance, \
   Random& rng, \
   Scalar& friction __VA_OPT__(,) __VA_ARGS__)
+
+#define INIT_FUNC() KOKKOS_LAMBDA(const unsigned int i, Random& rng)
 
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \

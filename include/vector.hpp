@@ -252,12 +252,8 @@ namespace kocs {
     }
 
     // enable easy HighFive writing
-    // TODO: optimize
-    std::array<Scalar, dimensions> to_array() const {
-      std::array<Scalar, dimensions> out{};
-      for (int i = 0; i < dimensions; ++i)
-        out[i] = data[i];
-      return out;
+    constexpr std::array<Scalar, dimensions> to_array() const {
+      return std::to_array(data);
     }
 
     constexpr unsigned int get_dimensions() const {

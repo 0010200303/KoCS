@@ -9,7 +9,7 @@ namespace kocs {
     using Base = VectorN<Scalar, 2, Align>;
     using Base::Base;
 
-    static const constexpr Scalar epsilon = 1e-6;
+    static const constexpr Scalar epsilon = Scalar(1e-6);
 
     struct BendingForceResult {
       Vector3<Scalar> vector;
@@ -96,28 +96,23 @@ namespace kocs {
       return dot(other) * unidirectional_polarization_force(other);
     }
 
-    // TODO: optimize
     KOKKOS_INLINE_FUNCTION
     constexpr BendingForceResult bending_force(
       const Vector3<Scalar>& displacement,
       const Polarity_& other_polarity,
       const Scalar distance
     ) const {
-      BendingForceResult result{};
-
       Vector3<Scalar> this_vector = to_vector3();
       Scalar prod_i = this_vector.dot(displacement) / distance;
-      Polarity_ r_hat = from_vector3(displacement, distance);
-
-      result.polarity = -prod_i * unidirectional_polarization_force(r_hat);
-      result.vector = -prod_i / distance * this_vector + Kokkos::pow(prod_i, 2) / Kokkos::pow(distance, 2) * displacement;
 
       Vector3<Scalar> other_vector = to_vector3(other_polarity);
       Scalar prod_j = other_vector.dot(displacement) / distance;
 
-      result.vector += -prod_j / distance * other_vector + Kokkos::pow(prod_j, 2) / Kokkos::pow(distance, 2) * displacement;
-
-      return result;
+      return BendingForceResult{
+        -prod_i / distance * this_vector + Kokkos::pow(prod_i, 2) / Kokkos::pow(distance, 2) * displacement +
+        -prod_j / distance * other_vector + Kokkos::pow(prod_j, 2) / Kokkos::pow(distance, 2) * displacement,
+        -prod_i * unidirectional_polarization_force(from_vector3(displacement, distance))
+      };
     }
   };
 }

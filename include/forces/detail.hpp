@@ -120,14 +120,14 @@ namespace kocs::detail {
 
   template<typename T>
   struct GenericFieldRef {
-    const T& i;
+    const T& self;
     T& delta;
   };
 
   template<typename T>
   struct PairwiseFieldRef {
-    const T& i;
-    const T& j;
+    const T& self;
+    const T& other;
     T& delta;
   };
 } // namespace kocs::detail

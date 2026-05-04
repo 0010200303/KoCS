@@ -28,12 +28,13 @@ namespace kocs {
       Simulation(
         const unsigned int agent_count_,
         const std::string& output_path,
+        const Scalar cutoff_distance = Scalar(1'000'000),
         const uint64_t seed = 2807
       )
         : agent_count(agent_count_)
         , storage((get_runtime_guard(), Storage(agent_count_)))
         , random_pool(seed)
-        , pair_finder(make_pair_finder(agent_count_))
+        , pair_finder(make_pair_finder(agent_count_, cutoff_distance))
         , com_fixer()
         , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage))
         , writer(output_path)
@@ -60,7 +61,7 @@ namespace kocs {
 
       static PairFinder make_pair_finder(
         unsigned int agent_count_,
-        float cutoff_distance = 10'000.0f
+        Scalar cutoff_distance
       ) {
         return PairFinder(
           agent_count_,
@@ -112,24 +113,28 @@ namespace kocs {
       }
 
     public:
-      inline void init_line() {
+      template<typename... InitFuncs>
+      inline void init_line(InitFuncs&&... init_functions) {
         initializers::Line<SimulationConfig> initializer(get_positions_view());
-        init(initializer);
+        init(initializer, init_functions...);
       }
 
-      inline void init_random_hollow_sphere(Scalar radius) {
+      template<typename... InitFuncs>
+      inline void init_random_hollow_sphere(Scalar radius, InitFuncs&&... init_functions) {
         initializers::RandomHollowSphere<SimulationConfig> initializer(get_positions_view(), radius);
-        init(initializer);
+        init(initializer, init_functions...);
       }
 
-      inline void init_random_filled_sphere(Scalar radius) {
+      template<typename... InitFuncs>
+      inline void init_random_filled_sphere(Scalar radius, InitFuncs&&... init_functions) {
         initializers::RandomFilledSphere<SimulationConfig> initializer(get_positions_view(), radius);
-        init(initializer);
+        init(initializer, init_functions...);
       }
 
-      inline void init_regular_hexagon(Scalar distance_to_neighbour) {
+      template<typename... InitFuncs>
+      inline void init_regular_hexagon(Scalar distance_to_neighbour, InitFuncs&&... init_functions) {
         initializers::RegularHexagon<SimulationConfig> initializer(get_positions_view(), distance_to_neighbour);
-        init(initializer);
+        init(initializer, init_functions...);
       }
 
       template<typename Initializer>
@@ -142,6 +147,13 @@ namespace kocs {
 
           random_pool_.free_state(generator);
         });
+      }
+
+      template<typename Initializer, typename... InitFuncs>
+      inline void init(Initializer initializer, InitFuncs&&... init_functions) {
+        init(initializer);
+        if constexpr (sizeof...(init_functions) > 0)
+          init(static_cast<InitFuncs&&>(init_functions)...);
       }
 
       template<typename... Forces>
