@@ -21,6 +21,8 @@
 #include "integrators/euler.hpp"
 #include "integrators/heun.hpp"
 
+#include "com_fixers/com_fixers.hpp"
+
 #include "simulation_config.hpp"
 #include "simulation.hpp"
 

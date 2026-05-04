@@ -108,6 +108,7 @@ namespace kocs {
   using Fields = typename __SIMULATION_CONFIG__::Fields; \
   using Integrator = typename __SIMULATION_CONFIG__::template IntegratorT<__SIMULATION_CONFIG__>; \
   using PairFinder = typename __SIMULATION_CONFIG__::template PairFinderT<__SIMULATION_CONFIG__>; \
+  using ComFixer = typename __SIMULATION_CONFIG__::template ComFixerT<__SIMULATION_CONFIG__>; \
   using Writer = typename __SIMULATION_CONFIG__::template WriterT<__SIMULATION_CONFIG__>;
 
 // #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \

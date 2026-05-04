@@ -34,7 +34,8 @@ namespace kocs {
         , storage((get_runtime_guard(), Storage(agent_count_)))
         , random_pool(seed)
         , pair_finder(make_pair_finder(agent_count_))
-        , integrator(make_integrator(agent_count_, pair_finder, storage))
+        , com_fixer()
+        , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage))
         , writer(output_path)
         , current_step(0) { }
 
@@ -46,6 +47,7 @@ namespace kocs {
 
       // TODO: maybe add some specific options to construct these
       PairFinder pair_finder;
+      ComFixer com_fixer;
       Integrator integrator;
 
       Writer writer;
@@ -69,11 +71,12 @@ namespace kocs {
       static Integrator make_integrator(
         unsigned int agent_count_,
         PairFinder pair_finder_,
+        ComFixer com_fixer_,
         Storage& storage_
       ) {
         return std::apply(
           [&](auto&... views) {
-            return Integrator(agent_count_, pair_finder_, views...);
+            return Integrator(agent_count_, pair_finder_, com_fixer_, views...);
           },
           detail::ViewsFromStorage<Fields, Storage>::get(storage_)
         );

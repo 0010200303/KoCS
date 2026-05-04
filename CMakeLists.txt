@@ -101,6 +101,8 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/euler.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/heun.hpp
 
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/com_fixers/com_fixers.hpp
+
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation_config.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/simulation.hpp
 

@@ -6,6 +6,7 @@
 #include "integrators/detail.hpp"
 #include "integrators/heun.hpp"
 #include "pair_finders/all_pairs.hpp"
+#include "com_fixers/com_fixers.hpp"
 #include "io/hdf5_writer.hpp"
 
 namespace kocs {
@@ -81,6 +82,7 @@ namespace kocs {
     struct IntegratorFromFields<IntegratorT, SimulationConfig, FieldList<Fields...>> {
       using type = IntegratorT<
         typename SimulationConfig::template PairFinderT<SimulationConfig>,
+        typename SimulationConfig::template ComFixerT<SimulationConfig>,
         typename ViewFromField<Fields>::type...
       >;
     };
@@ -157,9 +159,13 @@ namespace kocs {
   template<typename SimulationConfig> \
   using IntegratorT = kocs::detail::integrator_t<__INTEGRATOR__, SimulationConfig>;
 
-#define CONFIG_PAIR_FINDER(__PAIR_FINDER_TYPE__) \
+#define CONFIG_PAIR_FINDER(__PAIR_FINDER__) \
   template<typename SimulationConfig> \
-  using PairFinderT = kocs::detail::pair_finder_t<__PAIR_FINDER_TYPE__, SimulationConfig>;
+  using PairFinderT = kocs::detail::pair_finder_t<__PAIR_FINDER__, SimulationConfig>;
+
+#define CONFIG_COM_FIXER(__COM_FIXER__) \
+  template<typename SimulationConfig> \
+  using ComFixerT = __COM_FIXER__<SimulationConfig>;
 
 #define CONFIG_WRITER(__WRITER__) \
   template<typename SimulationConfig> \
@@ -184,8 +190,9 @@ namespace kocs {
       FIELD(Vector, positions)
     )
 
-    CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)
     CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
+    CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)
+    CONFIG_COM_FIXER(kocs::com_fixers::GlobalComFixer)
     CONFIG_INTEGRATOR(kocs::integrators::Heun)
 
     CONFIG_WRITER(kocs::writers::HDF5_Writer)

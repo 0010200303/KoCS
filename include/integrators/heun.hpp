@@ -7,18 +7,21 @@
 #include "base.hpp"
 
 namespace kocs::integrators {
-  template<typename PairFinder, typename... Views>
-  struct Heun : public Base<PairFinder, 4, Views...> {
-    using Base<PairFinder, 4, Views...>::Base;
+  template<typename PairFinder, typename ComFixer, typename... Views>
+  struct Heun : public Base<PairFinder, ComFixer, 4, Views...> {
+    using Base<PairFinder, ComFixer, 4, Views...>::Base;
 
   public:
     void apply_euler_predictor(double dt) {
       auto& stage_pack = this->stage_pack;
+      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[0].first());
 
       Kokkos::parallel_for(
         "apply_euler_predictor",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+          stage_pack[1].first()(i) -= com_fix_delta;
+
           stage_pack[2].zip_apply([&](auto& predicted, const auto& current, const auto& delta) {
             predicted(i) = current(i) + delta(i) * dt;
           }, stage_pack[0], stage_pack[1]);
@@ -29,11 +32,14 @@ namespace kocs::integrators {
     void apply_heun_corrector(double dt) {
       auto& stage_pack = this->stage_pack;
       auto& old_velocities = this->old_velocities;
+      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[0].first());
 
       Kokkos::parallel_for(
         "apply_heun_corrector",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+          stage_pack[3].first()(i) -= com_fix_delta;
+          
           old_velocities(i) = (stage_pack[1].first()(i) + stage_pack[3].first()(i)) * 0.5;
 
           stage_pack[0].zip_apply([&](auto& current, const auto& delta_0, const auto& delta_1) {

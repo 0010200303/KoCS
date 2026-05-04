@@ -9,11 +9,12 @@
 #include "../pair_finders/all_pairs.hpp"
 
 namespace kocs::integrators {
-  template<typename PairFinder, const unsigned int N, typename... Views>
+  template<typename PairFinder, typename ComFixer, const unsigned int N, typename... Views>
   struct Base {
     Base(
       unsigned int agent_count_,
       PairFinder& pair_finder_,
+      ComFixer& com_fixer_,
       Views... views)
       : agent_count(agent_count_)
       , pair_finder(pair_finder_)
@@ -23,6 +24,7 @@ namespace kocs::integrators {
     using PositionsView = typename PairFinder::positions_view_type;
 
     PairFinder pair_finder;
+    ComFixer com_fixer;
 
     unsigned int agent_count;
     detail::StagePack<N, Views...> stage_pack;
