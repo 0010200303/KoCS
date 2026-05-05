@@ -38,32 +38,6 @@ namespace kocs::initializers {
     
     unsigned int steps;
 
-    struct RelaxForce {
-      template<typename PositionType, typename DisplacementType, typename... Rest>
-      KOKKOS_INLINE_FUNCTION
-      void operator()(
-        const Vector& displacement,
-        const Scalar& distance,
-        PAIRWISE_REF(Vector, position),
-        Rest&&...
-      ) const {
-        Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
-        position.delta += displacement * F / distance;
-      }
-    };
-
-    template<typename... Rest>
-    KOKKOS_INLINE_FUNCTION
-    static void relu(
-      const Vector& displacement,
-      const Scalar& distance,
-      PAIRWISE_REF(Vector, position),
-      Rest&&...
-    ) {
-      Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
-      position.delta += displacement * F / distance;
-    }
-
     template<typename ViewType>
     RelaxedCuboid(
       ViewType positions,
@@ -73,14 +47,36 @@ namespace kocs::initializers {
     ) : RandomCuboid<SimulationConfig>(positions, minimum, maximum)
       , steps(relaxation_steps) { }
 
+    struct RelaxForce {
+      template<typename... Rest>
+      KOKKOS_INLINE_FUNCTION
+      void operator()(
+        const unsigned int i,
+        const unsigned int j,
+        const Vector& displacement,
+        const Scalar& distance,
+        Random& rng,
+        Scalar& friction,
+        PAIRWISE_REF(Vector, position),
+        Rest&&...
+      ) const {
+        Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
+        position.delta += displacement * F / distance;
+      }
+    };
+
+    // auto tust = PAIRWISE_FORCE(
+    //   PAIRWISE_REF(Vector, position),
+    //   auto&&...
+    // ) {
+    //   Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
+    //   position.delta += displacement * F / distance;
+    // };
+
     template<typename Simulation>
     void relax(Simulation& simulation) {
-      auto relu_force = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position)) {
-        relu(displacement, distance, position);
-      };
-
       for (int i = 0; i < steps; ++i)
-        simulation.take_step(0.1, relu_force);
+        simulation.take_step(0.1, RelaxForce{} | kocs::detail::pairwise_force);
     }
   };
 } // namespace kocs::initializers
