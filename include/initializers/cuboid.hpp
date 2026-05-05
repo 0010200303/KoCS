@@ -75,7 +75,7 @@ namespace kocs::initializers {
 
     template<typename Simulation>
     void relax(Simulation& simulation) {
-      auto relu_force = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), auto&&...) {
+      auto relu_force = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position)) {
         relu(displacement, distance, position);
       };
 
