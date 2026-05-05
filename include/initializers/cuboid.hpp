@@ -2,6 +2,7 @@
 #define KOCS_INITIALIZERS_CUBOID_INIT_HPP
 
 #include <numbers>
+#include <utility> // added
 
 #include <Kokkos_Core.hpp>
 
@@ -48,35 +49,47 @@ namespace kocs::initializers {
       , steps(relaxation_steps) { }
 
     struct RelaxForce {
-      template<typename... Rest>
+      // pure callable exposed as .force so kernel_fuser can extract it
+      struct Impl {
+        Scalar min;
+        Scalar max;
+        KOKKOS_INLINE_FUNCTION
+        Impl(Scalar min_ = 0.8, Scalar max_ = 0.8) : min(min_), max(max_) { }
+
+        template<typename... Rest>
+        KOKKOS_INLINE_FUNCTION
+        void operator()(
+          const unsigned int i,
+          const unsigned int j,
+          const Vector& displacement,
+          const Scalar& distance,
+          Random& rng,
+          Scalar& friction,
+          PAIRWISE_REF(Vector, position),
+          Rest&&...
+        ) const {
+          Scalar F = Kokkos::fmax(min - distance, 0) * 2.0 - Kokkos::fmax(distance - max, 0);
+          position.delta += displacement * F / distance;
+        }
+      };
+
+      Impl force;
+      using tag = kocs::detail::PairwiseForceTag;
+
       KOKKOS_INLINE_FUNCTION
-      void operator()(
-        const unsigned int i,
-        const unsigned int j,
-        const Vector& displacement,
-        const Scalar& distance,
-        Random& rng,
-        Scalar& friction,
-        PAIRWISE_REF(Vector, position),
-        Rest&&...
-      ) const {
-        Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
-        position.delta += displacement * F / distance;
+      RelaxForce(Scalar min_ = 0.8, Scalar max_ = 0.8) : force(min_, max_) { }
+
+      template<typename Target>
+      KOKKOS_INLINE_FUNCTION
+      operator Target() const {
+        return force | kocs::detail::pairwise_force;
       }
     };
-
-    // auto tust = PAIRWISE_FORCE(
-    //   PAIRWISE_REF(Vector, position),
-    //   auto&&...
-    // ) {
-    //   Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
-    //   position.delta += displacement * F / distance;
-    // };
 
     template<typename Simulation>
     void relax(Simulation& simulation) {
       for (int i = 0; i < steps; ++i)
-        simulation.take_step(0.1, RelaxForce{} | kocs::detail::pairwise_force);
+        simulation.take_step(0.1, RelaxForce(0.8, 0.8));
     }
   };
 } // namespace kocs::initializers
