@@ -24,6 +24,8 @@
 
 #include "com_fixers/com_fixers.hpp"
 
+#include "forces/predefined.hpp"
+
 #include "simulation_config.hpp"
 #include "simulation.hpp"
 

@@ -90,6 +90,9 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/vector.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/polarity.hpp  
 
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/forces/predefined.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/relax_force.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/line.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/spheres.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/hexagon.hpp

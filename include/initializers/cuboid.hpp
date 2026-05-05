@@ -7,6 +7,7 @@
 #include <Kokkos_Core.hpp>
 
 #include "../utils.hpp"
+#include "relax_force.hpp"
 
 namespace kocs::initializers {
   template<typename SimulationConfig>
@@ -48,36 +49,10 @@ namespace kocs::initializers {
     ) : RandomCuboid<SimulationConfig>(positions, minimum, maximum)
       , steps(relaxation_steps) { }
 
-    struct RelaxForce {
-      using tag = kocs::detail::PairwiseForceTag;
-
-      Scalar min;
-      Scalar max;
-
-      KOKKOS_INLINE_FUNCTION
-      RelaxForce(Scalar min_ = 0.8, Scalar max_ = 0.8) : min(min_), max(max_) { }
-
-      template<typename... Rest>
-      KOKKOS_INLINE_FUNCTION
-      void operator()(
-        const unsigned int i,
-        const unsigned int j,
-        const Vector& displacement,
-        const Scalar& distance,
-        Random& rng,
-        Scalar& friction,
-        PAIRWISE_REF(Vector, position),
-        Rest&&...
-      ) const {
-        Scalar F = Kokkos::fmax(min - distance, 0) * 2.0 - Kokkos::fmax(distance - max, 0);
-        position.delta += displacement * F / distance;
-      }
-    };
-
     template<typename Simulation>
     void relax(Simulation& simulation) {
       for (int i = 0; i < steps; ++i)
-        simulation.take_step(0.1, RelaxForce(0.8, 0.8));
+        simulation.take_step(0.1, details::RelaxForce<SimulationConfig>(0.8, 0.8));
     }
   };
 } // namespace kocs::initializers
