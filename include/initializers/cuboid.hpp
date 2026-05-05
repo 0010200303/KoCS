@@ -49,40 +49,28 @@ namespace kocs::initializers {
       , steps(relaxation_steps) { }
 
     struct RelaxForce {
-      // pure callable exposed as .force so kernel_fuser can extract it
-      struct Impl {
-        Scalar min;
-        Scalar max;
-        KOKKOS_INLINE_FUNCTION
-        Impl(Scalar min_ = 0.8, Scalar max_ = 0.8) : min(min_), max(max_) { }
-
-        template<typename... Rest>
-        KOKKOS_INLINE_FUNCTION
-        void operator()(
-          const unsigned int i,
-          const unsigned int j,
-          const Vector& displacement,
-          const Scalar& distance,
-          Random& rng,
-          Scalar& friction,
-          PAIRWISE_REF(Vector, position),
-          Rest&&...
-        ) const {
-          Scalar F = Kokkos::fmax(min - distance, 0) * 2.0 - Kokkos::fmax(distance - max, 0);
-          position.delta += displacement * F / distance;
-        }
-      };
-
-      Impl force;
       using tag = kocs::detail::PairwiseForceTag;
 
-      KOKKOS_INLINE_FUNCTION
-      RelaxForce(Scalar min_ = 0.8, Scalar max_ = 0.8) : force(min_, max_) { }
+      Scalar min;
+      Scalar max;
 
-      template<typename Target>
       KOKKOS_INLINE_FUNCTION
-      operator Target() const {
-        return force | kocs::detail::pairwise_force;
+      RelaxForce(Scalar min_ = 0.8, Scalar max_ = 0.8) : min(min_), max(max_) { }
+
+      template<typename... Rest>
+      KOKKOS_INLINE_FUNCTION
+      void operator()(
+        const unsigned int i,
+        const unsigned int j,
+        const Vector& displacement,
+        const Scalar& distance,
+        Random& rng,
+        Scalar& friction,
+        PAIRWISE_REF(Vector, position),
+        Rest&&...
+      ) const {
+        Scalar F = Kokkos::fmax(min - distance, 0) * 2.0 - Kokkos::fmax(distance - max, 0);
+        position.delta += displacement * F / distance;
       }
     };
 
