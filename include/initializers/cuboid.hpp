@@ -38,6 +38,32 @@ namespace kocs::initializers {
     
     unsigned int steps;
 
+    struct RelaxForce {
+      template<typename PositionType, typename DisplacementType, typename... Rest>
+      KOKKOS_INLINE_FUNCTION
+      void operator()(
+        const Vector& displacement,
+        const Scalar& distance,
+        PAIRWISE_REF(Vector, position),
+        Rest&&...
+      ) const {
+        Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
+        position.delta += displacement * F / distance;
+      }
+    };
+
+    template<typename... Rest>
+    KOKKOS_INLINE_FUNCTION
+    static void relu(
+      const Vector& displacement,
+      const Scalar& distance,
+      PAIRWISE_REF(Vector, position),
+      Rest&&...
+    ) {
+      Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
+      position.delta += displacement * F / distance;
+    }
+
     template<typename ViewType>
     RelaxedCuboid(
       ViewType positions,
@@ -49,10 +75,8 @@ namespace kocs::initializers {
 
     template<typename Simulation>
     void relax(Simulation& simulation) {
-      // TODO: use predefined relu
       auto relu_force = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), auto&&...) {
-        Scalar F = Kokkos::fmax(0.8 - distance, 0) * 2.0 - Kokkos::fmax(distance - 0.8, 0);
-        position.delta += displacement * F / distance;
+        relu(displacement, distance, position);
       };
 
       for (int i = 0; i < steps; ++i)
