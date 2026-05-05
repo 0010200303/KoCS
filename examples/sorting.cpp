@@ -1,4 +1,5 @@
 // example translated from https://github.com/germannp/yalla/blob/main/examples/sorting.cu
+// Simulate cell sorting by forces strength
 
 #include "../include/kocs.hpp"
 

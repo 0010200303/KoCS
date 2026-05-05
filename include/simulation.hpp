@@ -17,6 +17,8 @@
 
 #include "initializers/line.hpp"
 #include "initializers/spheres.hpp"
+#include "initializers/hexagon.hpp"
+#include "initializers/cuboid.hpp"
 
 namespace kocs {
   template<typename SimulationConfig>
@@ -135,6 +137,26 @@ namespace kocs {
       inline void init_regular_hexagon(Scalar distance_to_neighbour, InitFuncs&&... init_functions) {
         initializers::RegularHexagon<SimulationConfig> initializer(get_positions_view(), distance_to_neighbour);
         init(initializer, init_functions...);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_random_cuboid(const Vector& min, const Vector& max, InitFuncs&&... init_functions) {
+        initializers::RandomCuboid<SimulationConfig> initializer(get_positions_view(), min, max);
+        init(initializer, init_functions...);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_relaxed_cuboid(
+        const Vector& min,
+        const Vector& max,
+        const unsigned int relaxation_steps = 2000,
+        InitFuncs&&... init_functions
+      ) {
+        initializers::RelaxedCuboid<SimulationConfig> initializer(get_positions_view(), min, max, relaxation_steps);
+        init(initializer);
+        initializer.relax(*this);
+
+        init(init_functions...);
       }
 
       template<typename Initializer>

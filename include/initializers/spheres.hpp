@@ -3,8 +3,6 @@
 
 #include <numbers>
 
-#include <Kokkos_Core.hpp>
-
 #include "../utils.hpp"
 
 namespace kocs::initializers {

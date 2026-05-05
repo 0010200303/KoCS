@@ -13,6 +13,7 @@
 #include "initializers/line.hpp"
 #include "initializers/spheres.hpp"
 #include "initializers/hexagon.hpp"
+#include "initializers/cuboid.hpp"
 
 #include "pair_finders/all_pairs.hpp"
 #include "pair_finders/gabriel.hpp"

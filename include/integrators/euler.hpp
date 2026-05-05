@@ -11,7 +11,7 @@ namespace kocs::integrators {
     using Base<PairFinder, ComFixer, 2, Views...>::Base;
 
     void apply_euler(double dt) {
-      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[0].first());
+      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[1].first());
 
       Kokkos::parallel_for(
         "apply_euler",

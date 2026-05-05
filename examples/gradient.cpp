@@ -1,4 +1,5 @@
 // example translated from https://github.com/germannp/yalla/blob/main/examples/gradient.cu
+// Simulate gradient formation
 
 #include "../include/kocs.hpp"
 

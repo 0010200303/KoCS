@@ -114,6 +114,36 @@ namespace kocs {
         -prod_i * unidirectional_polarization_force(from_vector3(displacement, distance))
       };
     }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr Vector3<Scalar> migration_force(
+      const Vector3<Scalar>& displacement,
+      const Polarity_& other_polarity,
+      const Scalar distance
+    ) const {
+      Vector3<Scalar> result{};
+      Polarity_ displacement_polarity = from_vector3(displacement, distance);
+
+      // pulling around other
+      if (this->data[0] != 0 || this->data[1] != 0) {
+        if (dot(displacement_polarity) <= -0.15) {
+          Vector3<Scalar> this_vector = to_vector3();
+          Vector3<Scalar> this_vector_T = displacement.orthonormal(this_vector);
+          result = 0.6 * this_vector + 0.8 * this_vector_T;
+        }
+      }
+
+      // pushed by other
+      if (other_polarity[0] > epsilon || other_polarity[1] > epsilon) {
+        if (other_polarity.dot(displacement_polarity) >= 0.15) {
+          Vector3<Scalar> other_vector = to_vector3();
+          Vector3<Scalar> other_vector_T = (-displacement).orthonormal(other_vector);
+          result -= 0.6 * other_vector + 0.8 * other_vector_T;
+        }
+      }
+
+      return result;
+    }
   };
 }
 

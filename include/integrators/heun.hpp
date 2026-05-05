@@ -13,42 +13,39 @@ namespace kocs::integrators {
 
   public:
     void apply_euler_predictor(double dt) {
-      auto& stage_pack = this->stage_pack;
-      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[0].first());
+      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[1].first());
 
       Kokkos::parallel_for(
         "apply_euler_predictor",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          stage_pack[1].first()(i) -= com_fix_delta;
+          this->stage_pack[1].first()(i) -= com_fix_delta;
 
-          stage_pack[2].zip_apply([&](auto& predicted, const auto& current, const auto& delta) {
+          this->stage_pack[2].zip_apply([&](auto& predicted, const auto& current, const auto& delta) {
             predicted(i) = current(i) + delta(i) * dt;
-          }, stage_pack[0], stage_pack[1]);
+          }, this->stage_pack[0], this->stage_pack[1]);
         }
       );
     }
 
     void apply_heun_corrector(double dt) {
-      auto& stage_pack = this->stage_pack;
-      auto& old_velocities = this->old_velocities;
-      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[0].first());
+      const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[3].first());
 
       Kokkos::parallel_for(
         "apply_heun_corrector",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-          stage_pack[3].first()(i) -= com_fix_delta;
+          this->stage_pack[3].first()(i) -= com_fix_delta;
           
-          old_velocities(i) = (stage_pack[1].first()(i) + stage_pack[3].first()(i)) * 0.5;
+          this->old_velocities(i) = (this->stage_pack[1].first()(i) + this->stage_pack[3].first()(i)) * 0.5;
 
-          stage_pack[0].zip_apply([&](auto& current, const auto& delta_0, const auto& delta_1) {
+          this->stage_pack[0].zip_apply([&](auto& current, const auto& delta_0, const auto& delta_1) {
             current(i) += (delta_0(i) + delta_1(i)) * 0.5 * dt;
 
             // clear deltas
             delta_0(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_0(i))>>{};
             delta_1(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_1(i))>>{};
-          }, stage_pack[1], stage_pack[3]);
+          }, this->stage_pack[1], this->stage_pack[3]);
         }
       );
     }

@@ -1,3 +1,5 @@
+// simulate organoid rotation
+
 #include "../include/kocs.hpp"
 
 using namespace kocs;

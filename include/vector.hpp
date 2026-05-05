@@ -251,6 +251,12 @@ namespace kocs {
       };
     }
 
+    KOKKOS_INLINE_FUNCTION
+    constexpr VectorN orthonormal(const VectorN& rhs) const {
+      VectorN normal = *this - dot(rhs) * rhs;
+      return normal / Kokkos::sqrt(normal.dot(normal));
+    }
+
     // enable easy HighFive writing
     constexpr std::array<Scalar, dimensions> to_array() const {
       return std::to_array(data);

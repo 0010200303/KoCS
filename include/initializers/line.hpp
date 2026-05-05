@@ -1,8 +1,6 @@
 #ifndef KOCS_INITIALIZERS_LINE_INIT_HPP
 #define KOCS_INITIALIZERS_LINE_INIT_HPP
 
-#include <Kokkos_Core.hpp>
-
 #include "../utils.hpp"
 
 namespace kocs::initializers {

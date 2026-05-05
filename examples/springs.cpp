@@ -1,4 +1,5 @@
 // example translated from https://github.com/germannp/yalla/blob/main/examples/springs.cu
+// Integrate N-body problem with springs between all bodies
 
 #include "../include/kocs.hpp"
 
