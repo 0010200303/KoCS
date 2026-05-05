@@ -3,12 +3,13 @@ set -euo pipefail
 
 usage() {
 	cat <<EOF
-Usage: $0 user-main [-b build-dir] [-t target-name] [-B backend] [-e] [-h]
+Usage: $0 user-main [-b build-dir] [-o target-name] [-B backend] [-e] [-t] [-h]
  user-main       path to user main source (required)
  -b build-dir    path to build directory (default: ./build/[backend])
- -t target-name  CMake target name to build (default: kocs)
+ -o target-name  CMake target name to build (default: kocs)
  -B backend      Kokkos backend to request (default: empty -> SERIAL)
  -e              execute built target after successful build
+ -t              when executing, run the executable under 'time -p'
  -h              show this help
 EOF
 }
@@ -17,6 +18,7 @@ BUILD_DIR=""
 TARGET_NAME="kocs"
 EXECUTE=false
 BACKEND=""
+TIME_EXECUTE=false
 
 if [ $# -lt 1 ]; then
 	echo "user-main is required."
@@ -48,7 +50,7 @@ while [ $# -gt 0 ]; do
 			BUILD_DIR="${1#*=}"
 			shift
 			;;
-		-t|--target-name)
+		-o|--output)
 			if [ -n "${2:-}" ] && [[ "$2" != -* ]]; then
 				TARGET_NAME="$2"
 				shift 2
@@ -58,7 +60,7 @@ while [ $# -gt 0 ]; do
 				exit 1
 			fi
 			;;
-		--target-name=*)
+		--output=*)
 			TARGET_NAME="${1#*=}"
 			shift
 			;;
@@ -78,6 +80,10 @@ while [ $# -gt 0 ]; do
 			;;
 		-e|--execute)
 			EXECUTE=true
+			shift
+			;;
+		-t|--time)
+			TIME_EXECUTE=true
 			shift
 			;;
 		-h|--help)
@@ -121,7 +127,12 @@ if [ "$EXECUTE" = true ]; then
 
 	if [ -x "$EXEC_PATH" ]; then
 		echo "Executing $EXEC_PATH"
-		"$EXEC_PATH"
+		if [ "$TIME_EXECUTE" = true ]; then
+			# use shell's time (via command) with portable -p flag
+			command time -p "$EXEC_PATH"
+		else
+			"$EXEC_PATH"
+		fi
 	else
 		echo "Built, but could not find executable '$TARGET_NAME' to run in $BUILD_DIR" >&2
 		exit 1

@@ -36,7 +36,7 @@ else()
   set(Kokkos_ENABLE_SERIAL ON CACHE BOOL "" FORCE)
 endif()
 
-find_package(Kokkos 5.0 CONFIG)
+find_package(Kokkos 5.1 CONFIG)
 if (Kokkos_FOUND)
   message(STATUS "Found Kokkos: ${Kokkos_DIR} (version ${Kokkos_VERSION})")
 else()
@@ -46,8 +46,8 @@ else()
 
   FetchContent_Declare(
     Kokkos
-    URL https://github.com/kokkos/kokkos/releases/download/5.0.0/kokkos-5.0.0.tar.gz
-    URL_HASH SHA256=c45f3e19c3eb71fc8b7210cb04cac658015fc1839e7cc0571f7406588ff9bcef
+    URL https://github.com/kokkos/kokkos/releases/download/5.1.0/kokkos-5.1.0.tar.gz
+    URL_HASH SHA256=7bdbdfc88033ed7d940c7940ed8919e1f2b78a9656c69276beb76ad45c41ec4e
   )
   FetchContent_MakeAvailable(Kokkos)
 endif()

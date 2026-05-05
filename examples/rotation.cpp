@@ -48,7 +48,8 @@ int main() {
     PAIRWISE_REF(Polarity, polarity)
   ) {
     // mechanical interactions
-    position.delta += forces::PiecewiseLinearSpring(0.7, 0.8);
+    Scalar F = Kokkos::fmax(0.7 - distance, 0) * 2 - Kokkos::fmax(distance - 0.8, 0);
+    position.delta += displacement * F / distance;
 
     // bending force
     auto bending_force = polarity.self.bending_force(displacement, polarity.other, distance);
@@ -83,7 +84,8 @@ int main() {
     PAIRWISE_REF(Polarity, polarity)
   ) {
     // mechanical interactions
-    position.delta += forces::PiecewiseLinearSpring(0.7, 0.8);
+    Scalar F = Kokkos::fmax(0.7 - distance, 0) * 2 - Kokkos::fmax(distance - 0.8, 0);
+    position.delta += displacement * F / distance;
 
     // bending force
     auto bending_force = polarity.self.bending_force(displacement, polarity.other, distance);

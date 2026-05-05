@@ -28,7 +28,7 @@ template<typename SimulationConfig>
       PAIRWISE_REF(Vector, position),
       Rest&&...
     ) const {
-      position.delta += forces::PiecewiseLinearSpring(displacement, distance, min, max);
+      position.delta += forces::PiecewiseLinear(displacement, distance, min, max);
     }
   };
 } // namespace kocs.:initializers

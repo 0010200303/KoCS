@@ -17,7 +17,8 @@ int main() {
   sim.write();
 
   auto spring = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position)) {
-    position.delta += displacement * (L_0 - distance) / distance;
+    // position.delta += displacement * (L_0 - distance) / distance;
+    position.delta += forces::Spring(displacement, distance, L_0);
   };
 
   for (int i = 1; i <= steps; ++i) {

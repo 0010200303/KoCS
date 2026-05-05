@@ -10,3 +10,4 @@
 - add custom integrator example
 - add custom pair finder example
 - (add optimizations per PairFinder x Integrator pair where possible, disable per compiler flag)
+- benchmark Kokkos::pow(x, 2) vs. x * x and Kokkos::pow(x, 3/2) vs. x * Kokkos::sqrt(x)
