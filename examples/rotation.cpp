@@ -48,8 +48,7 @@ int main() {
     PAIRWISE_REF(Polarity, polarity)
   ) {
     // mechanical interactions
-    Scalar F = Kokkos::fmax(0.7 - distance, 0) * 2 - Kokkos::fmax(distance - 0.8, 0);
-    position.delta += displacement * F / distance;
+    position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f);
 
     // bending force
     auto bending_force = polarity.self.bending_force(displacement, polarity.other, distance);
@@ -84,8 +83,8 @@ int main() {
     PAIRWISE_REF(Polarity, polarity)
   ) {
     // mechanical interactions
-    Scalar F = Kokkos::fmax(0.7 - distance, 0) * 2 - Kokkos::fmax(distance - 0.8, 0);
-    position.delta += displacement * F / distance;
+    Vector F = forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f);
+    position.delta += F;
 
     // bending force
     auto bending_force = polarity.self.bending_force(displacement, polarity.other, distance);
@@ -93,7 +92,7 @@ int main() {
     polarity.delta += bending_force.polarity * polarity_strength;
 
     // "mechanotransduction" impact of mechanical forces on velocity
-    velocity.delta += const_1 * F * displacement / distance;
+    velocity.delta += const_1 * F;
   };
 
   const int relaxation_steps = 2000;

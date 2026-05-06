@@ -40,8 +40,8 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(2.0),
-    const Scalar adhesion_scale = Scalar(1.0)
+    const Scalar repulsion_scale = Scalar(1.0),
+    const Scalar adhesion_scale = Scalar(2.0)
   ) {
     return repulsion_scale * Kokkos::fmax(repulsion_radius - distance, 0) -
       adhesion_scale * Kokkos::fmax(distance - adhesion_radius, 0);
@@ -54,8 +54,8 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(2.0),
-    const Scalar adhesion_scale = Scalar(1.0)
+    const Scalar repulsion_scale = Scalar(1.0),
+    const Scalar adhesion_scale = Scalar(2.0)
   ) {
     if (distance == Scalar(0.0))
       return Vector{0.0};
@@ -77,8 +77,8 @@ namespace kocs::forces {
     const Scalar homeostatic_radius,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(2.0),
-    const Scalar adhesion_scale = Scalar(1.0)
+    const Scalar repulsion_scale = Scalar(1.0),
+    const Scalar adhesion_scale = Scalar(2.0)
   ) {
     Scalar repulsion = (Kokkos::fmin(distance, homeostatic_radius) - homeostatic_radius) *
       (distance - repulsion_radius);
@@ -97,8 +97,8 @@ namespace kocs::forces {
     const Scalar homeostatic_radius,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(2.0),
-    const Scalar adhesion_scale = Scalar(1.0)
+    const Scalar repulsion_scale = Scalar(1.0),
+    const Scalar adhesion_scale = Scalar(2.0)
   ) {
     if (distance == Scalar(0.0))
       return Vector{0.0};
@@ -152,8 +152,8 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(2.0),
-    const Scalar adhesion_scale = Scalar(1.0),
+    const Scalar repulsion_scale = Scalar(1.0),
+    const Scalar adhesion_scale = Scalar(2.0),
     const Scalar scale = Scalar(1.0)
   ) {
     Scalar repulsion = Kokkos::exp(-repulsion_scale * (distance - repulsion_radius));
@@ -169,8 +169,8 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(2.0),
-    const Scalar adhesion_scale = Scalar(1.0),
+    const Scalar repulsion_scale = Scalar(1.0),
+    const Scalar adhesion_scale = Scalar(2.0),
     const Scalar scale = Scalar(1.0)
   ) {
     if (distance == Scalar(0.0))

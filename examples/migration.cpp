@@ -32,8 +32,8 @@ int main() {
   sim.write();
 
   auto relu_w_migration = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
-    Scalar F = Kokkos::fmax(0.7 - distance, 0) * 2 - Kokkos::fmax(distance - 0.8, 0);
-    position.delta += displacement * F / distance + polarity.self.migration_force(displacement, polarity.other, distance);
+    position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f) +
+      polarity.self.migration_force(displacement, polarity.other, distance);
   };
 
   for (int i = 1; i <= steps; ++i) {
