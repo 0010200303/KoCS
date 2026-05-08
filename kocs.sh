@@ -3,14 +3,14 @@ set -euo pipefail
 
 usage() {
 	cat <<EOF
-Usage: $0 user-main [-b build-dir] [-o target-name] [-B backend] [-e] [-t] [-h]
+Usage: $0 user-main [-b build-dir] [-o output] [-B backend] [-e execute] [-t time] [-h help]
  user-main       path to user main source (required)
  -b build-dir    path to build directory (default: ./build/[backend])
- -o target-name  CMake target name to build (default: kocs)
+ -o output       CMake target name to build (default: kocs)
  -B backend      Kokkos backend to request (default: empty -> SERIAL)
- -e              execute built target after successful build
- -t              when executing, run the executable under 'time -p'
- -h              show this help
+ -e execute      execute built target after successful build
+ -t time         when executing, run the executable under 'time -p'
+ -h help         show this help
 EOF
 }
 

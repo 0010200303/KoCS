@@ -156,7 +156,7 @@ namespace kocs::forces {
     const Scalar adhesion_scale = Scalar(2.0),
     const Scalar scale = Scalar(1.0)
   ) {
-    Scalar repulsion = Kokkos::exp(-repulsion_scale * (distance - repulsion_radius));
+    Scalar repulsion = Kokkos::exp(-2 * repulsion_scale * (distance - repulsion_radius));
     Scalar adhesion = Kokkos::exp(-adhesion_scale * (distance - adhesion_radius));
 
     return 2 * scale * (repulsion - adhesion);

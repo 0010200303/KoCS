@@ -12,17 +12,15 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 int main() {
   const int n_cells = 100;
   const double dt = 0.1;
-  const float r_max = 1.2f;
+  const float r_max = 1.0f;
   const int steps = 100;
 
   Simulation<SimulationConfig> sim(n_cells, "./output/rotation", r_max);
   auto& positions_view = sim.get_view<FIELD(Vector, positions)>();
   auto& polarities_view = sim.get_view<FIELD(Polarity, polarities)>();
-  View<int> types("types", n_cells);
 
-  auto initial_conditions = GENERIC_FORCE() {
+  auto initial_conditions = INIT_FUNC() {
     polarities_view(i) = Polarity(positions_view(i));
-    types(i) = i < n_cells / 2;
   };
   sim.init_random_filled_sphere(2.0, initial_conditions);
 

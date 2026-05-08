@@ -7,6 +7,9 @@
 #include "../integrators/detail.hpp"
 #include "../forces/detail.hpp"
 
+// TODO: optimization to test:
+// compute all distances then construct gabriel graph using the precalculated distances
+
 namespace kocs::pair_finders {
   template<typename PositionsView, typename Scalar>
   struct NaiveGabriel {
