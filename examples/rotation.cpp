@@ -4,7 +4,7 @@
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
-  CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
+  CONFIG_PAIR_FINDER(pair_finders::TustGabriel)
   CONFIG_FIELDS(
     FIELD(Vector, positions),
     FIELD(Vector, velocities),
@@ -14,7 +14,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main() {
-  const int n_cells = 100;
+  const int n_cells = 300;
   const double dt = 0.1;
   const float r_max = 1.2f;
   const int t_max = 337;
