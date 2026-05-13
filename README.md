@@ -1,5 +1,7 @@
 **Ko**kkos **C**ell **S**imulation
 
+docs at: https://0010200303.github.io/KoCS/
+
 # Requirements
 - HDF5 (libhdf5-dev)
 

@@ -43,7 +43,7 @@ namespace kocs {
         , current_step(0) { }
 
     private:
-      const unsigned int agent_count;
+      unsigned int agent_count;
       Storage storage;
 
       RandomPool random_pool;
@@ -106,6 +106,16 @@ namespace kocs {
 
       inline auto get_positions_view() const {
         return std::get<0>(get_views());
+      }
+
+      inline unsigned int get_agent_count() const {
+        return agent_count;
+      }
+
+      inline void set_agent_count(const unsigned int value) {
+        agent_count = value;
+        integrator.agent_count = value;
+        pair_finder.agent_count = value;
       }
 
     private:

@@ -28,6 +28,11 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     constexpr VectorN(Args... args) : data{static_cast<Scalar>(args)...} { }
 
+    constexpr explicit VectorN(const std::array<Scalar, dimensions>& array) {
+      for (unsigned int i = 0; i < dimensions; ++i)
+        data[i] = array[i];
+    }
+
     // indexing
     KOKKOS_INLINE_FUNCTION
     constexpr Scalar& operator[](int i) { return data[i]; }
