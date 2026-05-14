@@ -8,9 +8,6 @@
 #include "../integrators/detail.hpp"
 #include "../forces/detail.hpp"
 
-// TODO: optimization to test:
-// compute all distances then construct gabriel graph using the precalculated distances
-
 namespace kocs::pair_finders {
   template<typename PositionsView, typename Scalar>
   struct NaiveGabriel {
@@ -143,9 +140,10 @@ namespace kocs::pair_finders {
 
 
 
-    const Vector3<Scalar> _min = Vector3<Scalar>(-3.0f);
-    const Vector3<Scalar> _max = Vector3<Scalar>( 3.0f);
-    const Scalar bin_size = 0.5f;
+    const Vector3<Scalar> _min = Vector3<Scalar>(-5.0f);
+    const Vector3<Scalar> _max = Vector3<Scalar>( 5.0f);
+    const Scalar bin_size = 1.0f * Kokkos::sqrt(cutoff_distance_squared);
+    // TODO: bin_size = scale * cutoff_distance;
 
     unsigned int nx;
     unsigned int ny;
@@ -155,6 +153,9 @@ namespace kocs::pair_finders {
     View<unsigned int> particle_bin;
     View<unsigned int> permutation;
     View<unsigned int> bin_offset;
+
+    int step_count = 0;
+    int build_every_n = 20;
 
     template<typename... Views>
     void build(detail::ViewPack<Views...>& in_view_pack) {
@@ -214,7 +215,11 @@ namespace kocs::pair_finders {
     ) {
       const auto& input_positions = in_view_pack.first();
 
-      build(in_view_pack);
+      if (step_count == build_every_n) {
+        build(in_view_pack);
+        step_count = 0;
+      }
+      step_count++;
 
       Kokkos::parallel_for(
         "naive_gabriel_apply_force",
