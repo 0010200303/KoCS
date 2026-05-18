@@ -140,8 +140,8 @@ namespace kocs::pair_finders {
 
 
 
-    const Vector3<Scalar> _min = Vector3<Scalar>(-5.0f);
-    const Vector3<Scalar> _max = Vector3<Scalar>( 5.0f);
+    const Vector3<Scalar> _min = Vector3<Scalar>(-20.0f);
+    const Vector3<Scalar> _max = Vector3<Scalar>( 20.0f);
     const Scalar bin_size = 1.0f * Kokkos::sqrt(cutoff_distance_squared);
     // TODO: bin_size = scale * cutoff_distance;
 
@@ -164,13 +164,10 @@ namespace kocs::pair_finders {
       Kokkos::parallel_for("gabriel_build", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
         const auto& position_i = input_positions(i);
 
-        int ix = static_cast<int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size));
-        int iy = static_cast<int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size));
-        int iz = static_cast<int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size));
+        unsigned int ix = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size)), nx - 1));
+        unsigned int iy = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size)), ny - 1));
+        unsigned int iz = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size)), nz - 1));
 
-        ix = max(0, min(ix, nx - 1));
-        iy = max(0, min(iy, ny - 1));
-        iz = max(0, min(iz, nz - 1));
         const unsigned int bin = ix + nx * (iy + ny * iz);
 
         particle_bin(i) = bin;
@@ -233,13 +230,9 @@ namespace kocs::pair_finders {
           typename PositionsView::value_type total_velocity_i{0.0};
 
           // compute bin coords for particle i
-          int ix = static_cast<int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size));
-          int iy = static_cast<int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size));
-          int iz = static_cast<int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size));
-
-          ix = max(0, min(ix, static_cast<int>(nx - 1)));
-          iy = max(0, min(iy, static_cast<int>(ny - 1)));
-          iz = max(0, min(iz, static_cast<int>(nz - 1)));
+          unsigned int ix = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size)), nx - 1));
+          unsigned int iy = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size)), ny - 1));
+          unsigned int iz = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size)), nz - 1));
 
           // number of bins to search in each direction based on cutoff
           const Scalar cutoff = Kokkos::sqrt(cutoff_distance_squared);
@@ -293,12 +286,12 @@ namespace kocs::pair_finders {
                 int max_by = static_cast<int>(Kokkos::floor((midpoint[1] + radius - _min[1]) / bin_size));
                 int max_bz = static_cast<int>(Kokkos::floor((midpoint[2] + radius - _min[2]) / bin_size));
 
-                min_bx = max(0, min(min_bx, static_cast<int>(nx - 1)));
-                min_by = max(0, min(min_by, static_cast<int>(ny - 1)));
-                min_bz = max(0, min(min_bz, static_cast<int>(nz - 1)));
-                max_bx = max(0, min(max_bx, static_cast<int>(nx - 1)));
-                max_by = max(0, min(max_by, static_cast<int>(ny - 1)));
-                max_bz = max(0, min(max_bz, static_cast<int>(nz - 1)));
+                min_bx = Kokkos::max(0, Kokkos::min(min_bx, static_cast<int>(nx - 1)));
+                min_by = Kokkos::max(0, Kokkos::min(min_by, static_cast<int>(ny - 1)));
+                min_bz = Kokkos::max(0, Kokkos::min(min_bz, static_cast<int>(nz - 1)));
+                max_bx = Kokkos::max(0, Kokkos::min(max_bx, static_cast<int>(nx - 1)));
+                max_by = Kokkos::max(0, Kokkos::min(max_by, static_cast<int>(ny - 1)));
+                max_bz = Kokkos::max(0, Kokkos::min(max_bz, static_cast<int>(nz - 1)));
 
                 bool blocked = false;
                 for (int bx = min_bx; bx <= max_bx && !blocked; ++bx) {
@@ -343,9 +336,6 @@ namespace kocs::pair_finders {
                 local_friction += pair_friction;
                 local_velocity += pair_friction * old_velocities(j);
               }
-
-
-
             },
             Kokkos::Sum<decltype(total_delta_i)>(total_delta_i),
             Kokkos::Sum<Scalar>(total_friction_i),
