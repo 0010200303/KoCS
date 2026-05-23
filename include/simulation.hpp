@@ -39,7 +39,7 @@ namespace kocs {
         , pair_finder(make_pair_finder(agent_count_, cutoff_distance))
         , com_fixer()
         , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage))
-        , writer(output_path)
+        , writer(output_path, agent_count_)
         , current_step(0) { }
 
     private:
@@ -116,6 +116,9 @@ namespace kocs {
         agent_count = value;
         integrator.agent_count = value;
         pair_finder.agent_count = value;
+        writer.agent_count = value;
+
+        pair_finder.step_count = 0;
       }
 
     private:

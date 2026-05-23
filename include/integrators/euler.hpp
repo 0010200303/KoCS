@@ -17,16 +17,16 @@ namespace kocs::integrators {
         "apply_euler",
         this->agent_count,
         KOKKOS_CLASS_LAMBDA(const unsigned int i) {
+          this->stage_pack[1].first()(i) -= com_fix_delta;
+
           // write old velocities
           this->old_velocities(i) = this->stage_pack[1].first()(i);
 
-          this->stage_pack[1].first()(i) -= com_fix_delta;
-
-          this->stage_pack[0].zip_apply([&](auto& current_views, const auto& delta_views) {
-            current_views(i) += delta_views(i) * dt;
+          this->stage_pack[0].zip_apply([&](auto& current, const auto& delta) {
+            current(i) += delta(i) * dt;
 
             // clear views (faster than new deep_copy call)
-            delta_views(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta_views(i))>>{};
+            delta(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta(i))>>{};
           }, this->stage_pack[1]);
         }
       );
@@ -34,8 +34,10 @@ namespace kocs::integrators {
 
     template<typename RandomPool, typename... Forces>
     void integrate(double dt, RandomPool& random_pool, Forces... forces) {
-      this->evaluate_forces(random_pool, this->stage_pack[0], this->stage_pack[1], forces...);
+      this->evaluate_forces(true, random_pool, this->stage_pack[0], this->stage_pack[1], forces...);
       apply_euler(dt);
+
+      Kokkos::fence();
     }
   };
 } // namespace kocs::integrators

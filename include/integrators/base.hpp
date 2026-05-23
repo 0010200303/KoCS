@@ -32,6 +32,7 @@ namespace kocs::integrators {
 
     template<typename RandomPool, typename Force>
     void evaluate_force_impl(
+      bool is_full_step,
       RandomPool& random_pool,
       Force force,
       detail::GenericForceTag,
@@ -55,33 +56,36 @@ namespace kocs::integrators {
 
     template<typename RandomPool, typename Force>
     void evaluate_force_impl(
+      bool is_full_step,
       RandomPool& random_pool,
       Force force,
       detail::PairwiseForceTag,
       detail::ViewPack<Views...>& in_view_pack,
       detail::ViewPack<Views...>& out_view_pack
     ) {
-      pair_finder.evaluate_force(in_view_pack, out_view_pack, old_velocities, random_pool, force);
+      pair_finder.evaluate_force(in_view_pack, out_view_pack, old_velocities, random_pool, force, is_full_step);
     }
 
     template<typename RandomPool, typename Force>
     void evaluate_force_one(
+      bool is_full_step,
       RandomPool& random_pool,
       Force force,
       detail::ViewPack<Views...>& in_view_pack,
       detail::ViewPack<Views...>& out_view_pack
     ) {
-      evaluate_force_impl(random_pool, force, typename Force::tag{}, in_view_pack, out_view_pack);
+      evaluate_force_impl(is_full_step, random_pool, force, typename Force::tag{}, in_view_pack, out_view_pack);
     }
 
     template<typename RandomPool, typename... Forces>
     void evaluate_forces(
+      bool is_full_step,
       RandomPool& random_pool,
       detail::ViewPack<Views...>& in_view_pack,
       detail::ViewPack<Views...>& out_view_pack,
       Forces... forces
-    ) {      
-      (evaluate_force_one(random_pool, forces, in_view_pack, out_view_pack), ...);
+    ) {
+      (evaluate_force_one(is_full_step, random_pool, forces, in_view_pack, out_view_pack), ...);
     }
   };
 } // namespace kocs::integrators

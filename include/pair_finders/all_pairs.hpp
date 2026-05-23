@@ -29,7 +29,8 @@ namespace kocs::pair_finders {
       detail::ViewPack<Views...>& out_view_pack,
       PositionsView& old_velocities,
       RandomPool& random_pool,
-      Force force
+      Force force,
+      bool is_full_step
     ) {
       Kokkos::parallel_for(
         "naive_all_pairs_apply_force",

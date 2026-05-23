@@ -16,16 +16,16 @@ namespace kocs::pair_finders {
     NaiveGabriel(
       unsigned int agent_count_,
       Scalar cutoff_distance,
-      Scalar gabriel_coefficient_ = 0.8f)
+      Scalar gabriel_coefficient = 0.8f)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
-      , gabriel_coefficient(gabriel_coefficient_) { }
+      , gabriel_coefficient_squared(gabriel_coefficient * gabriel_coefficient) { }
     
     static const constexpr Scalar epsilon = Scalar(1e-6);
 
     unsigned int agent_count;
     Scalar cutoff_distance_squared;
-    Scalar gabriel_coefficient;
+    Scalar gabriel_coefficient_squared;
 
     template<typename RandomPool, typename Force, typename... Views>
     void evaluate_force(
@@ -33,7 +33,8 @@ namespace kocs::pair_finders {
       detail::ViewPack<Views...>& out_view_pack,
       PositionsView& old_velocities,
       RandomPool& random_pool,
-      Force force
+      Force force,
+      bool is_full_step
     ) {
       const auto& input_positions = in_view_pack.first();
 
@@ -61,8 +62,8 @@ namespace kocs::pair_finders {
               if (distance_squared >= cutoff_distance_squared)
                 return;
 
-              const auto midpoint = position_i - displacement * 0.5f;
-              const auto radius_squared = distance_squared * 0.25f * gabriel_coefficient;
+              const auto midpoint = position_i - displacement * Scalar(0.5);
+              const auto radius_squared = distance_squared * Scalar(0.25) * gabriel_coefficient_squared;
               for (int k = 0; k < agent_count; ++k) {
                 if (k == i || k == j)
                   continue;
@@ -119,10 +120,10 @@ namespace kocs::pair_finders {
     TustGabriel(
       unsigned int agent_count_,
       Scalar cutoff_distance,
-      Scalar gabriel_coefficient_ = 0.8f)
+      Scalar gabriel_coefficient = 0.8f)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
-      , gabriel_coefficient(gabriel_coefficient_)
+      , gabriel_coefficient_squared(gabriel_coefficient * gabriel_coefficient)
 
       , nx(static_cast<unsigned int>(Kokkos::ceil((_max[0] - _min[0]) / bin_size)))
       , ny(static_cast<unsigned int>(Kokkos::ceil((_max[1] - _min[1]) / bin_size)))
@@ -136,7 +137,7 @@ namespace kocs::pair_finders {
 
     unsigned int agent_count;
     Scalar cutoff_distance_squared;
-    Scalar gabriel_coefficient;
+    Scalar gabriel_coefficient_squared;
 
 
 
@@ -155,7 +156,7 @@ namespace kocs::pair_finders {
     View<unsigned int> bin_offset;
 
     int step_count = 0;
-    int build_every_n = 20;
+    int build_every_n = 0;
 
     template<typename... Views>
     void build(detail::ViewPack<Views...>& in_view_pack) {
@@ -177,14 +178,17 @@ namespace kocs::pair_finders {
       // Kokkos::BinSort<View<unsigned int>, Kokkos::BinOp1D<View<unsigned int>>> sorter(particle_bin, 0, n_bins - 1, bin_op);
       // sorter.create_permute_vector();
 
-      Kokkos::Experimental::sort_by_key(Kokkos::DefaultExecutionSpace(), particle_bin, permutation);
+      // Kokkos::Experimental::sort_by_key(Kokkos::DefaultExecutionSpace(), particle_bin, permutation);
+      auto particle_bin_sub = Kokkos::subview(particle_bin, std::make_pair(0u, agent_count));
+      auto permutation_sub = Kokkos::subview(permutation, std::make_pair(0u, agent_count));
+      Kokkos::Experimental::sort_by_key(Kokkos::DefaultExecutionSpace(), particle_bin_sub, permutation_sub);
 
       // build offsets
-      Kokkos::deep_copy(bin_offset, -1);
+      Kokkos::deep_copy(bin_offset, std::numeric_limits<unsigned int>::max());
       Kokkos::parallel_for("gabriel_build_offsets", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-        unsigned int b = particle_bin(i);
+        unsigned int b = particle_bin_sub(i);
 
-        if (i == 0 || particle_bin(i - 1) != b)
+        if (i == 0 || particle_bin_sub(i - 1) != b)
           bin_offset(b) = i;
       });
 
@@ -194,7 +198,7 @@ namespace kocs::pair_finders {
 
       int last = agent_count;
       for (int b = n_bins; b >= 0; --b) {
-        if (bin_offset_host(b) == -1)
+        if (bin_offset_host(b) == std::numeric_limits<unsigned int>::max())
           bin_offset_host(b) = last;
         else
           last = bin_offset_host(b);
@@ -208,20 +212,27 @@ namespace kocs::pair_finders {
       detail::ViewPack<Views...>& out_view_pack,
       PositionsView& old_velocities,
       RandomPool& random_pool,
-      Force force
+      Force force,
+      bool is_full_step
     ) {
       const auto& input_positions = in_view_pack.first();
 
-      if (step_count == build_every_n) {
-        build(in_view_pack);
-        step_count = 0;
+      if (is_full_step == true) {
+        if (step_count == 0 || step_count >= build_every_n) {
+          build(in_view_pack);
+          step_count = 0;
+        }
+        step_count++;
       }
-      step_count++;
+
+      float cutoff_distance = Kokkos::sqrt(cutoff_distance_squared);
 
       Kokkos::parallel_for(
         "naive_gabriel_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
+auto generator = random_pool.get_state();
+
           const int i = team_member.league_rank();
           const auto& position_i = input_positions(i);
 
@@ -235,7 +246,7 @@ namespace kocs::pair_finders {
           unsigned int iz = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size)), nz - 1));
 
           // number of bins to search in each direction based on cutoff
-          const Scalar cutoff = Kokkos::sqrt(cutoff_distance_squared);
+          const Scalar cutoff = cutoff_distance;
           const int rb = static_cast<int>(Kokkos::ceil(cutoff / bin_size));
           const int side = 2 * rb + 1;
           const int n_bin_tasks = side * side * side;
@@ -271,10 +282,11 @@ namespace kocs::pair_finders {
                 const auto displacement = position_i - position_j;
                 const auto distance_squared = displacement.length_squared();
 
-                if (distance_squared >= cutoff_distance_squared) continue;
+                if (distance_squared >= cutoff_distance_squared)
+                  continue;
 
                 const auto midpoint = position_i - displacement * Scalar(0.5);
-                const auto radius_squared = distance_squared * Scalar(0.25) * gabriel_coefficient;
+                const auto radius_squared = distance_squared * Scalar(0.25) * gabriel_coefficient_squared;
 
                 // determine overlapping bins for the midpoint-sphere
                 const Scalar radius = Kokkos::sqrt(radius_squared);
@@ -322,7 +334,7 @@ namespace kocs::pair_finders {
                 const auto distance = Kokkos::sqrt(distance_squared);
                 Scalar pair_friction = 0.0;
 
-                auto generator = random_pool.get_state();
+                // auto generator = random_pool.get_state();
                 in_view_pack.apply([&](auto&... views) {
                   local_delta.apply([&](auto&... deltas) {
                     force(
@@ -331,7 +343,7 @@ namespace kocs::pair_finders {
                     );
                   });
                 });
-                random_pool.free_state(generator);
+                // random_pool.free_state(generator);
 
                 local_friction += pair_friction;
                 local_velocity += pair_friction * old_velocities(j);
@@ -342,6 +354,8 @@ namespace kocs::pair_finders {
             Kokkos::Sum<typename PositionsView::value_type>(total_velocity_i)
           );
 
+random_pool.free_state(generator);
+
           Kokkos::single(
             Kokkos::PerTeam(team_member),
             [&]() {
@@ -351,7 +365,9 @@ namespace kocs::pair_finders {
                 });
               });
 
-              out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
+              // out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
+              if (total_friction_i > 0)
+                out_view_pack.first()(i) += total_velocity_i / total_friction_i;
             }
           );
         }

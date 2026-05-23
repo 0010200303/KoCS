@@ -21,8 +21,12 @@ namespace kocs::writers {
     public:
       EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-      HDF5_Writer(const std::string& path, const std::size_t flush_threshold = 65536)
-        : buffer_threshold(flush_threshold) {
+      HDF5_Writer(
+        const std::string& path,
+        const unsigned int agent_count_,
+        const std::size_t flush_threshold = 65536)
+        : agent_count(agent_count_)
+        , buffer_threshold(flush_threshold) {
         std::filesystem::path _path(path);
         std::filesystem::create_directories(_path.parent_path());
 
@@ -34,6 +38,8 @@ namespace kocs::writers {
       ~HDF5_Writer() {
         finalize_xmf();
       }
+
+      unsigned int agent_count;
 
     private:
       const std::size_t buffer_threshold;
@@ -65,18 +71,17 @@ namespace kocs::writers {
       }
 
       template<typename ViewType>
-      static auto view_to_vector(const ViewType& v) {
+      auto view_to_vector(const ViewType& view) {
         using T = typename ViewType::value_type;
         using StorageT = decltype(to_storage_value(std::declval<const T&>()));
 
-        auto host_view = Kokkos::create_mirror_view(v);
-        Kokkos::deep_copy(host_view, v);
+        auto sub_view = Kokkos::subview(view, std::make_pair(0u, agent_count));
+        auto host_view = Kokkos::create_mirror_view(sub_view);
+        Kokkos::deep_copy(host_view, sub_view);
 
-        std::vector<StorageT> out(host_view.size());
-
-        const T* data_ptr = host_view.data();
-        for (std::size_t i = 0; i < host_view.size(); ++i)
-          out[i] = to_storage_value(data_ptr[i]);
+        std::vector<StorageT> out(agent_count);
+        for (std::size_t i = 0; i < agent_count; ++i)
+          out[i] = to_storage_value(host_view(i));
 
         return out;
       }
@@ -100,13 +105,13 @@ namespace kocs::writers {
       void finalize_xmf() {
         if (xmf_file.is_open() == false)
           return;
-
+        
         xmf_buffer += "\t\t</Grid>\n\t</Domain>\n</Xdmf>\n";
         xmf_file.write(xmf_buffer.data(), xmf_buffer.size());
         xmf_file.close();
       }
 
-      void write_xmf_grid_start(const unsigned int step, const unsigned long agent_count) {
+      void write_xmf_grid_start(const unsigned int step) {
         xmf_buffer += "\t\t\t<Grid Name=\"t";
         xmf_buffer += std::to_string(step);
         xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
@@ -131,6 +136,8 @@ namespace kocs::writers {
 
       template<typename View>
       void write_xmf_grid_attribute(const unsigned int step, const View& view) {
+        // TODO: optimize this
+
         // extract dimensions
         std::vector<int> dimension_map;
         for (int i = 0; i < view.rank(); ++i)
@@ -139,6 +146,9 @@ namespace kocs::writers {
         using T = typename View::value_type;
         if constexpr (has_get_dimensions<T>::value)
           dimension_map.push_back(T{}.get_dimensions());
+
+        // overwrite first dimension with agent_count
+        dimension_map[0] = agent_count;
 
         std::string dimensions = "";
         for (const auto& d : dimension_map) {
@@ -192,9 +202,8 @@ namespace kocs::writers {
 
         auto all_tuple = std::tuple<const Views&...>(views...);
         const auto& first_view = std::get<0>(all_tuple);
-        unsigned long agent_count = first_view.extent(0);
 
-        write_xmf_grid_start(step, agent_count);
+        write_xmf_grid_start(step);
         write_xmf_grid_attributes_from_tuple(step, all_tuple, std::make_index_sequence<sizeof...(Views)>{});
         write_xmf_grid_end();
       }

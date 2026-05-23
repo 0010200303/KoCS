@@ -39,7 +39,7 @@ namespace kocs::integrators {
           
           this->old_velocities(i) = (this->stage_pack[1].first()(i) + this->stage_pack[3].first()(i)) * 0.5;
 
-          this->stage_pack[0].zip_apply([&](auto& current, const auto& delta_0, const auto& delta_1) {
+          this->stage_pack[0].zip_apply([&](auto& current, auto& delta_0, auto& delta_1) {
             current(i) += (delta_0(i) + delta_1(i)) * 0.5 * dt;
 
             // clear deltas
@@ -52,11 +52,13 @@ namespace kocs::integrators {
 
     template<typename RandomPool, typename... Forces>
     void integrate(double dt, RandomPool& random_pool, Forces... forces) {
-      this->evaluate_forces(random_pool, this->stage_pack[0], this->stage_pack[1], forces...);
+      this->evaluate_forces(true, random_pool, this->stage_pack[0], this->stage_pack[1], forces...);
       apply_euler_predictor(dt);
 
-      this->evaluate_forces(random_pool, this->stage_pack[2], this->stage_pack[3], forces...);
+      this->evaluate_forces(false, random_pool, this->stage_pack[2], this->stage_pack[3], forces...);
       apply_heun_corrector(dt);
+
+      Kokkos::fence();
     }
   };
 } // namespace kocs::integrators
