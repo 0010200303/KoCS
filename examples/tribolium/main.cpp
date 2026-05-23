@@ -14,7 +14,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_PAIR_FINDER(pair_finders::TustGabriel)
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
 
-  // CONFIG_INTEGRATOR(integrators::Euler)
+  CONFIG_INTEGRATOR(integrators::Euler)
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -89,7 +89,7 @@ int main() {
 
 
 
-  // define forces
+  // forces
   /*
   * A force is acting between to cells if they are neighbours.
   * Therefore two cells are difined as neighbours, if the distance between them is less then
@@ -138,59 +138,8 @@ int main() {
 
 
   // simulation loop
-  // for (int i = 0; i < steps; ++i) {
-  //   Kokkos::printf("step %d\n", i);
-
-  //   for (int j = 0; j < steps_per_reduction; ++j) {
-  //     // sim.take_step(dt, force_between_cells, system_forces);
-  //     sim.take_step(dt, system_forces);
-  //     Kokkos::fence();
-  //     sim.take_step(dt, force_between_cells);
-  //     Kokkos::fence();
-
-  //     // TODO: remove as it should already be done by inside write
-  //     Kokkos::deep_copy(positions_host_view, positions_view);
-  //     Kokkos::deep_copy(cell_types_host_view, cell_types_view);
-
-  //     // find cells near the pole
-  //     std::vector<unsigned int> cells_near_pole;
-  //     for (unsigned int k = 0; k < n_cells; ++k) {
-  //       if (static_cast<CellType>(cell_types_host_view(k)) != CellType::Embryo)
-  //         continue;
-
-  //       for (const int pole_index : pole_indices) {
-  //         if (positions_host_view(k).distance_to_squared(positions_host_view(pole_index)) < 0.25f) {
-  //           cells_near_pole.push_back(k);
-  //           break;
-  //         }
-  //       }
-  //     }
-
-  //     // delete cells near the pole (move dead cells at the end of the array and change array size)
-  //     if (cells_near_pole.empty() == false) {
-  //       for (unsigned int k = 1; k <= cells_near_pole.size(); ++k) {
-  //         const int dst = cells_near_pole[cells_near_pole.size() - k];
-  //         const int src = n_cells - k;
-
-  //         positions_host_view(dst) = positions_host_view(src);
-  //         cell_types_host_view(dst) = cell_types_host_view(src);
-  //       }
-  //       Kokkos::deep_copy(positions_view, positions_host_view);
-  //       Kokkos::deep_copy(cell_types_view, cell_types_host_view);
-
-  //       n_cells -= cells_near_pole.size();
-  //       sim.set_agent_count(n_cells);
-
-  //       // TODO: think about resizing view occasionally
-  //       // positions_host_view.resize(n_cells);
-  //       // cell_types_host_view.resize(n_cells);
-  //     }
-  //   }
-  //   sim.write(cell_types_view);
-  // }
-
   for (int i = 0; i < steps; ++i) {
-    Kokkos::printf("step %d\n", i);
+    Kokkos::printf("%d step %d\n", n_cells, i);
 
     for (int j = 0; j < steps_per_reduction; ++j) {
       sim.take_step(dt, force_between_cells, system_forces);
@@ -199,58 +148,37 @@ int main() {
     Kokkos::deep_copy(positions_host_view, positions_view);
     Kokkos::deep_copy(cell_types_host_view, cell_types_view);
 
-    std::vector<int> cells_near_pole;
-    for (int k = 0; k < n_cells; ++k) {
-      if (cell_types_host_view(k) != static_cast<int>(CellType::Embryo))
-        continue;
-      
-      for (const Vector pole_position : pole_positions) {
-        if (positions_host_view(k).distance_to_squared(pole_position) < 0.25f) {
-          cells_near_pole.push_back(k);
-          break;
-        }
-      }
-    }
-
-    auto temp_positions = Kokkos::create_mirror_view(positions_view);
-    auto temp_types = Kokkos::create_mirror_view(cell_types_view);
+    // remove embryo cells near the pole
+    // this works because new_cell_count <= k
     int new_cell_count = 0;
     for (int k = 0; k < n_cells; ++k) {
-      bool keep = true;
+      Vector position_k = positions_host_view(k);
+      int cell_type_k = cell_types_host_view(k);
 
-      for (const int index : cells_near_pole) {
-        if (k == index) {
-          keep = false;
-          break;
+      bool keep = true;
+      if (cell_type_k == static_cast<int>(CellType::Embryo)) {
+        for (const Vector pole_position : pole_positions) {
+          if (position_k.distance_to_squared(pole_position) < 0.25f) {
+            keep = false;
+            break;
+          }
         }
       }
 
       if (keep == true) {
-        temp_positions(new_cell_count) = positions_host_view(k);
-        temp_types(new_cell_count) = cell_types_host_view(k);
+        positions_host_view(new_cell_count) = position_k;
+        cell_types_host_view(new_cell_count) = cell_type_k;
 
         ++new_cell_count;
       }
     }
-    for (int k = new_cell_count; k < positions_host_view.extent(0); ++k) {
-      temp_positions(k) = Vector(0.0f, 25.0f + (positions_host_view.extent(0) - k) * 2, 0.0f);
-      // temp_positions(k) = Vector(19.0f, 19.0f, 19.0f);
-      temp_types(k) = static_cast<int>(CellType::Anchor);
-    }
-    Kokkos::printf("%d ", new_cell_count);
-
     sim.set_agent_count(new_cell_count);
     n_cells = new_cell_count;
-
-    Kokkos::deep_copy(positions_host_view, temp_positions);
-    Kokkos::deep_copy(cell_types_host_view, temp_types);
 
     Kokkos::deep_copy(positions_view, positions_host_view);
     Kokkos::deep_copy(cell_types_view, cell_types_host_view);
 
     sim.write(cell_types_view);
-
-    Kokkos::fence();
   }
 
   return 0;

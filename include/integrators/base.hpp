@@ -18,13 +18,14 @@ namespace kocs::integrators {
       Views... views)
       : agent_count(agent_count_)
       , pair_finder(pair_finder_)
+      , com_fixer(com_fixer_)
       , stage_pack(detail::ViewPack<Views...>(views...))
       , old_velocities("integrator_base_old_velocities", agent_count_) { }
     
     using PositionsView = typename PairFinder::positions_view_type;
 
-    PairFinder pair_finder;
-    ComFixer com_fixer;
+    PairFinder& pair_finder;
+    ComFixer& com_fixer;
 
     unsigned int agent_count;
     detail::StagePack<N, Views...> stage_pack;

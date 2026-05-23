@@ -73,8 +73,8 @@ namespace kocs {
 
       static Integrator make_integrator(
         unsigned int agent_count_,
-        PairFinder pair_finder_,
-        ComFixer com_fixer_,
+        PairFinder& pair_finder_,
+        ComFixer& com_fixer_,
         Storage& storage_
       ) {
         return std::apply(
@@ -112,6 +112,7 @@ namespace kocs {
         return agent_count;
       }
 
+      // TODO: auto resize (shrink_to_fit & grow (vector like: double capacity))
       inline void set_agent_count(const unsigned int value) {
         agent_count = value;
         integrator.agent_count = value;

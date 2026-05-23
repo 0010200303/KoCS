@@ -129,9 +129,9 @@ namespace kocs::pair_finders {
       , ny(static_cast<unsigned int>(Kokkos::ceil((_max[1] - _min[1]) / bin_size)))
       , nz(static_cast<unsigned int>(Kokkos::ceil((_max[2] - _min[2]) / bin_size)))
       , n_bins(nx * ny * nz)
-      , particle_bin("gabriel_particle_bin", agent_count_)
+      , particle_bins("gabriel_particle_bins", agent_count_)
       , permutation("gabriel_permutation", agent_count_)
-      , bin_offset("gabriel_bin_offset", n_bins + 1) { }
+      , bin_offsets("gabriel_bin_offsets", n_bins + 1) { }
     
     static const constexpr Scalar epsilon = Scalar(1e-6);
 
@@ -151,12 +151,12 @@ namespace kocs::pair_finders {
     unsigned int nz;
     unsigned int n_bins;
 
-    View<unsigned int> particle_bin;
+    View<unsigned int> particle_bins;
     View<unsigned int> permutation;
-    View<unsigned int> bin_offset;
+    View<unsigned int> bin_offsets;
 
     int step_count = 0;
-    int build_every_n = 0;
+    int rebuild_every_n = 0;
 
     template<typename... Views>
     void build(detail::ViewPack<Views...>& in_view_pack) {
@@ -171,39 +171,40 @@ namespace kocs::pair_finders {
 
         const unsigned int bin = ix + nx * (iy + ny * iz);
 
-        particle_bin(i) = bin;
+        particle_bins(i) = bin;
         permutation(i) = i;
       });
       // Kokkos::BinOp1D<View<unsigned int>> bin_op(n_bins, 0, n_bins - 1);
-      // Kokkos::BinSort<View<unsigned int>, Kokkos::BinOp1D<View<unsigned int>>> sorter(particle_bin, 0, n_bins - 1, bin_op);
+      // Kokkos::BinSort<View<unsigned int>, Kokkos::BinOp1D<View<unsigned int>>> sorter(particle_bins, 0, n_bins - 1, bin_op);
       // sorter.create_permute_vector();
 
-      // Kokkos::Experimental::sort_by_key(Kokkos::DefaultExecutionSpace(), particle_bin, permutation);
-      auto particle_bin_sub = Kokkos::subview(particle_bin, std::make_pair(0u, agent_count));
-      auto permutation_sub = Kokkos::subview(permutation, std::make_pair(0u, agent_count));
-      Kokkos::Experimental::sort_by_key(Kokkos::DefaultExecutionSpace(), particle_bin_sub, permutation_sub);
+      Kokkos::Experimental::sort_by_key(Kokkos::DefaultExecutionSpace(), particle_bins, permutation);
 
       // build offsets
-      Kokkos::deep_copy(bin_offset, std::numeric_limits<unsigned int>::max());
-      Kokkos::parallel_for("gabriel_build_offsets", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-        unsigned int b = particle_bin_sub(i);
+      auto particle_bins_host = Kokkos::create_mirror_view(particle_bins);
+      auto bin_offsets_host = Kokkos::create_mirror_view(bin_offsets);
 
-        if (i == 0 || particle_bin_sub(i - 1) != b)
-          bin_offset(b) = i;
-      });
+      Kokkos::deep_copy(particle_bins_host, particle_bins);
+      Kokkos::deep_copy(bin_offsets_host, std::numeric_limits<unsigned int>::max());
+
+      bin_offsets_host(0) = 0;
+      for (unsigned int i = 1; i < agent_count; ++i) {
+        unsigned int bin = particle_bins_host(i);
+
+        if (particle_bins_host(i - 1) != bin)
+          bin_offsets_host(bin) = i;
+      }
 
       // forward sweep
-      auto bin_offset_host = Kokkos::create_mirror_view(bin_offset);
-      Kokkos::deep_copy(bin_offset_host, bin_offset);
-
       int last = agent_count;
-      for (int b = n_bins; b >= 0; --b) {
-        if (bin_offset_host(b) == std::numeric_limits<unsigned int>::max())
-          bin_offset_host(b) = last;
+      for (int i = n_bins; i >= 0; --i) {
+        if (bin_offsets_host(i) == std::numeric_limits<unsigned int>::max())
+          bin_offsets_host(i) = last;
         else
-          last = bin_offset_host(b);
+          last = bin_offsets_host(i);
       }
-      Kokkos::deep_copy(bin_offset, bin_offset_host);
+
+      Kokkos::deep_copy(bin_offsets, bin_offsets_host);
     }
 
     template<typename RandomPool, typename Force, typename... Views>
@@ -218,7 +219,7 @@ namespace kocs::pair_finders {
       const auto& input_positions = in_view_pack.first();
 
       if (is_full_step == true) {
-        if (step_count == 0 || step_count >= build_every_n) {
+        if (step_count == 0 || step_count >= rebuild_every_n) {
           build(in_view_pack);
           step_count = 0;
         }
@@ -255,9 +256,8 @@ auto generator = random_pool.get_state();
             Kokkos::TeamThreadRange(team_member, n_bin_tasks),
             [&](const int task_idx, auto& local_delta, auto& local_friction, auto& local_velocity) {
               // map task_idx -> dx ,dy, dz in [-rb, rb]
-              int t = task_idx;
-              const int dz = (t / (side * side)) - rb;
-              t %= (side * side);
+              const int dz = (task_idx / (side * side)) - rb;
+              const int t = task_idx % (side * side);
               const int dy = (t / side) - rb;
               const int dx = (t % side) - rb;
 
@@ -269,8 +269,8 @@ auto generator = random_pool.get_state();
                 return;
 
               const unsigned int b = nix + nx * (niy + ny * niz);
-              const unsigned int start = bin_offset(b);
-              const unsigned int end = bin_offset(b + 1);
+              const unsigned int start = bin_offsets(b);
+              const unsigned int end = bin_offsets(b + 1);
 
 
 
@@ -311,8 +311,8 @@ auto generator = random_pool.get_state();
                     for (int bz = min_bz; bz <= max_bz && !blocked; ++bz) {
 
                       const unsigned int bb = static_cast<unsigned int>(bx + nx * (by + ny * bz));
-                      const unsigned int s2 = bin_offset(bb);
-                      const unsigned int e2 = bin_offset(bb + 1);
+                      const unsigned int s2 = bin_offsets(bb);
+                      const unsigned int e2 = bin_offsets(bb + 1);
 
                       for (unsigned int idx2 = s2; idx2 < e2; ++idx2) {
                         const int k = static_cast<int>(permutation(idx2));
@@ -365,9 +365,9 @@ random_pool.free_state(generator);
                 });
               });
 
-              // out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
-              if (total_friction_i > 0)
-                out_view_pack.first()(i) += total_velocity_i / total_friction_i;
+              out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
+              // if (total_friction_i > 0)
+                // out_view_pack.first()(i) += total_velocity_i / total_friction_i;
             }
           );
         }
