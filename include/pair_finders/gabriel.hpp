@@ -157,8 +157,14 @@ namespace kocs::pair_finders {
     int step_count = 0;
     int rebuild_every_n = 0;
 
+    View<int> cell_types_view;
+
     template<typename... Views>
-    void build(detail::ViewPack<Views...>& in_view_pack) {
+    void build(
+      detail::ViewPack<Views...>& in_view_pack,
+      detail::ViewPack<Views...>& out_view_pack,
+      PositionsView& old_velocities
+    ) {
       const auto& input_positions = in_view_pack.first();
 
       Kokkos::parallel_for("gabriel_build", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
@@ -175,6 +181,11 @@ namespace kocs::pair_finders {
 
       sorter = Kokkos::BinSort<View<int>, BinOp>(particle_bins, 0, agent_count, BinOp{n_bins, 0, n_bins});
       sorter.create_permute_vector();
+
+      in_view_pack.apply([&](auto&... views) { (sorter.sort(views), ...); });
+      out_view_pack.apply([&](auto&... views) { (sorter.sort(views), ...); });
+      sorter.sort(old_velocities);
+      sorter.sort(cell_types_view);
     }
 
     template<typename RandomPool, typename Force, typename... Views>
@@ -187,12 +198,12 @@ namespace kocs::pair_finders {
       bool is_full_step
     ) {
       const auto& input_positions = in_view_pack.first();
-      const auto& permutation = sorter.get_permute_vector();
+      // const auto& permutation = sorter.get_permute_vector();
       const auto& bin_offsets = sorter.get_bin_offsets();
 
       if (is_full_step == true) {
         if (step_count == 0 || step_count >= rebuild_every_n) {
-          build(in_view_pack);
+          build(in_view_pack, out_view_pack, old_velocities);
           step_count = 0;
         }
         step_count++;
@@ -247,7 +258,7 @@ auto generator = random_pool.get_state();
 
 
               for (unsigned int idx = start; idx < end; ++idx) {
-                const int j = static_cast<int>(permutation(idx));
+                const int j = static_cast<int>(idx);
                 if (j == i)
                   continue;
 
@@ -288,7 +299,7 @@ auto generator = random_pool.get_state();
                       const unsigned int e2 = bin_offsets(bb + 1);
 
                       for (unsigned int idx2 = s2; idx2 < e2; ++idx2) {
-                        const int k = static_cast<int>(permutation(idx2));
+                        const int k = static_cast<int>(idx2);
                         if (k == i || k == j)
                           continue;
 

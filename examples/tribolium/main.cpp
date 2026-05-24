@@ -14,7 +14,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_PAIR_FINDER(pair_finders::TustGabriel)
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
 
-  CONFIG_INTEGRATOR(integrators::Euler)
+  // CONFIG_INTEGRATOR(integrators::Euler)
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -86,6 +86,11 @@ int main() {
   Kokkos::deep_copy(cell_types_view, cell_types_host_view);
 
   sim.write(cell_types_view);
+
+
+  sim.pair_finder.cell_types_view = cell_types_view;
+
+
 
 
 

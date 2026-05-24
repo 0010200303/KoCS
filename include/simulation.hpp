@@ -42,7 +42,7 @@ namespace kocs {
         , writer(output_path, agent_count_)
         , current_step(0) { }
 
-    private:
+    public:
       unsigned int agent_count;
       Storage storage;
 
