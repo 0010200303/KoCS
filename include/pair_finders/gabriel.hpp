@@ -116,6 +116,7 @@ namespace kocs::pair_finders {
   template<typename PositionsView, typename Scalar>
   struct TustGabriel {
     using positions_view_type = PositionsView;
+    using BinOp = Kokkos::BinOp1D<View<int>>;
 
     TustGabriel(
       unsigned int agent_count_,
@@ -125,13 +126,12 @@ namespace kocs::pair_finders {
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
       , gabriel_coefficient_squared(gabriel_coefficient * gabriel_coefficient)
 
-      , nx(static_cast<unsigned int>(Kokkos::ceil((_max[0] - _min[0]) / bin_size)))
-      , ny(static_cast<unsigned int>(Kokkos::ceil((_max[1] - _min[1]) / bin_size)))
-      , nz(static_cast<unsigned int>(Kokkos::ceil((_max[2] - _min[2]) / bin_size)))
+      , nx(static_cast<int>(Kokkos::ceil((_max[0] - _min[0]) / bin_size)))
+      , ny(static_cast<int>(Kokkos::ceil((_max[1] - _min[1]) / bin_size)))
+      , nz(static_cast<int>(Kokkos::ceil((_max[2] - _min[2]) / bin_size)))
       , n_bins(nx * ny * nz)
       , particle_bins("gabriel_particle_bins", agent_count_)
-      , permutation("gabriel_permutation", agent_count_)
-      , bin_offsets("gabriel_bin_offsets", n_bins + 1) { }
+      , sorter(particle_bins, 0, agent_count_, BinOp{n_bins, 0, n_bins}, true) { }
     
     static const constexpr Scalar epsilon = Scalar(1e-6);
 
@@ -146,14 +146,13 @@ namespace kocs::pair_finders {
     const Scalar bin_size = 1.0f * Kokkos::sqrt(cutoff_distance_squared);
     // TODO: bin_size = scale * cutoff_distance;
 
-    unsigned int nx;
-    unsigned int ny;
-    unsigned int nz;
-    unsigned int n_bins;
+    int nx;
+    int ny;
+    int nz;
+    int n_bins;
 
-    View<unsigned int> particle_bins;
-    View<unsigned int> permutation;
-    View<unsigned int> bin_offsets;
+    View<int> particle_bins;
+    Kokkos::BinSort<View<int>, BinOp> sorter;
 
     int step_count = 0;
     int rebuild_every_n = 0;
@@ -165,46 +164,17 @@ namespace kocs::pair_finders {
       Kokkos::parallel_for("gabriel_build", agent_count, KOKKOS_CLASS_LAMBDA(const unsigned int i) {
         const auto& position_i = input_positions(i);
 
-        unsigned int ix = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size)), nx - 1));
-        unsigned int iy = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size)), ny - 1));
-        unsigned int iz = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size)), nz - 1));
+        int ix = Kokkos::max(0, Kokkos::min(static_cast<int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size)), nx - 1));
+        int iy = Kokkos::max(0, Kokkos::min(static_cast<int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size)), ny - 1));
+        int iz = Kokkos::max(0, Kokkos::min(static_cast<int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size)), nz - 1));
 
-        const unsigned int bin = ix + nx * (iy + ny * iz);
+        int bin = ix + nx * (iy + ny * iz);
 
         particle_bins(i) = bin;
-        permutation(i) = i;
       });
-      // Kokkos::BinOp1D<View<unsigned int>> bin_op(n_bins, 0, n_bins - 1);
-      // Kokkos::BinSort<View<unsigned int>, Kokkos::BinOp1D<View<unsigned int>>> sorter(particle_bins, 0, n_bins - 1, bin_op);
-      // sorter.create_permute_vector();
 
-      Kokkos::Experimental::sort_by_key(Kokkos::DefaultExecutionSpace(), particle_bins, permutation);
-
-      // build offsets
-      auto particle_bins_host = Kokkos::create_mirror_view(particle_bins);
-      auto bin_offsets_host = Kokkos::create_mirror_view(bin_offsets);
-
-      Kokkos::deep_copy(particle_bins_host, particle_bins);
-      Kokkos::deep_copy(bin_offsets_host, std::numeric_limits<unsigned int>::max());
-
-      bin_offsets_host(0) = 0;
-      for (unsigned int i = 1; i < agent_count; ++i) {
-        unsigned int bin = particle_bins_host(i);
-
-        if (particle_bins_host(i - 1) != bin)
-          bin_offsets_host(bin) = i;
-      }
-
-      // forward sweep
-      int last = agent_count;
-      for (int i = n_bins; i >= 0; --i) {
-        if (bin_offsets_host(i) == std::numeric_limits<unsigned int>::max())
-          bin_offsets_host(i) = last;
-        else
-          last = bin_offsets_host(i);
-      }
-
-      Kokkos::deep_copy(bin_offsets, bin_offsets_host);
+      sorter = Kokkos::BinSort<View<int>, BinOp>(particle_bins, 0, agent_count, BinOp{n_bins, 0, n_bins});
+      sorter.create_permute_vector();
     }
 
     template<typename RandomPool, typename Force, typename... Views>
@@ -217,6 +187,8 @@ namespace kocs::pair_finders {
       bool is_full_step
     ) {
       const auto& input_positions = in_view_pack.first();
+      const auto& permutation = sorter.get_permute_vector();
+      const auto& bin_offsets = sorter.get_bin_offsets();
 
       if (is_full_step == true) {
         if (step_count == 0 || step_count >= rebuild_every_n) {
@@ -242,9 +214,9 @@ auto generator = random_pool.get_state();
           typename PositionsView::value_type total_velocity_i{0.0};
 
           // compute bin coords for particle i
-          unsigned int ix = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size)), nx - 1));
-          unsigned int iy = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size)), ny - 1));
-          unsigned int iz = Kokkos::max(0u, Kokkos::min(static_cast<unsigned int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size)), nz - 1));
+          int ix = Kokkos::max(0, Kokkos::min(static_cast<int>(Kokkos::floor((position_i[0] - _min[0]) / bin_size)), nx - 1));
+          int iy = Kokkos::max(0, Kokkos::min(static_cast<int>(Kokkos::floor((position_i[1] - _min[1]) / bin_size)), ny - 1));
+          int iz = Kokkos::max(0, Kokkos::min(static_cast<int>(Kokkos::floor((position_i[2] - _min[2]) / bin_size)), nz - 1));
 
           // number of bins to search in each direction based on cutoff
           const Scalar cutoff = cutoff_distance;
@@ -276,7 +248,8 @@ auto generator = random_pool.get_state();
 
               for (unsigned int idx = start; idx < end; ++idx) {
                 const int j = static_cast<int>(permutation(idx));
-                if (j == i) continue;
+                if (j == i)
+                  continue;
 
                 const auto& position_j = input_positions(j);
                 const auto displacement = position_i - position_j;
@@ -343,7 +316,7 @@ auto generator = random_pool.get_state();
                     );
                   });
                 });
-                // random_pool.free_state(generator);
+                random_pool.free_state(generator);
 
                 local_friction += pair_friction;
                 local_velocity += pair_friction * old_velocities(j);
