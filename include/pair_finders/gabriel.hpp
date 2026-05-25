@@ -157,8 +157,6 @@ namespace kocs::pair_finders {
     int step_count = 0;
     int rebuild_every_n = 0;
 
-    View<int> cell_types_view;
-
     template<typename... Views>
     void build(
       detail::ViewPack<Views...>& in_view_pack,
@@ -181,11 +179,6 @@ namespace kocs::pair_finders {
 
       sorter = Kokkos::BinSort<View<int>, BinOp>(particle_bins, 0, agent_count, BinOp{n_bins, 0, n_bins});
       sorter.create_permute_vector();
-
-      in_view_pack.apply([&](auto&... views) { (sorter.sort(views), ...); });
-      out_view_pack.apply([&](auto&... views) { (sorter.sort(views), ...); });
-      sorter.sort(old_velocities);
-      sorter.sort(cell_types_view);
     }
 
     template<typename RandomPool, typename Force, typename... Views>
@@ -198,7 +191,7 @@ namespace kocs::pair_finders {
       bool is_full_step
     ) {
       const auto& input_positions = in_view_pack.first();
-      // const auto& permutation = sorter.get_permute_vector();
+      const auto& permutation = sorter.get_permute_vector();
       const auto& bin_offsets = sorter.get_bin_offsets();
 
       if (is_full_step == true) {
@@ -215,8 +208,6 @@ namespace kocs::pair_finders {
         "naive_gabriel_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
-auto generator = random_pool.get_state();
-
           const int i = team_member.league_rank();
           const auto& position_i = input_positions(i);
 
@@ -258,7 +249,7 @@ auto generator = random_pool.get_state();
 
 
               for (unsigned int idx = start; idx < end; ++idx) {
-                const int j = static_cast<int>(idx);
+                const int j = static_cast<int>(permutation(idx));
                 if (j == i)
                   continue;
 
@@ -299,7 +290,7 @@ auto generator = random_pool.get_state();
                       const unsigned int e2 = bin_offsets(bb + 1);
 
                       for (unsigned int idx2 = s2; idx2 < e2; ++idx2) {
-                        const int k = static_cast<int>(idx2);
+                        const int k = static_cast<int>(permutation(idx2));
                         if (k == i || k == j)
                           continue;
 
@@ -318,7 +309,7 @@ auto generator = random_pool.get_state();
                 const auto distance = Kokkos::sqrt(distance_squared);
                 Scalar pair_friction = 0.0;
 
-                // auto generator = random_pool.get_state();
+                auto generator = random_pool.get_state();
                 in_view_pack.apply([&](auto&... views) {
                   local_delta.apply([&](auto&... deltas) {
                     force(
@@ -338,8 +329,6 @@ auto generator = random_pool.get_state();
             Kokkos::Sum<typename PositionsView::value_type>(total_velocity_i)
           );
 
-random_pool.free_state(generator);
-
           Kokkos::single(
             Kokkos::PerTeam(team_member),
             [&]() {
@@ -350,8 +339,6 @@ random_pool.free_state(generator);
               });
 
               out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
-              // if (total_friction_i > 0)
-                // out_view_pack.first()(i) += total_velocity_i / total_friction_i;
             }
           );
         }

@@ -13,8 +13,6 @@ using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_PAIR_FINDER(pair_finders::TustGabriel)
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
-
-  // CONFIG_INTEGRATOR(integrators::Euler)
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
