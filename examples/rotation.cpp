@@ -13,23 +13,42 @@ struct SimulationConfig : public DefaultSimulationConfig {
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-int main() {
-  const int n_cells = 300;
+int main(int argc, char* argv[]) {
   const double dt = 0.1;
   const float r_max = 1.2f;
   const int t_max = 337;
   const int steps_per_30_min = 120;
 
-  // settings
-  const float const_1 = 0.5f;
-  const float const_2 = 0.1f;
-  const float polarity_strength = 0.3f;
-  const float D = 0.05f;
-  const float walker_probability = 0.5f;
+  // argparse settings
+  int n_cells;
+  float const_1;
+  float const_2;
+  float polarity_strength;
+  float D;
+  float walker_probability;
+  std::string output_path;
+
+  bool ok = Arguments("organoid rotation")
+    .add_argument("-n", "--n_cells", n_cells, 100, "number of cells")
+    .add_argument("-c1", "--const_1", const_1, 0.5f, "determines how strongly a cell adjusts it's \
+active migration in response to mechanical force F (interaction with neighbouring cells)")
+    .add_argument("-c2", "--const_2", const_2, 0.1f, "defines the target speed of active cell migration")
+    .add_argument("-p", "--polarity_strength", polarity_strength, 0.3f, "strength of cell polarity")
+    .add_argument("-D", "--stochasticity", D, 0.05f, "stochasticity")
+    .add_argument("-P", "--walker_probability", walker_probability, 0.5f, "probability of a cell to be a walker")
+    .add_argument("-o", "--output", output_path)
+    .parse(argc, argv);
+  
+  if (ok == false)
+    return 1;
+  
+  if (output_path.empty() == true)
+    output_path = "./output/out_" + std::to_string(n_cells) + "_cells_c1_" + std::to_string(const_1) +
+      "_c2_" + std::to_string(const_2) + "_D_" + std::to_string(D) + "_walkers_" + std::to_string(walker_probability);
 
   const float sqrt_stochastic = Kokkos::sqrt(D) * Kokkos::sqrt(dt);
 
-  Simulation<SimulationConfig> sim(n_cells, "./output/rotation", r_max);
+  Simulation<SimulationConfig> sim(n_cells, output_path, r_max);
   auto& positions_view = sim.get_view<FIELD(Vector, positions)>();
   auto& velocities_view = sim.get_view<FIELD(Vector, velocities)>();
   auto& polarities_view = sim.get_view<FIELD(Polarity, polarities)>();
