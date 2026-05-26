@@ -10,7 +10,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 
-#include "vector.hpp"
+#include "types/vector.hpp"
 
 namespace kocs {
   template<typename T>

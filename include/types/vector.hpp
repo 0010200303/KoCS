@@ -1,5 +1,5 @@
-#ifndef KOCS_VECTOR_HPP
-#define KOCS_VECTOR_HPP
+#ifndef KOCS_TYPES_VECTOR_HPP
+#define KOCS_TYPES_VECTOR_HPP
 
 #include <type_traits>
 #include <array>
@@ -311,4 +311,4 @@ namespace Kokkos {
   };
 } // namespace Kokkos
 
-#endif // KOCS_VECTOR_HPP
+#endif // KOCS_TYPES_VECTOR_HPP

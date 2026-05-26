@@ -1,7 +1,7 @@
-#ifndef KOCS_POLARITY_HPP
-#define KOCS_POLARITY_HPP
+#ifndef KOCS_TYPES_POLARITY_HPP
+#define KOCS_TYPES_POLARITY_HPP
 
-#include <vector.hpp>
+#include "vector.hpp"
 
 namespace kocs {
   template<typename Scalar, unsigned int Align = alignof(Scalar)>
@@ -147,4 +147,4 @@ namespace kocs {
   };
 }
 
-#endif // KOCS_POLARITY_HPP
+#endif // KOCS_TYPES_POLARITY_HPP

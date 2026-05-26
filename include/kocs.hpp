@@ -3,8 +3,8 @@
 
 #include "utils.hpp"
 
-#include "vector.hpp"
-#include "polarity.hpp"
+#include "types/vector.hpp"
+#include "types/polarity.hpp"
 
 #include "integrators/base.hpp"
 #include "forces/detail.hpp"
@@ -16,7 +16,8 @@
 #include "initializers/cuboid.hpp"
 
 #include "pair_finders/all_pairs.hpp"
-#include "pair_finders/gabriel.hpp"
+#include "pair_finders/naive_gabriel.hpp"
+#include "pair_finders/binned_gabriel.hpp"
 
 #include "integrators/base.hpp"
 #include "integrators/euler.hpp"

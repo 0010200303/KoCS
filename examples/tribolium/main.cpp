@@ -11,13 +11,13 @@ enum class CellType {
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
-  CONFIG_PAIR_FINDER(pair_finders::TustGabriel)
+  CONFIG_PAIR_FINDER(pair_finders::BinnedGabriel)
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const double dt = 0.001;
-const int steps = 100;
+const int steps = 30;
 const int steps_per_reduction = 500;
 const Scalar r_max = 1.0f;
 const Scalar r_min = 0.5f;
@@ -83,12 +83,7 @@ int main() {
   }
   Kokkos::deep_copy(cell_types_view, cell_types_host_view);
 
-  sim.write(cell_types_view);
-
-
-  sim.pair_finder.cell_types_view = cell_types_view;
-
-
+  // sim.write(cell_types_view);
 
 
 
@@ -181,7 +176,7 @@ int main() {
     Kokkos::deep_copy(positions_view, positions_host_view);
     Kokkos::deep_copy(cell_types_view, cell_types_host_view);
 
-    sim.write(cell_types_view);
+    // sim.write(cell_types_view);
   }
 
   return 0;

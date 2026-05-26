@@ -96,8 +96,8 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/runtime_guard.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/utils.hpp
 
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/vector.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/polarity.hpp  
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/types/vector.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/types/polarity.hpp  
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/forces/predefined.hpp
 
@@ -108,7 +108,8 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/cuboid.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/all_pairs.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/gabriel.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/naive_gabriel.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/binned_gabriel.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/base.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/euler.hpp

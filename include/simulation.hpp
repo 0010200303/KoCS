@@ -12,7 +12,7 @@
 #include "simulation_config.hpp"
 #include "runtime_guard.hpp"
 #include "utils.hpp"
-#include "vector.hpp"
+#include "types/vector.hpp"
 #include "forces/kernel_fuser.hpp"
 
 #include "initializers/line.hpp"
