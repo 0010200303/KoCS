@@ -32,4 +32,6 @@
 #include "io/dummy.hpp"
 #include "io/hdf5_writer.hpp"
 
+#include "argparse/arguments.hpp"
+
 #endif // KOCS_HPP

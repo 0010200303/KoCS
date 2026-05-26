@@ -36,6 +36,7 @@ else()
   set(Kokkos_ENABLE_SERIAL ON CACHE BOOL "" FORCE)
 endif()
 
+# Kokkos
 find_package(Kokkos 5.1 CONFIG)
 if (Kokkos_FOUND)
   message(STATUS "Found Kokkos: ${Kokkos_DIR} (version ${Kokkos_VERSION})")
@@ -52,6 +53,7 @@ else()
   FetchContent_MakeAvailable(Kokkos)
 endif()
 
+# HighFive
 find_package(HighFive CONFIG QUIET)
 if (HighFive_FOUND)
     message(STATUS "Found HighFive: ${HighFive_DIR}")
@@ -68,8 +70,14 @@ else()
     )
     FetchContent_MakeAvailable(HighFive)
 endif()
-
 find_package(HDF5 REQUIRED COMPONENTS C CXX)
+
+# argparse
+FetchContent_Declare(
+  argparse
+  GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+)
+FetchContent_MakeAvailable(argparse)
 
 add_library(KoCS_core INTERFACE)
 
@@ -81,6 +89,7 @@ target_link_libraries(KoCS_core INTERFACE
   Kokkos::kokkos
   HighFive::HighFive
   HDF5::HDF5
+  argparse
 )
 
 target_sources(KoCS_core INTERFACE
@@ -112,6 +121,8 @@ target_sources(KoCS_core INTERFACE
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/io/dummy.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/io/hdf5_writer.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/argparse/arguments.hpp
 )
 
 
