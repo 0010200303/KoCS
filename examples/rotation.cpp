@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
   float polarity_strength;
   float D;
   float walker_probability;
+  uint64_t seed;
   std::string output_path;
 
   bool ok = Arguments("organoid rotation")
@@ -36,6 +37,7 @@ active migration in response to mechanical force F (interaction with neighbourin
     .add_argument("-p", "--polarity_strength", polarity_strength, 0.3f, "strength of cell polarity")
     .add_argument("-D", "--stochasticity", D, 0.05f, "stochasticity")
     .add_argument("-P", "--walker_probability", walker_probability, 0.5f, "probability of a cell to be a walker")
+    .add_argument("-s", "--seed", seed, 2807, "seed of the whole simulation")
     .add_argument("-o", "--output", output_path)
     .parse(argc, argv);
   
@@ -48,7 +50,7 @@ active migration in response to mechanical force F (interaction with neighbourin
 
   const float sqrt_stochastic = Kokkos::sqrt(D) * Kokkos::sqrt(dt);
 
-  Simulation<SimulationConfig> sim(n_cells, output_path, r_max);
+  Simulation<SimulationConfig> sim(n_cells, output_path, r_max, seed);
   auto& positions_view = sim.get_view<FIELD(Vector, positions)>();
   auto& velocities_view = sim.get_view<FIELD(Vector, velocities)>();
   auto& polarities_view = sim.get_view<FIELD(Polarity, polarities)>();

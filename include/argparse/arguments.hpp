@@ -1,6 +1,8 @@
 #ifndef KOCS_ARGPARSE_ARGUMENT_PARSER_HPP
 #define KOCS_ARGPARSE_ARGUMENT_PARSER_HPP
 
+#include <cstdint>
+
 // https://github.com/p-ranav/argparse
 #include <argparse/argparse.hpp>
 
@@ -26,31 +28,6 @@ namespace kocs {
   };
 
   template<>
-  struct shape_for<unsigned char> {
-    static constexpr char value = 'u';
-  };
-
-  template<>
-  struct shape_for<short> {
-    static constexpr char value = 'i';
-  };
-
-  template<>
-  struct shape_for<unsigned short> {
-    static constexpr char value = 'u';
-  };
-
-  template<>
-  struct shape_for<int> {
-    static constexpr char value = 'i';
-  };
-
-  template<>
-  struct shape_for<unsigned int> {
-    static constexpr char value = 'u';
-  };
-
-  template<>
   struct shape_for<long long> {
     static constexpr char value = 'i';
   };
@@ -65,28 +42,70 @@ namespace kocs {
     static constexpr char value = '_';
   };
 
+  template<>
+  struct shape_for<int8_t> {
+    static constexpr char value = 'i';
+  };
+
+  template<>
+  struct shape_for<uint8_t> {
+    static constexpr char value = 'u';
+  };
+
+  template<>
+  struct shape_for<int16_t> {
+    static constexpr char value = 'i';
+  };
+
+  template<>
+  struct shape_for<uint16_t> {
+    static constexpr char value = 'u';
+  };
+
+  template<>
+  struct shape_for<int32_t> {
+    static constexpr char value = 'i';
+  };
+
+  template<>
+  struct shape_for<uint32_t> {
+    static constexpr char value = 'u';
+  };
+
+  template<>
+  struct shape_for<int64_t> {
+    static constexpr char value = 'i';
+  };
+
+  template<>
+  struct shape_for<uint64_t> {
+    static constexpr char value = 'u';
+  };
+
   struct Arguments {
     argparse::ArgumentParser parser;
 
     Arguments(const std::string& name) : parser(name) { }
 
-    template<char Shape, typename T>
+    template<char Shape, typename T, typename U = T>
     Arguments& add_argument(
       const std::string& short_name,
       const std::string& long_name,
       T& storage,
-      T default_value = T{},
+      U default_value = U{},
       const std::string& help = ""
     ) {
+      T default_cast = static_cast<T>(default_value);
+
       if constexpr (std::is_same_v<T, std::string>) {
         parser.add_argument(short_name, long_name)
           .help(help)
-          .default_value(default_value)
+          .default_value(default_cast)
           .store_into(storage);
       } else {
         parser.add_argument(short_name, long_name)
           .help(help)
-          .default_value(default_value)
+          .default_value(default_cast)
           .template scan<shape_for<T>::value, T>()
           .store_into(storage);
       }
@@ -94,15 +113,15 @@ namespace kocs {
       return *this;
     }
 
-    template<typename T>
+    template<typename T, typename U = T>
     Arguments& add_argument(
       const std::string& short_name,
       const std::string& long_name,
       T& storage,
-      T default_value = T{},
+      U default_value = U{},
       const std::string& help = ""
     ) {
-      return add_argument<shape_for<T>::value, T>(
+      return add_argument<shape_for<T>::value, T, U>(
         short_name, long_name, storage, default_value, help
       );
     }
