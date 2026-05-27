@@ -9,7 +9,7 @@
 #include "../forces/detail.hpp"
 
 namespace kocs::pair_finders {
-  template<typename PositionsView, typename Scalar>
+  template<typename PositionsView, typename Scalar, int dimensions>
   struct NaiveGabriel {
     using positions_view_type = PositionsView;
 

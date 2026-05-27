@@ -65,13 +65,13 @@ namespace kocs {
       using type = Field;
     };
 
-    template <template<typename...> typename PairFinderT, typename SimulationConfig, typename FieldList>
+    template <template<typename, typename, int> typename PairFinderT, typename SimulationConfig, typename FieldList>
     struct PairFinderFromFields;
 
-    template <template<typename...> typename PairFinderT, typename SimulationConfig, typename... Fields>
+    template <template<typename, typename, int> typename PairFinderT, typename SimulationConfig, typename... Fields>
     struct PairFinderFromFields<PairFinderT, SimulationConfig, FieldList<Fields...>> {
       using FirstField = typename FirstFieldFromList<FieldList<Fields...>>::type;
-      using type = PairFinderT<typename ViewFromField<FirstField>::type, typename SimulationConfig::Scalar>;
+      using type = PairFinderT<typename ViewFromField<FirstField>::type, typename SimulationConfig::Scalar, SimulationConfig::dimensions>;
     };
 
     template <template<typename, typename...> typename IntegratorT, typename SimulationConfig, typename FieldList>
@@ -89,7 +89,7 @@ namespace kocs {
     template<template<typename, typename...> typename IntegratorT, typename SimulationConfig>
     using integrator_t = typename detail::IntegratorFromFields<IntegratorT, SimulationConfig, typename SimulationConfig::Fields>::type;
 
-    template<template<typename...> typename PairFinderT, typename SimulationConfig>
+    template<template<typename, typename, int> typename PairFinderT, typename SimulationConfig>
     using pair_finder_t = typename detail::PairFinderFromFields<PairFinderT, SimulationConfig, typename SimulationConfig::Fields>::type;
 
     template<template<typename> typename WriterT, typename SimulationConfig>

@@ -8,7 +8,7 @@
 #include "../forces/detail.hpp"
 
 namespace kocs::pair_finders {
-  template<typename PositionsView, typename Scalar>
+  template<typename PositionsView, typename Scalar, int dimensions>
   struct NaiveAllPairs {
     using positions_view_type = PositionsView;
 
