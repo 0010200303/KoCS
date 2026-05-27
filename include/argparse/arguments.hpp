@@ -100,7 +100,7 @@ namespace kocs {
       const std::string& help = "",
       V&&... choices
     ) {
-      auto argument = parser.add_argument(short_name, long_name)
+      auto argument& = parser.add_argument(short_name, long_name)
         .template scan<shape_for<T>::value, T>()
         .default_value(static_cast<T>(default_value))
         .store_into(storage)
@@ -126,7 +126,7 @@ namespace kocs {
         );
       }
 
-      auto argument = parser.add_argument(short_name, long_name)
+      auto& argument = parser.add_argument(short_name, long_name)
         .default_value(static_cast<T>(default_value))
         .store_into(storage)
         .help(help);
