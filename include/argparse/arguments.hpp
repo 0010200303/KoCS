@@ -2,6 +2,10 @@
 #define KOCS_ARGPARSE_ARGUMENT_PARSER_HPP
 
 #include <cstdint>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <iostream>
 
 // https://github.com/p-ranav/argparse
 #include <argparse/argparse.hpp>
@@ -87,79 +91,85 @@ namespace kocs {
 
     Arguments(const std::string& name) : parser(name) { }
 
-    template<char Shape, typename T, typename U = T>
+    template<char Shape, typename T, typename U = T, typename... V>
     Arguments& add_argument(
       const std::string& short_name,
       const std::string& long_name,
       T& storage,
-      U default_value = U{},
-      const std::string& help = ""
+      const U default_value = U{},
+      const std::string& help = "",
+      V&&... choices
     ) {
       T default_cast = static_cast<T>(default_value);
 
       if constexpr (std::is_same_v<T, std::string>) {
         parser.add_argument(short_name, long_name)
-          .help(help)
           .default_value(default_cast)
-          .store_into(storage);
+          .store_into(storage)
+          .help(help)
+          .choices(std::forward<V>(choices)...);
       } else {
         parser.add_argument(short_name, long_name)
-          .help(help)
-          .default_value(default_cast)
           .template scan<shape_for<T>::value, T>()
-          .store_into(storage);
+          .default_value(default_cast)
+          .store_into(storage)
+          .help(help)
+          .choices(std::forward<V>(choices)...);
       }
-
       return *this;
     }
 
-    template<typename T, typename U = T>
+    template<typename T, typename U = T, typename... V>
     Arguments& add_argument(
       const std::string& short_name,
       const std::string& long_name,
       T& storage,
-      U default_value = U{},
-      const std::string& help = ""
+      const U default_value = U{},
+      const std::string& help = "",
+      V&&... choices
     ) {
-      return add_argument<shape_for<T>::value, T, U>(
-        short_name, long_name, storage, default_value, help
+      return this->template add_argument<shape_for<T>::value, T, U>(
+        short_name, long_name, storage, default_value, help, std::forward<V>(choices)...
       );
     }
     
 
 
-    template<char Shape, typename T>
+    template<char Shape, typename T, typename... V>
     Arguments& add_required_argument(
       const std::string& short_name,
       const std::string& long_name,
       T& storage,
-      const std::string& help = ""
+      const std::string& help = "",
+      V&&... choices
     ) {
       if constexpr (std::is_same_v<T, std::string>) {
         parser.add_argument(short_name, long_name)
-          .help(help)
           .required()
-          .store_into(storage);
+          .store_into(storage)
+          .help(help)
+          .choices(std::forward<V>(choices)...);
       } else {
         parser.add_argument(short_name, long_name)
-          .help(help)
           .required()
           .template scan<shape_for<T>::value, T>()
-          .store_into(storage);
+          .store_into(storage)
+          .help(help)
+          .choices(std::forward<V>(choices)...);
       }
-
       return *this;
     }
 
-    template<typename T>
+    template<typename T, typename... V>
     Arguments& add_required_argument(
       const std::string& short_name,
       const std::string& long_name,
       T& storage,
-      const std::string& help = ""
+      const std::string& help = "",
+      V&&... choices
     ) {
-      return add_required_argument<shape_for<T>::value, T>(
-        short_name, long_name, storage, help
+      return this->template add_required_argument<shape_for<T>::value, T>(
+        short_name, long_name, storage, help, std::forward<V>(choices)...
       );
     }
 

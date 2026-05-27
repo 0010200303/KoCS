@@ -33,7 +33,8 @@ struct SurfaceBin {
 KOKKOS_INLINE_FUNCTION
 int flatten_bin_index(
   int ix, int iy, int iz,
-  int nx, int ny, int nz) {
+  int nx, int ny, int nz
+) {
   return ix + nx * (iy + ny * iz);
 }
 
@@ -42,7 +43,8 @@ int get_bin_index(
   const Vector& p,
   const Vector& min_bound,
   Scalar bin_size,
-  int nx, int ny, int nz) {
+  int nx, int ny, int nz
+) {
   int ix = static_cast<int>((p.x() - min_bound.x()) / bin_size);
   int iy = static_cast<int>((p.y() - min_bound.y()) / bin_size);
   int iz = static_cast<int>((p.z() - min_bound.z()) / bin_size);
