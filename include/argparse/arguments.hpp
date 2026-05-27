@@ -100,22 +100,14 @@ namespace kocs {
       const std::string& help = "",
       V&&... choices
     ) {
-      T default_cast = static_cast<T>(default_value);
+      auto argument = parser.add_argument(short_name, long_name)
+        .template scan<shape_for<T>::value, T>()
+        .default_value(static_cast<T>(default_value))
+        .store_into(storage)
+        .help(help);
+      if constexpr (sizeof...(choices) > 0)
+        argument.choices(std::forward<V>(choices)...);
 
-      if constexpr (std::is_same_v<T, std::string>) {
-        parser.add_argument(short_name, long_name)
-          .default_value(default_cast)
-          .store_into(storage)
-          .help(help)
-          .choices(std::forward<V>(choices)...);
-      } else {
-        parser.add_argument(short_name, long_name)
-          .template scan<shape_for<T>::value, T>()
-          .default_value(default_cast)
-          .store_into(storage)
-          .help(help)
-          .choices(std::forward<V>(choices)...);
-      }
       return *this;
     }
 
@@ -128,9 +120,20 @@ namespace kocs {
       const std::string& help = "",
       V&&... choices
     ) {
-      return this->template add_argument<shape_for<T>::value, T, U>(
-        short_name, long_name, storage, default_value, help, std::forward<V>(choices)...
-      );
+      if constexpr (std::is_same_v<T, std::string> == false) {
+        return this->template add_argument<shape_for<T>::value, T, U>(
+          short_name, long_name, storage, default_value, help, std::forward<V>(choices)...
+        );
+      }
+
+      auto argument = parser.add_argument(short_name, long_name)
+        .default_value(static_cast<T>(default_value))
+        .store_into(storage)
+        .help(help);
+      if constexpr (sizeof...(choices) > 0)
+        argument.choices(std::forward<V>(choices)...);
+      
+      return *this;
     }
     
 
@@ -143,20 +146,14 @@ namespace kocs {
       const std::string& help = "",
       V&&... choices
     ) {
-      if constexpr (std::is_same_v<T, std::string>) {
-        parser.add_argument(short_name, long_name)
-          .required()
-          .store_into(storage)
-          .help(help)
-          .choices(std::forward<V>(choices)...);
-      } else {
-        parser.add_argument(short_name, long_name)
-          .required()
-          .template scan<shape_for<T>::value, T>()
-          .store_into(storage)
-          .help(help)
-          .choices(std::forward<V>(choices)...);
-      }
+      auto argument = parser.add_argument(short_name, long_name)
+        .template scan<shape_for<T>::value, T>()
+        .required()
+        .store_into(storage)
+        .help(help);
+      if constexpr (sizeof...(choices) > 0)
+        argument.choices(std::forward<V>(choices)...);
+
       return *this;
     }
 
@@ -168,9 +165,20 @@ namespace kocs {
       const std::string& help = "",
       V&&... choices
     ) {
-      return this->template add_required_argument<shape_for<T>::value, T>(
-        short_name, long_name, storage, help, std::forward<V>(choices)...
-      );
+      if constexpr (std::is_same_v<T, std::string> == false) {
+        return this->template add_argument<shape_for<T>::value, T>(
+          short_name, long_name, storage, help, std::forward<V>(choices)...
+        );
+      }
+
+      auto argument = parser.add_argument(short_name, long_name)
+        .required()
+        .store_into(storage)
+        .help(help);
+      if constexpr (sizeof...(choices) > 0)
+        argument.choices(std::forward<V>(choices)...);
+      
+      return *this;
     }
 
 
