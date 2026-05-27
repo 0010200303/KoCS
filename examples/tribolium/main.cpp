@@ -244,10 +244,10 @@ int main() {
     for (int j = 0; j < steps_per_reduction; ++j)
       sim.take_step(dt, force_between_cells, system_forces);
 
+    // remove embryo cells near poles
     Kokkos::deep_copy(positions_host_view, positions_view);
     Kokkos::deep_copy(cell_types_host_view, cell_types_view);
 
-    // remove embryo cells near poles
     int new_cell_count = 0;
     for (int k = 0; k < sim.get_agent_count(); ++k) {
       Vector position_k = positions_host_view(k);
@@ -269,10 +269,9 @@ int main() {
         ++new_cell_count;
       }
     }
-    sim.set_agent_count(new_cell_count);
-
     Kokkos::deep_copy(positions_view, positions_host_view);
     Kokkos::deep_copy(cell_types_view, cell_types_host_view);
+    sim.set_agent_count(new_cell_count);
 
     sim.write(cell_types_view);
   }
