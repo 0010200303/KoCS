@@ -128,8 +128,7 @@ if [ "$EXECUTE" = true ]; then
 	if [ -x "$EXEC_PATH" ]; then
 		echo "Executing $EXEC_PATH"
 		if [ "$TIME_EXECUTE" = true ]; then
-			# use shell's time (via command) with portable -p flag
-			command time -p "$EXEC_PATH"
+			time -p "$EXEC_PATH"
 		else
 			"$EXEC_PATH"
 		fi
