@@ -15,6 +15,8 @@
 
 #include "../utils/utils.hpp"
 
+// TODO: make xmf generation optional
+
 namespace kocs::writers {
   template<typename SimulationConfig>
   class HDF5_Writer {
@@ -24,15 +26,19 @@ namespace kocs::writers {
       HDF5_Writer(
         const std::string& path,
         const unsigned int agent_count_,
+        const bool write_xmf_ = true,
         const std::size_t flush_threshold = 65536)
         : agent_count(agent_count_)
+        , write_xmf(write_xmf_)
         , buffer_threshold(flush_threshold) {
         std::filesystem::path _path(path);
         std::filesystem::create_directories(_path.parent_path());
 
         filename = _path.filename().string();
         h5_file = std::make_unique<HighFive::File>(HighFive::File(path + ".h5", HighFive::File::AccessMode::Truncate));
-        init_xmf(path);
+
+        if (write_xmf == true)
+          init_xmf(path);
       }
 
       ~HDF5_Writer() {
@@ -49,6 +55,8 @@ namespace kocs::writers {
       std::unique_ptr<HighFive::File> h5_file;
       std::ofstream xmf_file;
       std::string xmf_buffer;
+
+      bool write_xmf;
 
       template<typename T, typename = void>
       struct has_to_array : std::false_type { };
@@ -197,7 +205,7 @@ namespace kocs::writers {
         HighFive::Group group = h5_file->createGroup(std::string("t") + std::to_string(step));
         (write_single(group, views), ...);
 
-        if (xmf_file.is_open() == false)
+        if (write_xmf == false || xmf_file.is_open() == false)
           return;
 
         auto all_tuple = std::tuple<const Views&...>(views...);
