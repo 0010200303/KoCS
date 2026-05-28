@@ -13,7 +13,7 @@
 #include <Kokkos_Core.hpp>
 #include <highfive/highfive.hpp>
 
-#include "../utils.hpp"
+#include "../utils/utils.hpp"
 
 namespace kocs::writers {
   template<typename SimulationConfig>

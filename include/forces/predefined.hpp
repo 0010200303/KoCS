@@ -8,6 +8,8 @@
 
 #include "detail.hpp"
 
+// TODO: fix forces
+
 namespace kocs::forces {
   template<typename Scalar>
   KOKKOS_INLINE_FUNCTION

@@ -2,11 +2,11 @@
 #define KOCS_INITIALIZERS_CUBOID_INIT_HPP
 
 #include <numbers>
-#include <utility> // added
+#include <utility>
 
 #include <Kokkos_Core.hpp>
 
-#include "../utils.hpp"
+#include "../utils/utils.hpp"
 #include "relax_force.hpp"
 
 namespace kocs::initializers {

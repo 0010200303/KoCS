@@ -1,7 +1,7 @@
 #ifndef KOCS_HPP
 #define KOCS_HPP
 
-#include "utils.hpp"
+#include "utils/utils.hpp"
 
 #include "types/vector.hpp"
 #include "types/polarity.hpp"

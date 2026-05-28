@@ -93,8 +93,8 @@ target_link_libraries(KoCS_core INTERFACE
 )
 
 target_sources(KoCS_core INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/runtime_guard.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/utils.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/utils/runtime_guard.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/utils/utils.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/types/vector.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/types/polarity.hpp  

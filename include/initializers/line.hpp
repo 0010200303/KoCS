@@ -1,7 +1,7 @@
 #ifndef KOCS_INITIALIZERS_LINE_INIT_HPP
 #define KOCS_INITIALIZERS_LINE_INIT_HPP
 
-#include "../utils.hpp"
+#include "../utils/utils.hpp"
 
 namespace kocs::initializers {
   template<typename SimulationConfig>

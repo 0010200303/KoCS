@@ -1,5 +1,5 @@
-#ifndef KOCS_UTILS_HPP
-#define KOCS_UTILS_HPP
+#ifndef KOCS_UTILS_UTILS_HPP
+#define KOCS_UTILS_UTILS_HPP
 
 #include <array>
 #include <tuple>
@@ -98,6 +98,25 @@ namespace kocs {
 
 #define INIT_FUNC() KOKKOS_LAMBDA(const unsigned int i, Random& rng)
 
+#define GENERIC_FORCE_OP(...) \
+  using tag = kocs::detail::GenericForceTag; \
+  KOKKOS_INLINE_FUNCTION \
+  void operator()( \
+    const unsigned int i, \
+    Random& rng __VA_OPT__(,) __VA_ARGS__) const
+    
+#define PAIRWISE_FORCE_OP(...) \
+  using tag = kocs::detail::PairwiseForceTag; \
+  KOKKOS_INLINE_FUNCTION \
+  void operator()( \
+    const unsigned int i, \
+    const unsigned int j, \
+    const Vector& displacement, \
+    const Scalar& distance, \
+    Random& rng, \
+    Scalar& friction __VA_OPT__(,) __VA_ARGS__) const
+
+
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   using Scalar = typename __SIMULATION_CONFIG__::Scalar; \
@@ -120,4 +139,4 @@ namespace kocs {
 //   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
 //   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__)
 
-#endif // KOCS_UTILS_HPP
+#endif // KOCS_UTILS_UTILS_HPP

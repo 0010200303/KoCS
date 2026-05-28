@@ -3,7 +3,7 @@
 
 #include <numbers>
 
-#include "../utils.hpp"
+#include "../utils/utils.hpp"
 
 namespace kocs::initializers {
   template <typename SimulationConfig>

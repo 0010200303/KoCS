@@ -10,8 +10,8 @@
 #include <Kokkos_Random.hpp>
 
 #include "simulation_config.hpp"
-#include "runtime_guard.hpp"
-#include "utils.hpp"
+#include "utils/runtime_guard.hpp"
+#include "utils/utils.hpp"
 #include "types/vector.hpp"
 #include "forces/kernel_fuser.hpp"
 
@@ -56,8 +56,8 @@ namespace kocs {
       Writer writer;
       unsigned int current_step;
 
-      static RuntimeGuard& get_runtime_guard() {
-        static RuntimeGuard guard;
+      static detail::RuntimeGuard& get_runtime_guard() {
+        static detail::RuntimeGuard guard;
         return guard;
       }
 

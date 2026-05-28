@@ -1,11 +1,11 @@
-#ifndef KOCS_RUNTIME_GUARD_HPP
-#define KOCS_RUNTIME_GUARD_HPP
+#ifndef KOCS_UTILS_RUNTIME_GUARD_HPP
+#define KOCS_UTILS_RUNTIME_GUARD_HPP
 
 #include <Kokkos_Core.hpp>
 #include <cstddef>
 #include <mutex>
 
-namespace kocs {
+namespace kocs::detail {
   class RuntimeGuard {
     public:
       RuntimeGuard() { acquire(); }
@@ -61,6 +61,6 @@ namespace kocs {
         }
       }
   };
-}
+} // namespace kocs::detail
 
-#endif // KOCS_RUNTIME_GUARD_HPP
+#endif // KOCS_UTILS_RUNTIME_GUARD_HPP

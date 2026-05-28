@@ -46,7 +46,8 @@ active migration in response to mechanical force F (interaction with neighbourin
   
   if (output_path.empty() == true)
     output_path = "./output/out_" + std::to_string(n_cells) + "_cells_c1_" + std::to_string(const_1) +
-      "_c2_" + std::to_string(const_2) + "_D_" + std::to_string(D) + "_walkers_" + std::to_string(walker_probability);
+      "_c2_" + std::to_string(const_2) + "_D_" + std::to_string(D) + 
+      "_walkers_" + std::to_string(walker_probability) + "_seed_" + std::to_string(seed);
 
   const float sqrt_stochastic = Kokkos::sqrt(D) * Kokkos::sqrt(dt);
 
