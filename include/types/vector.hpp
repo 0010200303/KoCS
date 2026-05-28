@@ -334,53 +334,42 @@ namespace Kokkos {
 
 
 
-// TODO: check what is actually needed
 namespace HighFive::details {
   template <typename Scalar, unsigned int dimensions, unsigned int Align>
   struct inspector<kocs::VectorN<Scalar, dimensions, Align>> {
+    using type = kocs::VectorN<Scalar, dimensions, Align>;
     using base_type = typename inspector<Scalar>::base_type;
     using hdf5_type = typename inspector<Scalar>::hdf5_type;
-    using Vector = kocs::VectorN<Scalar, dimensions, Align>;
 
     static constexpr size_t ndim = inspector<Scalar>::ndim + 1;
     static constexpr size_t min_ndim = inspector<Scalar>::min_ndim + 1;
     static constexpr size_t max_ndim = inspector<Scalar>::max_ndim + 1;
     static constexpr bool is_trivially_nestable = inspector<Scalar>::is_trivially_nestable;
     static constexpr bool is_trivially_copyable =
-      std::is_trivially_copyable<Vector>::value && inspector<Scalar>::is_trivially_copyable;
+      std::is_trivially_copyable<type>::value && inspector<Scalar>::is_trivially_copyable;
 
-    static size_t getRank(const Vector& val) {
+    static size_t getRank(const type& val) {
       return ndim + inspector<Scalar>::getRank(val[0]);
     }
 
-    static std::vector<size_t> getDimensions(const Vector& val) {
+    static std::vector<size_t> getDimensions(const type& val) {
       std::vector<size_t> result = inspector<Scalar>::getDimensions(val[0]);
       result.insert(result.begin(), dimensions);
       return result;
     }
 
-    static void prepare(Vector& value, const std::vector<size_t>& next_dims) {
+    static void prepare(type& value, const std::vector<size_t>& next_dims) {
       for (unsigned int i = 0; i < dimensions; ++i)
         inspector<Scalar>::prepare(value[i], next_dims);
     }
 
-    static hdf5_type* data(Vector& value) {
+    static hdf5_type* data(type& value) {
       return inspector<Scalar>::data(value[0]);
     }
 
-    static const hdf5_type* data(const Vector& value) {
+    static const hdf5_type* data(const type& value) {
       return inspector<Scalar>::data(value[0]);
     }
-
-    // static void serialize(const Vector& val, const std::vector<size_t>& next_dims, std::vector<hdf5_type>& m) {
-      // for (unsigned int i = 0; i < dimensions; ++i)
-        // inspector<Scalar>::serialize(val[i], next_dims, m);
-    // }
-
-    // static void unserialize(const std::vector<hdf5_type>& vec_align, const std::vector<size_t>& next_dims, Vector& val) {
-      // for (unsigned int i = 0; i < dimensions; ++i)
-        // inspector<Scalar>::unserialize(vec_align, next_dims, val[i]);
-    // }
   };
 } // namespace HighFive::details
 
