@@ -135,6 +135,10 @@ namespace kocs {
   using ComFixer = typename __SIMULATION_CONFIG__::template ComFixerT<__SIMULATION_CONFIG__>; \
   using Writer = typename __SIMULATION_CONFIG__::template WriterT<__SIMULATION_CONFIG__>;
 
+#define EXTRACT_VECTOR(__VECTOR__) \
+  using Scalar = typename __VECTOR__::Scalar; \
+  static constexpr unsigned int dimensions = __VECTOR__::dimensions; \
+
 // #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
 //   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
 //   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__)

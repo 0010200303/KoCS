@@ -7,8 +7,11 @@
 #include <Kokkos_Core.hpp>
  
 namespace kocs {
-  template<typename Scalar, unsigned int dimensions, unsigned int Align = alignof(Scalar)>
+  template<typename Scalar_, unsigned int dimensions_, unsigned int Align = alignof(Scalar_)>
   struct alignas(Align) VectorN {
+    using Scalar = Scalar_;
+    static constexpr unsigned int dimensions = dimensions_;
+
     static_assert(dimensions > 0, "Vector dimensions must be greater than 0");
     static_assert(std::is_trivially_copyable<Scalar>::value, "Scalar must be trivially copyable");
 

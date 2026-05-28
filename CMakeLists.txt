@@ -123,6 +123,9 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/io/dummy.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/io/hdf5_writer.hpp
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/utils/functions.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/utils/grid.hpp
+
   ${CMAKE_CURRENT_SOURCE_DIR}/include/argparse/arguments.hpp
 )
 

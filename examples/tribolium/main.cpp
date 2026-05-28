@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     .add_argument("-rmin", "--rmin", r_min, 0.0f)
     .add_argument("-f", "--function", function, "custom", "function for force evaluation",
       "custom", "morse")  // only allowed choices
-    .add_argument("-o", "--output", output_path, "./output/tribolium")
+    .add_argument("-o", "--output", output_path, "./output/serosa")
     .add_argument("-i", "--input", input_path, "./examples/tribolium/initial_data/serosa.h5")
     .add_argument("-s", "--surface", surface_path, "./examples/tribolium/initial_data/surface.h5")
     .parse(argc, argv);
@@ -105,6 +105,8 @@ int main(int argc, char* argv[]) {
       pole_positions.push_back(Vector(serosa_points[i]));
   }
   Kokkos::deep_copy(cell_types_view, cell_types_host_view);
+
+
 
   sim.write(cell_types_view);
 
