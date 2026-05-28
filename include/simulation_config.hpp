@@ -194,7 +194,7 @@ namespace kocs {
     CONFIG_COM_FIXER(kocs::com_fixers::GlobalComFixer)
     CONFIG_INTEGRATOR(kocs::integrators::Heun)
 
-    CONFIG_WRITER(kocs::writers::HDF5_Writer)
+    CONFIG_WRITER(kocs::io::HDF5_Writer)
   };
 } // namespace kocs
 

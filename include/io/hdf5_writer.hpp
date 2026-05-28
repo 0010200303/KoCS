@@ -1,5 +1,5 @@
-#ifndef KOCS_IO_WRITER_HPP
-#define KOCS_IO_WRITER_HPP
+#ifndef KOCS_IO_HDF5_WRITER_HPP
+#define KOCS_IO_HDF5_WRITER_HPP
 
 #include <type_traits>
 #include <tuple>
@@ -14,15 +14,14 @@
 #include <highfive/highfive.hpp>
 
 #include "../utils/utils.hpp"
+#include "view.hpp"
 
-// TODO: make xmf generation optional
-
-namespace kocs::writers {
+namespace kocs::io {
   template<typename SimulationConfig>
   class HDF5_Writer {
-    public:
-      EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
+    EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
+    public:
       HDF5_Writer(
         const std::string& path,
         const unsigned int agent_count_,
@@ -70,35 +69,13 @@ namespace kocs::writers {
       template<typename T>
       struct has_get_dimensions<T, std::void_t<decltype(std::declval<const T&>().get_dimensions())>> : std::true_type { };
 
-      template<typename T>
-      static auto to_storage_value(const T& value) {
-        if constexpr (has_to_array<T>::value)
-          return value.to_array();
-        else
-          return value;
-      }
-
-      template<typename ViewType>
-      auto view_to_vector(const ViewType& view) {
-        using T = typename ViewType::value_type;
-        using StorageT = decltype(to_storage_value(std::declval<const T&>()));
-
+      template<typename View>
+      void write_single(HighFive::Group& group, const View& view) {
         auto sub_view = Kokkos::subview(view, std::make_pair(0u, agent_count));
         auto host_view = Kokkos::create_mirror_view(sub_view);
         Kokkos::deep_copy(host_view, sub_view);
 
-        std::vector<StorageT> out(agent_count);
-        for (std::size_t i = 0; i < agent_count; ++i)
-          out[i] = to_storage_value(host_view(i));
-
-        return out;
-      }
-
-      template<typename View>
-      void write_single(HighFive::Group& group, const View& view) {
-        auto vec = view_to_vector(view);
-        
-        group.createDataSet(view.label(), vec);
+        group.createDataSet(view.label(), host_view);
       }
 
       void init_xmf(const std::string& path) {
@@ -216,6 +193,6 @@ namespace kocs::writers {
         write_xmf_grid_end();
       }
   };
-} // namespace kocs::writers
+} // namespace kocs::io
 
-#endif // KOCS_IO_WRITER_HPP
+#endif // KOCS_IO_HDF5_WRITER_HPP

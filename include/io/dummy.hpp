@@ -1,7 +1,7 @@
 #ifndef KOCS_IO_DUMMY_HPP
 #define KOCS_IO_DUMMY_HPP
 
-namespace kocs::writers {
+namespace kocs::io {
   template<typename SimulationConfig>
   class Dummy {
     public:
@@ -12,6 +12,6 @@ namespace kocs::writers {
 
       unsigned int agent_count;
   };
-} // namespace kocs::writers
+} // namespace kocs::io
 
 #endif // KOCS_IO_DUMMY_HPP

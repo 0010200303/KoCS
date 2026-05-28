@@ -5,6 +5,7 @@
 #include <array>
 
 #include <Kokkos_Core.hpp>
+#include <highfive/H5File.hpp>
  
 namespace kocs {
   template<typename Scalar_, unsigned int dimensions_, unsigned int Align = alignof(Scalar_)>
@@ -15,85 +16,104 @@ namespace kocs {
     static_assert(dimensions > 0, "Vector dimensions must be greater than 0");
     static_assert(std::is_trivially_copyable<Scalar>::value, "Scalar must be trivially copyable");
 
-    Scalar data[dimensions];
+    using value_type = Scalar;
+    using pointer = Scalar*;
+    using const_pointer = const Scalar*;
+    using reference = Scalar&;
+    using const_reference = const Scalar&;
+    using iterator = Scalar*;
+    using const_iterator = const Scalar*;
+
+    Scalar data_[dimensions];
 
     // constructors
     KOKKOS_INLINE_FUNCTION
-    constexpr VectorN() : data{} { }
+    constexpr VectorN() : data_{} { }
 
     KOKKOS_INLINE_FUNCTION
     constexpr explicit VectorN(Scalar value) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] = value;
+        data_[i] = value;
     }
 
     template<typename... Args, std::enable_if_t<sizeof...(Args) == dimensions, int> = 0>
     KOKKOS_INLINE_FUNCTION
-    constexpr VectorN(Args... args) : data{static_cast<Scalar>(args)...} { }
+    constexpr VectorN(Args... args) : data_{static_cast<Scalar>(args)...} { }
 
     constexpr explicit VectorN(const std::array<Scalar, dimensions>& array) {
       for (unsigned int i = 0; i < dimensions; ++i)
-        data[i] = array[i];
+        data_[i] = array[i];
     }
+
+    // std algorithms / container compatibility
+    KOKKOS_INLINE_FUNCTION constexpr std::size_t size() const { return dimensions; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar* data() { return data_; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar* data() const { return data_; }
+    KOKKOS_INLINE_FUNCTION constexpr iterator begin() { return data_; }
+    KOKKOS_INLINE_FUNCTION constexpr iterator end() { return data_ + dimensions; }
+    KOKKOS_INLINE_FUNCTION constexpr const_iterator begin() const { return data_; }
+    KOKKOS_INLINE_FUNCTION constexpr const_iterator end() const { return data_ + dimensions; }
+    KOKKOS_INLINE_FUNCTION constexpr const_iterator cbegin() const { return data_; }
+    KOKKOS_INLINE_FUNCTION constexpr const_iterator cend() const { return data_ + dimensions; }
 
     // indexing
     KOKKOS_INLINE_FUNCTION
-    constexpr Scalar& operator[](int i) { return data[i]; }
+    constexpr Scalar& operator[](int i) { return data_[i]; }
 
     KOKKOS_INLINE_FUNCTION
-    constexpr const Scalar& operator[](int i) const { return data[i]; }
+    constexpr const Scalar& operator[](int i) const { return data_[i]; }
 
     template<int I>
     KOKKOS_INLINE_FUNCTION
     constexpr Scalar& get() {
       static_assert(I < dimensions, "Index out of bounds");
-      return data[I];
+      return data_[I];
     }
 
     template<int I>
     KOKKOS_INLINE_FUNCTION
     constexpr const Scalar& get() const {
       static_assert(I < dimensions, "Index out of bounds");
-      return data[I];
+      return data_[I];
     }
 
     // named accessors
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& x() { static_assert(dimensions > 0); return data[0]; }
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& y() { static_assert(dimensions > 1); return data[1]; }
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& z() { static_assert(dimensions > 2); return data[2]; }
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& w() { static_assert(dimensions > 3); return data[3]; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& x() { static_assert(dimensions > 0); return data_[0]; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& y() { static_assert(dimensions > 1); return data_[1]; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& z() { static_assert(dimensions > 2); return data_[2]; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& w() { static_assert(dimensions > 3); return data_[3]; }
 
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& x() const { static_assert(dimensions > 0); return data[0]; }
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& y() const { static_assert(dimensions > 1); return data[1]; }
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& z() const { static_assert(dimensions > 2); return data[2]; }
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& w() const { static_assert(dimensions > 3); return data[3]; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& x() const { static_assert(dimensions > 0); return data_[0]; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& y() const { static_assert(dimensions > 1); return data_[1]; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& z() const { static_assert(dimensions > 2); return data_[2]; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& w() const { static_assert(dimensions > 3); return data_[3]; }
   
     // arithmetic operators
     KOKKOS_INLINE_FUNCTION
     VectorN& operator+=(const VectorN& rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] += rhs.data[i];
+        data_[i] += rhs.data_[i];
       return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
     VectorN& operator-=(const VectorN& rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] -= rhs.data[i];
+        data_[i] -= rhs.data_[i];
       return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
     VectorN& operator*=(const VectorN& rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] *= rhs.data[i];
+        data_[i] *= rhs.data_[i];
       return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
     VectorN& operator/=(const VectorN& rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] /= rhs.data[i];
+        data_[i] /= rhs.data_[i];
       return *this;
     }
 
@@ -125,28 +145,28 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     VectorN& operator+=(Scalar rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] += rhs;
+        data_[i] += rhs;
       return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
     VectorN& operator-=(Scalar rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] -= rhs;
+        data_[i] -= rhs;
       return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
     VectorN& operator*=(Scalar rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] *= rhs;
+        data_[i] *= rhs;
       return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
     VectorN& operator/=(Scalar rhs) {
       for (int i = 0; i < dimensions; ++i)
-        data[i] /= rhs;
+        data_[i] /= rhs;
       return *this;
     }
 
@@ -183,7 +203,7 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     friend VectorN operator-(Scalar lhs, VectorN rhs) {
       for (int i = 0; i < dimensions; ++i)
-        rhs.data[i] = lhs - rhs.data[i];
+        rhs.data_[i] = lhs - rhs.data_[i];
       return rhs;
     }
 
@@ -196,7 +216,7 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     friend VectorN operator/(Scalar lhs, VectorN rhs) {
       for (int i = 0; i < dimensions; ++i)
-        rhs.data[i] = lhs / rhs.data[i];
+        rhs.data_[i] = lhs / rhs.data_[i];
       return rhs;
     }
 
@@ -205,7 +225,7 @@ namespace kocs {
     constexpr Scalar dot(const VectorN& rhs) const {
       Scalar result{};
       for (int i = 0; i < dimensions; ++i)
-        result += data[i] * rhs.data[i];
+        result += data_[i] * rhs.data_[i];
       return result;
     }
 
@@ -223,7 +243,7 @@ namespace kocs {
     constexpr Scalar distance_to_squared(const VectorN& rhs) const {
       Scalar result{};
       for (int i = 0; i < dimensions; ++i) {
-        const Scalar d = data[i] - rhs.data[i];
+        const Scalar d = data_[i] - rhs.data_[i];
         result += d * d;
       }
       return result;
@@ -238,7 +258,7 @@ namespace kocs {
     VectorN& normalize() {
       const Scalar len = length();
       for (int i = 0; i < dimensions; ++i)
-        data[i] /= len;
+        data_[i] /= len;
       return *this;
     }
 
@@ -253,9 +273,9 @@ namespace kocs {
     constexpr VectorN cross(const VectorN& rhs) const {
       static_assert(dimensions == 3, "Cross product is only defined for 3D vectors");
       return VectorN{
-        data[1] * rhs.data[2] - data[2] * rhs.data[1],
-        data[2] * rhs.data[0] - data[0] * rhs.data[2],
-        data[0] * rhs.data[1] - data[1] * rhs.data[0]
+        data_[1] * rhs.data_[2] - data_[2] * rhs.data_[1],
+        data_[2] * rhs.data_[0] - data_[0] * rhs.data_[2],
+        data_[0] * rhs.data_[1] - data_[1] * rhs.data_[0]
       };
     }
 
@@ -265,11 +285,7 @@ namespace kocs {
       return normal / Kokkos::sqrt(normal.dot(normal));
     }
 
-    // enable easy HighFive writing
-    constexpr std::array<Scalar, dimensions> to_array() const {
-      return std::to_array(data);
-    }
-
+    // TODO: remove, use dimensions member variable instead
     constexpr unsigned int get_dimensions() const {
       return dimensions;
     }
@@ -284,7 +300,7 @@ namespace kocs {
     constexpr VectorN operator-() const {
       VectorN result;
       for (int i = 0; i < dimensions; ++i)
-        result.data[i] = -data[i];
+        result.data_[i] = -data_[i];
       return result;
     }
   };
@@ -302,6 +318,8 @@ namespace kocs {
   using Vector4 = VectorN<Scalar, 4>;
 } // namespace kocs
 
+
+
 namespace Kokkos {
   template<typename Scalar, unsigned int dimensions, unsigned int Align>
   struct reduction_identity<kocs::VectorN<Scalar, dimensions, Align>> {
@@ -313,5 +331,57 @@ namespace Kokkos {
     }
   };
 } // namespace Kokkos
+
+
+
+// TODO: check what is actually needed
+namespace HighFive::details {
+  template <typename Scalar, unsigned int dimensions, unsigned int Align>
+  struct inspector<kocs::VectorN<Scalar, dimensions, Align>> {
+    using base_type = typename inspector<Scalar>::base_type;
+    using hdf5_type = typename inspector<Scalar>::hdf5_type;
+    using Vector = kocs::VectorN<Scalar, dimensions, Align>;
+
+    static constexpr size_t ndim = inspector<Scalar>::ndim + 1;
+    static constexpr size_t min_ndim = inspector<Scalar>::min_ndim + 1;
+    static constexpr size_t max_ndim = inspector<Scalar>::max_ndim + 1;
+    static constexpr bool is_trivially_nestable = inspector<Scalar>::is_trivially_nestable;
+    static constexpr bool is_trivially_copyable =
+      std::is_trivially_copyable<Vector>::value && inspector<Scalar>::is_trivially_copyable;
+
+    static size_t getRank(const Vector& val) {
+      return ndim + inspector<Scalar>::getRank(val[0]);
+    }
+
+    static std::vector<size_t> getDimensions(const Vector& val) {
+      std::vector<size_t> result = inspector<Scalar>::getDimensions(val[0]);
+      result.insert(result.begin(), dimensions);
+      return result;
+    }
+
+    static void prepare(Vector& value, const std::vector<size_t>& next_dims) {
+      for (unsigned int i = 0; i < dimensions; ++i)
+        inspector<Scalar>::prepare(value[i], next_dims);
+    }
+
+    static hdf5_type* data(Vector& value) {
+      return inspector<Scalar>::data(value[0]);
+    }
+
+    static const hdf5_type* data(const Vector& value) {
+      return inspector<Scalar>::data(value[0]);
+    }
+
+    // static void serialize(const Vector& val, const std::vector<size_t>& next_dims, std::vector<hdf5_type>& m) {
+      // for (unsigned int i = 0; i < dimensions; ++i)
+        // inspector<Scalar>::serialize(val[i], next_dims, m);
+    // }
+
+    // static void unserialize(const std::vector<hdf5_type>& vec_align, const std::vector<size_t>& next_dims, Vector& val) {
+      // for (unsigned int i = 0; i < dimensions; ++i)
+        // inspector<Scalar>::unserialize(vec_align, next_dims, val[i]);
+    // }
+  };
+} // namespace HighFive::details
 
 #endif // KOCS_TYPES_VECTOR_HPP

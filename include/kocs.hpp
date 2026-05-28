@@ -32,6 +32,7 @@
 
 #include "io/dummy.hpp"
 #include "io/hdf5_writer.hpp"
+#include "io/hdf5_reader.hpp"
 
 #include "utils/functions.hpp"
 #include "utils/grid.hpp"
