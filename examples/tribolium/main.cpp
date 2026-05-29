@@ -1,7 +1,3 @@
-// Proof of concept, actual implementation will greatly reduce boilerplate
-#include <vector>
-#include <array>
-
 #include "../../include/kocs.hpp"
 #include "include/forces.hpp"
 
@@ -80,18 +76,12 @@ int main(int argc, char* argv[]) {
     grid_host(i) = 15 * normals_host(i);
   Kokkos::deep_copy(grid_view, grid_host);
 
-  // poles and types
-  std::vector<Vector> pole_positions;
-  for (int i = 0; i < sim.get_agent_count(); ++i) {
-    if (cell_types_host(i) == static_cast<int>(CellType::Pole))
-      pole_positions.push_back(positions_host[i]);
-  }
-
 
 
   sim.write(cell_types_host);
 
   // simulation loop
+  std::vector<Vector> pole_positions;
   auto system_forces = SystemForces<SimulationConfig>(grid_view, normals_view);
   for (int i = 0; i < steps; ++i) {
     Kokkos::printf("%d step %d\n", sim.get_agent_count(), i);
@@ -107,6 +97,12 @@ int main(int argc, char* argv[]) {
     // remove embryo cells near poles
     Kokkos::deep_copy(positions_host, positions_view);
     Kokkos::deep_copy(cell_types_host, cell_types_view);
+
+    pole_positions.clear();
+    for (int i = 0; i < sim.get_agent_count(); ++i) {
+      if (cell_types_host(i) == static_cast<int>(CellType::Pole))
+        pole_positions.push_back(positions_host(i));
+    }
 
     int new_cell_count = 0;
     for (int k = 0; k < sim.get_agent_count(); ++k) {
