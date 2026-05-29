@@ -57,6 +57,30 @@ namespace HighFive::details {
     static const hdf5_type* data(const type& value) {
       return inspector<value_type>::data(value.data()[0]);
     }
+
+    static void serialize(const type& val, const std::vector<size_t>& m_dims, hdf5_type* m) {
+      auto* ptr = val.data();
+      std::vector<size_t> next_dims(m_dims.begin() + type::rank, m_dims.end());
+      
+      size_t next_size = 1;
+      for (auto d : next_dims)
+        next_size *= d;
+      
+      for (size_t i = 0; i < val.size(); ++i)
+        inspector<value_type>::serialize(ptr[i], next_dims, m + i * next_size);
+    }
+
+    static void unserialize(type& val, const std::vector<size_t>& m_dims, const hdf5_type* m) {
+      auto* ptr = val.data();
+      std::vector<size_t> next_dims(m_dims.begin() + type::rank, m_dims.end());
+      
+      size_t next_size = 1;
+      for (auto d : next_dims)
+        next_size *= d;
+      
+      for (size_t i = 0; i < val.size(); ++i)
+        inspector<value_type>::unserialize(ptr[i], next_dims, m + i * next_size);
+    }
   };
 } // namespace HighFive::details
 

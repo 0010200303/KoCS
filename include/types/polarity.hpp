@@ -40,11 +40,11 @@ namespace kocs {
       Kokkos::atan2(vector[1], vector[0])
     ) { }
 
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& theta() { return this->data[0]; }
-    KOKKOS_INLINE_FUNCTION constexpr Scalar& phi() { return this->data[1]; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& theta() { return this->data_[0]; }
+    KOKKOS_INLINE_FUNCTION constexpr Scalar& phi() { return this->data_[1]; }
 
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& theta() const { return this->data[0]; }
-    KOKKOS_INLINE_FUNCTION constexpr const Scalar& phi() const { return this->data[1]; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& theta() const { return this->data_[0]; }
+    KOKKOS_INLINE_FUNCTION constexpr const Scalar& phi() const { return this->data_[1]; }
 
     KOKKOS_INLINE_FUNCTION
     static constexpr Polarity_ from_vector3(const Vector3<Scalar>& vector, const Scalar distance) {
@@ -72,22 +72,22 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     constexpr Scalar dot(const Polarity_& rhs) const {
-      return Kokkos::sin(this->data[0]) * Kokkos::sin(rhs[0]) *
-        Kokkos::cos(this->data[1] - rhs[1]) +
-        Kokkos::cos(this->data[0]) * Kokkos::cos(rhs[0]);
+      return Kokkos::sin(this->data_[0]) * Kokkos::sin(rhs[0]) *
+        Kokkos::cos(this->data_[1] - rhs[1]) +
+        Kokkos::cos(this->data_[0]) * Kokkos::cos(rhs[0]);
     }
 
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_ unidirectional_polarization_force(const Polarity_& other) const {
       Polarity_ result{
-        Kokkos::cos(this->data[0]) * Kokkos::sin(other[0]) * Kokkos::cos(this->data[1] - other[1]) - 
-        Kokkos::sin(this->data[0]) * Kokkos::cos(other[0]),
+        Kokkos::cos(this->data_[0]) * Kokkos::sin(other[0]) * Kokkos::cos(this->data_[1] - other[1]) - 
+        Kokkos::sin(this->data_[0]) * Kokkos::cos(other[0]),
         0
       };
 
-      Scalar sin_theta = Kokkos::sin(this->data[0]);
+      Scalar sin_theta = Kokkos::sin(this->data_[0]);
       if (Kokkos::abs(sin_theta) > epsilon)
-        result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this->data[1] - other[1]) / sin_theta;
+        result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this->data_[1] - other[1]) / sin_theta;
       return result;
     }
 
@@ -125,7 +125,7 @@ namespace kocs {
       Polarity_ displacement_polarity = from_vector3(displacement, distance);
 
       // pulling around other
-      if (this->data[0] != 0 || this->data[1] != 0) {
+      if (this->data_[0] != 0 || this->data_[1] != 0) {
         if (dot(displacement_polarity) <= -0.15) {
           Vector3<Scalar> this_vector = to_vector3();
           Vector3<Scalar> this_vector_T = displacement.orthonormal(this_vector);
@@ -145,6 +145,47 @@ namespace kocs {
       return result;
     }
   };
-}
+} // namespace kocs
+
+
+
+namespace HighFive::details {
+  template <typename Scalar, unsigned int Align>
+  struct inspector<kocs::Polarity_<Scalar, Align>> {
+    using type = kocs::Polarity_<Scalar, Align>;
+    using base_type = typename inspector<Scalar>::base_type;
+    using hdf5_type = typename inspector<Scalar>::hdf5_type;
+
+    static constexpr size_t ndim = inspector<Scalar>::ndim + 1;
+    static constexpr size_t min_ndim = inspector<Scalar>::min_ndim + 1;
+    static constexpr size_t max_ndim = inspector<Scalar>::max_ndim + 1;
+    static constexpr bool is_trivially_nestable = inspector<Scalar>::is_trivially_nestable;
+    static constexpr bool is_trivially_copyable =
+      std::is_trivially_copyable<type>::value && inspector<Scalar>::is_trivially_copyable;
+
+    static size_t getRank(const type& val) {
+      return ndim + inspector<Scalar>::getRank(val[0]);
+    }
+
+    static std::vector<size_t> getDimensions(const type& val) {
+      std::vector<size_t> result = inspector<Scalar>::getDimensions(val[0]);
+      result.insert(result.begin(), 2);
+      return result;
+    }
+
+    static void prepare(type& value, const std::vector<size_t>& next_dims) {
+      for (unsigned int i = 0; i < 2; ++i)
+        inspector<Scalar>::prepare(value[i], next_dims);
+    }
+
+    static hdf5_type* data(type& value) {
+      return inspector<Scalar>::data(value[0]);
+    }
+
+    static const hdf5_type* data(const type& value) {
+      return inspector<Scalar>::data(value[0]);
+    }
+  };
+} // namespace HighFive::details
 
 #endif // KOCS_TYPES_POLARITY_HPP
