@@ -31,15 +31,17 @@ namespace kocs {
         const unsigned int agent_count_,
         const std::string& output_path,
         const Scalar cutoff_distance = Scalar(1'000'000),
+        const PairFinder::Settings& pair_finder_settings = {},
+        const Writer::Settings& writer_settings = {},
         const uint64_t seed = 2807
       )
         : agent_count(agent_count_)
         , storage((get_runtime_guard(), Storage(agent_count_)))
         , random_pool(seed)
-        , pair_finder(make_pair_finder(agent_count_, cutoff_distance))
+        , pair_finder(agent_count_, cutoff_distance, pair_finder_settings)
         , com_fixer()
         , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage))
-        , writer(output_path, agent_count_)
+        , writer(output_path, agent_count_, writer_settings)
         , current_step(0) { }
 
     public:

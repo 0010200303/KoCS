@@ -4,6 +4,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 #include <Kokkos_Sort.hpp>
+#include <Kokkos_NumericTraits.hpp>
 
 #include "../integrators/detail.hpp"
 #include "../forces/detail.hpp"
@@ -19,26 +20,29 @@ namespace kocs::pair_finders {
 
     using BinOp = Kokkos::BinOp1D<View<int>>;
 
+    struct Settings {
+      Scalar gabriel_coefficient = Scalar(0.8);
+      Vector min_bounds = Vector(-20);
+      Vector max_bounds = Vector( 20);
+      Scalar bin_size_scale = Scalar(1);
+      int rebuild_every_n = 0;
+    };
+
     BinnedGabriel(
       unsigned int agent_count_,
       const Scalar cutoff_distance_,
-      const Vector& min_bounds_ = Vector(-20.0f),
-      const Vector& max_bounds_ = Vector( 20.0f),
-      const Scalar gabriel_coefficient = Scalar(0.8),
-      const Scalar bin_size_scale = Scalar(1))
+      const Settings& settings)
       : agent_count(agent_count_)
       , cutoff_distance(cutoff_distance_)
       , cutoff_distance_squared(cutoff_distance_ * cutoff_distance_)
-      , min_bounds(min_bounds_)
-      , max_bounds(max_bounds_)
-      , bin_size(bin_size_scale * cutoff_distance)
+      , min_bounds(settings.min_bounds)
+      , max_bounds(settings.max_bounds)
+      , bin_size(settings.bin_size_scale * cutoff_distance)
       , inv_bin_size(Scalar(1) / bin_size)
 
-      , gabriel_radius_factor(gabriel_coefficient * gabriel_coefficient * Scalar(0.25))
-      , search_radius(static_cast<int>(Kokkos::ceil(cutoff_distance_ * inv_bin_size))) { }
-    
-    // TODO: use Kokkos epsilon
-    static const constexpr Scalar epsilon = Scalar(1e-6);
+      , gabriel_radius_factor(settings.gabriel_coefficient * settings.gabriel_coefficient * Scalar(0.25))
+      , search_radius(static_cast<int>(Kokkos::ceil(cutoff_distance_ * inv_bin_size)))
+      , rebuild_every_n(settings.rebuild_every_n) { }
 
     unsigned int agent_count;
     const Scalar cutoff_distance;
@@ -233,7 +237,8 @@ namespace kocs::pair_finders {
                 });
               });
 
-              out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
+              out_view_pack.first()(i) += total_velocity_i /
+                Kokkos::fmax(total_friction_i, Kokkos::Experimental::epsilon_v<Scalar>);
             }
           );
         }

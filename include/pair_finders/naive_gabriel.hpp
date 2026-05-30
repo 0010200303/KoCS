@@ -4,6 +4,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 #include <Kokkos_Sort.hpp>
+#include <Kokkos_NumericTraits.hpp>
 
 #include "../integrators/detail.hpp"
 #include "../forces/detail.hpp"
@@ -13,15 +14,17 @@ namespace kocs::pair_finders {
   struct NaiveGabriel {
     using positions_view_type = PositionsView;
 
+    struct Settings {
+      Scalar gabriel_coefficient = Scalar(0.8);
+    };
+
     NaiveGabriel(
       unsigned int agent_count_,
       Scalar cutoff_distance,
-      Scalar gabriel_coefficient = 0.8f)
+      const Settings& settings)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance)
-      , gabriel_coefficient_squared(gabriel_coefficient * gabriel_coefficient) { }
-    
-    static const constexpr Scalar epsilon = Scalar(1e-6);
+      , gabriel_coefficient_squared(settings.gabriel_coefficient * settings.gabriel_coefficient) { }
 
     unsigned int agent_count;
     Scalar cutoff_distance_squared;
@@ -105,7 +108,8 @@ namespace kocs::pair_finders {
                 });
               });
 
-              out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
+              out_view_pack.first()(i) += total_velocity_i /
+                Kokkos::fmax(total_friction_i, Kokkos::Experimental::epsilon_v<Scalar>);
             }
           );
         }

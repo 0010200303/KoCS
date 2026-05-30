@@ -6,7 +6,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_PAIR_FINDER(pair_finders::BinnedGabriel)
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
 };
-EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
+EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const double dt = 0.001;
 const int steps = 100;
@@ -52,7 +52,14 @@ int main(int argc, char* argv[]) {
   io::HDF5_Reader surface_reader(surface_path);
 
   // create simulation
-  Simulation<SimulationConfig> sim(serosa_reader.get_dataset_dimensions("POINTS")[0], output_path, r_max);
+  PairFinder::Settings pair_finder_settings;
+  pair_finder_settings.rebuild_every_n = 20;
+  Simulation<SimulationConfig> sim(
+    serosa_reader.get_dataset_dimensions("POINTS")[0],
+    output_path,
+    r_max,
+    pair_finder_settings
+  );
 
   // read initial positions
   auto positions_view = sim.get_view<FIELD(Vector, positions)>();

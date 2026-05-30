@@ -22,14 +22,19 @@ namespace kocs::io {
     EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
     public:
+      struct Settings {
+        bool write_xmf = true;
+        std::size_t buffer_treshold = 65536;
+      };
+
+    public:
       HDF5_Writer(
         const std::string& path,
         const unsigned int agent_count_,
-        const bool write_xmf_ = true,
-        const std::size_t flush_threshold = 65536)
+        const Settings& settings)
         : agent_count(agent_count_)
-        , write_xmf(write_xmf_)
-        , buffer_threshold(flush_threshold) {
+        , write_xmf(settings.write_xmf)
+        , buffer_threshold(settings.buffer_treshold) {
         std::filesystem::path _path(path);
         std::filesystem::create_directories(_path.parent_path());
 

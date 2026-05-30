@@ -3,6 +3,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
+#include <Kokkos_NumericTraits.hpp>
 
 #include "../integrators/detail.hpp"
 #include "../forces/detail.hpp"
@@ -12,13 +13,14 @@ namespace kocs::pair_finders {
   struct NaiveAllPairs {
     using positions_view_type = PositionsView;
 
+    struct Settings { };
+
     NaiveAllPairs(
       unsigned int agent_count_,
-      Scalar cutoff_distance)
+      Scalar cutoff_distance,
+      const Settings& settings)
       : agent_count(agent_count_)
       , cutoff_distance_squared(cutoff_distance * cutoff_distance) { }
-    
-    static const constexpr Scalar epsilon = 1e-6;
 
     unsigned int agent_count;
     Scalar cutoff_distance_squared;
@@ -88,7 +90,8 @@ namespace kocs::pair_finders {
                 });
               });
 
-              out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_friction_i, epsilon);
+              out_view_pack.first()(i) += total_velocity_i /
+                Kokkos::fmax(total_friction_i, Kokkos::Experimental::epsilon_v<Scalar>);
             }
           );
         }
