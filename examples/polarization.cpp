@@ -10,6 +10,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
     FIELD(Vector, positions),
     FIELD(Polarity, polarities)
   )
+  CONFIG_COM_FIXER(com_fixers::NoComFixer)
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -25,23 +26,23 @@ int main() {
   auto initial_conditions = INIT_FUNC() {
     polarities_view(i) = Polarity{
       Kokkos::acos(2.0 * rng.drand(0.0, 1.0) - 1.0),
-      2.0 * Scalar(std::numbers::pi) * rng.drand(0.0, 1.0)
+      2.0 * std::numbers::pi * rng.drand(0.0, 1.0)
     };
   };
 
-  sim.init_random_filled_sphere(2.0, initial_conditions);
+  sim.init_random_filled_sphere(1.5, initial_conditions);
   sim.write();
 
-  auto relu_w_migration = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
+  auto polarization = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
     Scalar F = 2.0 * (r_min - distance) * (r_max - distance) + Kokkos::pow(r_max - distance, 2);
     position.delta += displacement * F / distance;
-    
+
     // U_Pol = -(Σ(n_i . n_j)^2) / 2
     polarity.delta += polarity.self.bidirectional_polarization_force(polarity.other);
   };
 
   for (int i = 1; i <= steps; ++i) {
-    sim.take_step(dt, relu_w_migration);
+    sim.take_step(dt, polarization);
     sim.write();
   }
 

@@ -9,7 +9,7 @@ namespace kocs {
     using Base = VectorN<Scalar, 2, Align>;
     using Base::Base;
 
-    static const constexpr Scalar epsilon = Scalar(1e-6);
+    static const constexpr Scalar epsilon = Scalar(1e-10);
 
     struct BendingForceResult {
       Vector3<Scalar> vector;
@@ -136,7 +136,7 @@ namespace kocs {
       // pushed by other
       if (other_polarity[0] > epsilon || other_polarity[1] > epsilon) {
         if (other_polarity.dot(displacement_polarity) >= 0.15) {
-          Vector3<Scalar> other_vector = to_vector3();
+          Vector3<Scalar> other_vector = to_vector3(other_polarity);
           Vector3<Scalar> other_vector_T = (-displacement).orthonormal(other_vector);
           result -= 0.6 * other_vector + 0.8 * other_vector_T;
         }

@@ -16,7 +16,7 @@ namespace kocs::forces {
   static Scalar SpringPotential(
     const Scalar distance,
     const Scalar homeostatic_radius,
-    const Scalar scale = Scalar(1.0)
+    const Scalar scale = Scalar(1)
   ) {;
     return scale * (homeostatic_radius - distance);
   }
@@ -27,10 +27,10 @@ namespace kocs::forces {
     const Vector& displacement,
     const Scalar distance,
     const Scalar homeostatic_radius,
-    const Scalar scale = Scalar(1.0)
+    const Scalar scale = Scalar(1)
   ) {
-    if (distance == Scalar(0.0))
-      return Vector{0.0};
+    if (distance == Scalar(0))
+      return Vector{Scalar(0)};
     
     Scalar F = SpringPotential(distance, homeostatic_radius, scale);
     return displacement * F / distance;
@@ -42,11 +42,11 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(1.0),
-    const Scalar adhesion_scale = Scalar(2.0)
+    const Scalar repulsion_scale = Scalar(1),
+    const Scalar adhesion_scale = Scalar(1)
   ) {
-    return repulsion_scale * Kokkos::fmax(repulsion_radius - distance, 0) -
-      adhesion_scale * Kokkos::fmax(distance - adhesion_radius, 0);
+    return repulsion_scale * Kokkos::fmax(repulsion_radius - distance, Scalar(0)) -
+      adhesion_scale * Kokkos::fmax(distance - adhesion_radius, Scalar(0));
   }
 
   template<typename Scalar, typename Vector>
@@ -56,11 +56,11 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(1.0),
-    const Scalar adhesion_scale = Scalar(2.0)
+    const Scalar repulsion_scale = Scalar(1),
+    const Scalar adhesion_scale = Scalar(1)
   ) {
-    if (distance == Scalar(0.0))
-      return Vector{0.0};
+    if (distance == Scalar(0))
+      return Vector{Scalar(0)};
 
     Scalar F = PiecewiseLinearPotential(
       distance,
@@ -79,8 +79,8 @@ namespace kocs::forces {
     const Scalar homeostatic_radius,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(1.0),
-    const Scalar adhesion_scale = Scalar(2.0)
+    const Scalar repulsion_scale = Scalar(1),
+    const Scalar adhesion_scale = Scalar(2)
   ) {
     Scalar repulsion = (Kokkos::fmin(distance, homeostatic_radius) - homeostatic_radius) *
       (distance - repulsion_radius);
@@ -99,11 +99,11 @@ namespace kocs::forces {
     const Scalar homeostatic_radius,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(1.0),
-    const Scalar adhesion_scale = Scalar(2.0)
+    const Scalar repulsion_scale = Scalar(1),
+    const Scalar adhesion_scale = Scalar(2)
   ) {
-    if (distance == Scalar(0.0))
-      return Vector{0.0};
+    if (distance == Scalar(0))
+      return Vector{Scalar(0)};
 
     Scalar F = PiecewiseQuadraticPotential(
       distance,
@@ -122,9 +122,9 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar homeostatic_radius,
     const Scalar cutoff_distance,
-    const Scalar scale = Scalar(1.0)
+    const Scalar scale = Scalar(1)
   ) {
-    return scale * Kokkos::pow(distance - cutoff_distance, 2.0) * (distance - homeostatic_radius);
+    return scale * Kokkos::pow(distance - cutoff_distance, Scalar(2)) * (distance - homeostatic_radius);
   }
 
   template<typename Scalar, typename Vector>
@@ -134,10 +134,10 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar homeostatic_radius,
     const Scalar cutoff_distance,
-    const Scalar scale = Scalar(1.0)
+    const Scalar scale = Scalar(1)
   ) {
-    if (distance == Scalar(0.0))
-      return Vector{0.0};
+    if (distance == Scalar(0))
+      return Vector{Scalar(0)};
 
     Scalar F = CubicPotential(
       distance,
@@ -154,14 +154,14 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(1.0),
-    const Scalar adhesion_scale = Scalar(2.0),
-    const Scalar scale = Scalar(1.0)
+    const Scalar repulsion_scale = Scalar(1),
+    const Scalar adhesion_scale = Scalar(2),
+    const Scalar scale = Scalar(1)
   ) {
-    Scalar repulsion = Kokkos::exp(-2 * repulsion_scale * (distance - repulsion_radius));
+    Scalar repulsion = Kokkos::exp(-Scalar(2) * repulsion_scale * (distance - repulsion_radius));
     Scalar adhesion = Kokkos::exp(-adhesion_scale * (distance - adhesion_radius));
 
-    return 2 * scale * (repulsion - adhesion);
+    return Scalar(2) * scale * (repulsion - adhesion);
   }
   
   template<typename Scalar, typename Vector>
@@ -171,12 +171,12 @@ namespace kocs::forces {
     const Scalar distance,
     const Scalar repulsion_radius,
     const Scalar adhesion_radius,
-    const Scalar repulsion_scale = Scalar(1.0),
-    const Scalar adhesion_scale = Scalar(2.0),
-    const Scalar scale = Scalar(1.0)
+    const Scalar repulsion_scale = Scalar(1),
+    const Scalar adhesion_scale = Scalar(2),
+    const Scalar scale = Scalar(1)
   ) {
-    if (distance == Scalar(0.0))
-      return Vector{0.0};
+    if (distance == Scalar(0))
+      return Vector{Scalar(0)};
 
     Scalar F = MorsePotential(
       distance,
@@ -194,14 +194,14 @@ namespace kocs::forces {
   static Scalar LennardJonesPotential(
     const Scalar distance,
     const Scalar homeostatic_radius,
-    const Scalar epsilon = Scalar(1.0)
+    const Scalar epsilon = Scalar(1)
   ) {
-    if (distance == Scalar(0.0))
-      return Scalar(0.0);
+    if (distance == Scalar(0))
+      return Scalar(0);
     
-    return 4 * epsilon * (
-      Kokkos::pow(homeostatic_radius / distance, 12.0) -
-      Kokkos::pow(homeostatic_radius / distance, 6.0)
+    return Scalar(4) * epsilon * (
+      Kokkos::pow(homeostatic_radius / distance, Scalar(12)) -
+      Kokkos::pow(homeostatic_radius / distance, Scalar(6))
     );
   }
 
@@ -211,10 +211,10 @@ namespace kocs::forces {
     const Vector& displacement,
     const Scalar distance,
     const Scalar homeostatic_radius,
-    const Scalar epsilon = Scalar(1.0)
+    const Scalar epsilon = Scalar(1)
   ) {
-    if (distance == Scalar(0.0))
-      return Vector{0.0};
+    if (distance == Scalar(0))
+      return Vector{Scalar(0)};
 
     Scalar F = LennardJonesPotential(
       distance,
@@ -237,12 +237,12 @@ namespace kocs::forces {
     const Scalar radius_j
   ) {
     Scalar composite_youngs_modulus = young_modulus_i * young_modulus_j / 
-      ((1.0 - Kokkos::pow(poisson_ratio_i, 2.0)) * young_modulus_j + 
-       (1.0 - Kokkos::pow(poisson_ratio_j, 2.0)) * young_modulus_i);
+      ((Scalar(1) - Kokkos::pow(poisson_ratio_i, Scalar(2))) * young_modulus_j + 
+       (Scalar(1) - Kokkos::pow(poisson_ratio_j, Scalar(2))) * young_modulus_i);
     Scalar effective_radius = (radius_i * radius_j) / (radius_i + radius_j);
 
-    return Scalar(4.0)/Scalar(3.0) * composite_youngs_modulus * Kokkos::sqrt(effective_radius) * 
-      Kokkos::pow(Kokkos::fmax(homeostatic_radius - distance, 0), 3.0/2.0);
+    return (Scalar(4) / Scalar(3)) * composite_youngs_modulus * Kokkos::sqrt(effective_radius) *
+      Kokkos::pow(Kokkos::fmax(homeostatic_radius - distance, Scalar(0)), Scalar(3) / Scalar(2));
   }
 
   template<typename Scalar, typename Vector>
@@ -258,8 +258,8 @@ namespace kocs::forces {
     const Scalar radius_i,
     const Scalar radius_j
   ) {
-    if (distance == Scalar(0.0))
-      return Vector{0.0};
+    if (distance == Scalar(0))
+      return Vector{0};
 
     Scalar F = HertzContactPotential(
       distance,

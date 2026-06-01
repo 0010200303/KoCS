@@ -32,7 +32,7 @@ int main() {
   sim.write();
 
   auto relu_w_migration = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
-    position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f) +
+    position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f, 1.0f, 2.0f) +
       polarity.self.migration_force(displacement, polarity.other, distance);
   };
 
