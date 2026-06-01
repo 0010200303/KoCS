@@ -11,6 +11,7 @@
 #include <Kokkos_Random.hpp>
 
 #include "types/vector.hpp"
+#include "types/polarity.hpp"
 
 namespace kocs {
   template<typename T>
