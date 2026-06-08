@@ -106,10 +106,19 @@ namespace kocs::io {
         xmf_buffer += std::to_string(step);
         xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
         xmf_buffer += std::to_string(agent_count);
-        xmf_buffer += "\"/>\n\t\t\t\t<Geometry GeometryType=\"XYZ\">\n\t\t\t\t\t<DataItem Format=\"HDF\" Dimensions=\"";
+        xmf_buffer += "\"/>\n\t\t\t\t<Geometry GeometryType=\"";
+        
+        if constexpr (dimensions == 1)
+          xmf_buffer += "X";
+        else if constexpr (dimensions == 2)
+          xmf_buffer += "XY";
+        else
+          xmf_buffer += "XYZ";
+        
+        xmf_buffer += "\">\n\t\t\t\t\t<DataItem Format=\"HDF\" Dimensions=\"";
         xmf_buffer += std::to_string(agent_count);
         xmf_buffer += " ";
-        xmf_buffer += std::to_string(3);
+        xmf_buffer += std::to_string(SimulationConfig::dimensions);
         xmf_buffer += "\">\n\t\t\t\t\t\t";
         xmf_buffer += filename;
         xmf_buffer += ".h5:t";

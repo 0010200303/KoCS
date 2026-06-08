@@ -149,7 +149,8 @@ namespace kocs {
   using Scalar = __SCALAR__;
 
 #define CONFIG_DIMENSIONS(__DIMENSIONS__) \
-  static constexpr int dimensions = __DIMENSIONS__;
+  static constexpr int dimensions = __DIMENSIONS__; \
+  using Vector = kocs::VectorN<Scalar, dimensions>;
 
 #define CONFIG_RANDOM_POOL(__RANDOM_POOL__) \
   using RandomPoolT = __RANDOM_POOL__<>;
@@ -181,7 +182,6 @@ namespace kocs {
     CONFIG_SCALAR(float)
     CONFIG_DIMENSIONS(3)
 
-    using Vector = kocs::VectorN<Scalar, dimensions>;
     using VectorView = Kokkos::View<Vector*>;
     using Polarity = kocs::Polarity_<Scalar>;
 

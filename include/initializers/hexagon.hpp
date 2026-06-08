@@ -39,19 +39,17 @@ namespace kocs::initializers {
       const Scalar radius = distance_nb * Scalar(ring);
       const Scalar t = Scalar(step) / Scalar(ring);
 
-      Vector start{};
+      Vector start{Scalar(0)};
       start[0] = -radius * Kokkos::sin(beta * Scalar(side));
       start[1] =  radius * Kokkos::cos(beta * Scalar(side));
-      start[2] = Scalar(0);
 
-      Vector end{};
+      Vector end{Scalar(0)};
       end[0] = -radius * Kokkos::sin(beta * Scalar(side + 1));
       end[1] =  radius * Kokkos::cos(beta * Scalar(side + 1));
-      end[2] = Scalar(0);
 
+      position = Vector{Scalar(0)};
       position[0] = start[0] + (end[0] - start[0]) * t;
       position[1] = start[1] + (end[1] - start[1]) * t;
-      position[2] = Scalar(0);
     }
   };
 } // namespace kocs::initializers

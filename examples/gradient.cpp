@@ -5,6 +5,7 @@
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
+  CONFIG_DIMENSIONS(2)
   CONFIG_FIELDS(
     FIELD(Vector, positions),
     FIELD(Scalar, gradients)
