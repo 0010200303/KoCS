@@ -115,13 +115,14 @@ namespace kocs {
       }
 
       // TODO: auto resize (shrink_to_fit & grow (vector like: double capacity))
+      // TODO: implement and call resize for integrator, pair_finder and writer
       inline void set_agent_count(const unsigned int value) {
         agent_count = value;
         integrator.agent_count = value;
         pair_finder.agent_count = value;
         writer.agent_count = value;
 
-        pair_finder.step_count = 0;
+        // pair_finder.step_count = 0;
       }
 
     private:
@@ -159,6 +160,38 @@ namespace kocs {
       inline void init_random_cuboid(const Vector& min, const Vector& max, InitFuncs&&... init_functions) {
         initializers::RandomCuboid<SimulationConfig> initializer(get_positions_view(), min, max);
         init(initializer, init_functions...);
+      }
+
+      inline void init_relaxed_sphere(
+        const Scalar initial_radius,
+        const unsigned int relaxation_steps = 2000
+      ) {
+        initializers::RelaxedSphere<SimulationConfig> initializer(get_positions_view(), initial_radius, relaxation_steps);
+        init(initializer);
+        initializer.relax(*this);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_relaxed_sphere(
+        const Scalar initial_radius,
+        const unsigned int relaxation_steps = 2000,
+        InitFuncs&&... init_functions
+      ) {
+        initializers::RelaxedSphere<SimulationConfig> initializer(get_positions_view(), initial_radius, relaxation_steps);
+        init(initializer);
+        initializer.relax(*this);
+
+        init(init_functions...);
+      }
+
+      inline void init_relaxed_cuboid(
+        const Vector& min,
+        const Vector& max,
+        const unsigned int relaxation_steps = 2000
+      ) {
+        initializers::RelaxedCuboid<SimulationConfig> initializer(get_positions_view(), min, max, relaxation_steps);
+        init(initializer);
+        initializer.relax(*this);
       }
 
       template<typename... InitFuncs>
