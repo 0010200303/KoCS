@@ -8,7 +8,7 @@ Usage: $0 user-main [-b build-dir] [-o output] [-B backend] [-e execute] [-t tim
  -b build-dir    path to build directory (default: ./build/[backend])
  -o output       CMake target name to build (default: kocs)
  -B backend      Kokkos backend to request (default: empty -> SERIAL)
- -d debug				 build in Debug mode (Kokkos bounds checking, -O0 -g3)
+ -d debug        build in Debug mode (Kokkos bounds checking, -O0 -g3)
  -e execute      execute built target after successful build
  -t time         when executing, run the executable under 'time -p'
  -h help         show this help
