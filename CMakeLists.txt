@@ -36,6 +36,14 @@ else()
   set(Kokkos_ENABLE_SERIAL ON CACHE BOOL "" FORCE)
 endif()
 
+# Debug mode — enable Kokkos debug features automatically
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(Kokkos_ENABLE_DEBUG ON CACHE BOOL "" FORCE)
+  set(Kokkos_ENABLE_DEBUG_BOUNDS_CHECK ON CACHE BOOL "" FORCE)
+  set(Kokkos_ENABLE_DEBUG_ALGORITHM ON CACHE BOOL "" FORCE)
+  message(STATUS "Debug build: Kokkos debug & bounds checking enabled")
+endif()
+
 # Kokkos
 find_package(Kokkos 5.1 CONFIG)
 if (Kokkos_FOUND)
@@ -139,7 +147,11 @@ function(add_KoCS_simulation target_name source_file)
     KoCS_core
   )
 
-  target_compile_options(${target_name} PRIVATE -O3)
+  # Debug: no opt + full debug symbols; Release: -O3
+  target_compile_options(${target_name} PRIVATE
+    $<$<CONFIG:Debug>:-O0;-g3;-ggdb>
+    $<$<CONFIG:Release>:-O3>
+  )
 endfunction()
 
 set(KOCS_USER_TARGET "kocs"

@@ -8,6 +8,7 @@ Usage: $0 user-main [-b build-dir] [-o output] [-B backend] [-e execute] [-t tim
  -b build-dir    path to build directory (default: ./build/[backend])
  -o output       CMake target name to build (default: kocs)
  -B backend      Kokkos backend to request (default: empty -> SERIAL)
+ -d debug				 build in Debug mode (Kokkos bounds checking, -O0 -g3)
  -e execute      execute built target after successful build
  -t time         when executing, run the executable under 'time -p'
  -h help         show this help
@@ -19,6 +20,7 @@ TARGET_NAME="kocs"
 EXECUTE=false
 BACKEND=""
 TIME_EXECUTE=false
+DEBUG_BUILD=false
 
 if [ $# -lt 1 ]; then
 	echo "user-main is required."
@@ -82,6 +84,10 @@ while [ $# -gt 0 ]; do
 			EXECUTE=true
 			shift
 			;;
+		-d|--debug)
+			DEBUG_BUILD=true
+			shift
+			;;
 		-t|--time)
 			TIME_EXECUTE=true
 			shift
@@ -102,15 +108,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 
 if [ -z "${BUILD_DIR:-}" ]; then
-	BUILD_DIR="./build/${BACKEND:-SERIAL}"
+	if [ "$DEBUG_BUILD" = true ]; then
+		BUILD_DIR="./build/${BACKEND:-SERIAL}_DEBUG"
+	else
+		BUILD_DIR="./build/${BACKEND:-SERIAL}"
+	fi
 fi
 
 mkdir -p "$BUILD_DIR"
 
-cmake -S "$PROJECT_ROOT" -B "$BUILD_DIR" \
-	-DKOCS_USER_MAIN="$USER_MAIN" \
-	-DKOCS_USER_TARGET="$TARGET_NAME" \
+CMAKE_OPTS=(
+	-DKOCS_USER_MAIN="$USER_MAIN"
+	-DKOCS_USER_TARGET="$TARGET_NAME"
 	-DKokkos_BACKEND="$BACKEND"
+)
+
+if [ "$DEBUG_BUILD" = true ]; then
+	CMAKE_OPTS+=(-DCMAKE_BUILD_TYPE=Debug)
+	echo "Building in DEBUG mode with Kokkos bounds checking enabled"
+fi
+
+cmake -S "$PROJECT_ROOT" -B "$BUILD_DIR" "${CMAKE_OPTS[@]}"
 
 cmake --build "$BUILD_DIR" --target "$TARGET_NAME" -- -j$(nproc || echo 1)
 
