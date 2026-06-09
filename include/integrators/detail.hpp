@@ -37,6 +37,16 @@ namespace kocs::detail {
       return static_cast<F&&>(f)();
     }
 
+    template<typename F>
+    decltype(auto) apply_host(F&& f) const {
+      return static_cast<F&&>(f)();
+    }
+
+    template<typename F>
+    decltype(auto) apply_host(F&& f) {
+      return static_cast<F&&>(f)();
+    }
+
     template<typename F, typename... OtherPacks>
     KOKKOS_INLINE_FUNCTION
     void zip_apply(F&&, OtherPacks&&...) { }
@@ -90,6 +100,24 @@ namespace kocs::detail {
     decltype(auto) apply(F&& f) const {
       return static_cast<const base_type&>(*this).apply(
         [&](const auto&... rest_values) -> decltype(auto) {
+          return static_cast<F&&>(f)(first_value, rest_values...);
+        }
+      );
+    }
+
+    template<typename F>
+    decltype(auto) apply_host(F&& f) const {
+      return static_cast<base_type&>(*this).apply_host(
+        [&](auto&... rest_values) -> decltype(auto) {
+          return static_cast<F&&>(f)(first_value, rest_values...);
+        }
+      );
+    }
+
+    template<typename F>
+    decltype(auto) apply_host(F&& f) {
+      return static_cast<base_type&>(*this).apply_host(
+        [&](auto&... rest_values) -> decltype(auto) {
           return static_cast<F&&>(f)(first_value, rest_values...);
         }
       );
