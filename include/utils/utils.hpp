@@ -14,9 +14,6 @@
 #include "types/polarity.hpp"
 
 namespace kocs {
-  template<typename T>
-  using View = Kokkos::View<T*>;
-
   // extract types from Fields
   template<typename Tuple>
   struct extract_types;

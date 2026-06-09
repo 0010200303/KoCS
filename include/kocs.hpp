@@ -5,6 +5,7 @@
 
 #include "types/vector.hpp"
 #include "types/polarity.hpp"
+#include "types/view.hpp"
 
 #include "integrators/base.hpp"
 #include "forces/detail.hpp"

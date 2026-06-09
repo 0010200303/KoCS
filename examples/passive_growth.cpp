@@ -26,50 +26,6 @@ const Scalar r_max = 1.0;
 const Scalar mean_distance = 0.75;
 const Scalar proliferation_rate = 0.006;
 
-
-
-template<typename T>
-struct TrackedView {
-    Kokkos::View<uintptr_t> data_ptr;   // 0D view, stores device address
-
-    TrackedView() : data_ptr("tracked_view") {}
-
-    KOKKOS_INLINE_FUNCTION
-    T& operator()(int i) const {
-        return reinterpret_cast<T*>(data_ptr())[i];
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    T* data() const {
-        return reinterpret_cast<T*>(data_ptr());
-    }
-
-    // subscript for convenience
-    KOKKOS_INLINE_FUNCTION
-    T& operator[](int i) const { return (*this)(i); }
-};
-
-// Factory — creates a TrackedView from a Kokkos View
-template<typename T>
-TrackedView<T> track_view(Kokkos::View<T*>& view) {
-    TrackedView<T> tv;
-    auto host = Kokkos::create_mirror_view(tv.data_ptr);
-    host() = reinterpret_cast<uintptr_t>(view.data());
-    Kokkos::deep_copy(tv.data_ptr, host);
-    return tv;
-}
-
-// Update — refresh the stored pointer after resize
-template<typename T>
-void update_tracked(TrackedView<T>& tv, Kokkos::View<T*>& view) {
-    auto host = Kokkos::create_mirror_view(tv.data_ptr);
-    Kokkos::deep_copy(host, tv.data_ptr);
-    host() = reinterpret_cast<uintptr_t>(view.data());
-    Kokkos::deep_copy(tv.data_ptr, host);
-}
-
-
-
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/passive_growth", r_max);
   auto& _positions = sim.get_view<FIELD(Vector, positions)>();

@@ -12,8 +12,8 @@ namespace kocs::acceleration {
   class Grid {
     EXTRACT_VECTOR(Vector)
     using VectorI = VectorN<int, dimensions>;
-    using BinOp = Kokkos::BinOp1D<View<int>>;
-    using BinSort = Kokkos::BinSort<View<int>, BinOp>;
+    using BinOp = Kokkos::BinOp1D<Kokkos::View<int*>>;
+    using BinSort = Kokkos::BinSort<Kokkos::View<int*>, BinOp>;
 
     static Scalar get_bin_size(
       const Vector& min_bounds_,
@@ -35,7 +35,7 @@ namespace kocs::acceleration {
 
     public:
       Grid(
-        const View<Vector> data_view_,
+        const Kokkos::View<Vector*> data_view_,
         const unsigned int agent_count_,
         const Vector& min_bounds_,
         const Vector& max_bounds_,
@@ -51,7 +51,7 @@ namespace kocs::acceleration {
         , sorter(particle_bins, 0, agent_count_, BinOp{bin_count, 0, bin_count}) { }
       
       Grid(
-        const View<Vector> data_view_,
+        const Kokkos::View<Vector*> data_view_,
         const unsigned int agent_count_,
         const utils::Bounds<Vector>& bounds,
         const unsigned int agents_per_bin_ = 1
@@ -63,7 +63,7 @@ namespace kocs::acceleration {
           get_bin_size(bounds.min, bounds.max, agent_count_, agents_per_bin_)) { }
 
       Grid(
-        const View<Vector> data_view_,
+        const Kokkos::View<Vector*> data_view_,
         const unsigned int agent_count_,
         const unsigned int agents_per_bin_ = 1
       ) : Grid(
@@ -73,14 +73,14 @@ namespace kocs::acceleration {
           agents_per_bin_) { }
 
       Grid(
-        const View<Vector> data_view_,
+        const Kokkos::View<Vector*> data_view_,
         const unsigned int agents_per_bin_ = 1
       ) : Grid(data_view_, data_view_.extent(0), agents_per_bin_) { }
 
       Grid() : sorter(particle_bins, 0, 0, BinOp{0, 0, 0}) {}
 
     public:
-      View<Vector> data_view;
+      Kokkos::View<Vector*> data_view;
       unsigned int agent_count = 0;
 
       Vector min_bounds;
@@ -90,7 +90,7 @@ namespace kocs::acceleration {
       VectorI bin_extents;
       int bin_count = 0;
 
-      View<int> particle_bins;
+      Kokkos::View<int*> particle_bins;
       BinSort sorter;
 
     public:
