@@ -62,6 +62,11 @@ namespace kocs::pair_finders {
     int step_count = 0;
     int rebuild_every_n = 0;
 
+    inline void set_agent_count(const unsigned int value) {
+      agent_count = value;
+      step_count = 0;
+    }
+
     template<typename View>
     void rebuild(const View input_positions) {
       grid = Grid(input_positions, agent_count, min_bounds, max_bounds, bin_size);

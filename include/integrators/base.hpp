@@ -31,6 +31,27 @@ namespace kocs::integrators {
     detail::StagePack<N, Views...> stage_pack;
     PositionsView old_velocities;
 
+    template<typename... NewViews>
+    void reattach_stage_0(NewViews&... new_views) {
+      stage_pack[0] = detail::ViewPack<Views...>(new_views...);
+    }
+
+    inline void set_capacity(const unsigned int value) {
+      Kokkos::resize(old_velocities, value);
+
+      // TODO: maybe use realloc instead of resize because old data is not needed anyway
+      // resize all views from auxiliary stages
+      [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        ((stage_pack[Is + 1].apply([&](auto&... views) {
+          ((Kokkos::resize(views, value)), ...);
+        })), ...);
+      }(std::make_index_sequence<N - 1>{});
+    }
+
+    inline void set_agent_count(const unsigned int value) {
+      agent_count = value;
+    }
+
     template<typename RandomPool, typename Force>
     void evaluate_force_impl(
       bool is_full_step,

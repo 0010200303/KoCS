@@ -1,5 +1,5 @@
 // example translated from https://github.com/germannp/yalla/blob/main/examples/passive_growth.cu
-// Simulate growing mesenchyme envelopped by epithelium
+// Simulate growing mesenchyme enveloped by epithelium
 
 #include "../include/kocs.hpp"
 
@@ -18,7 +18,6 @@ struct SimulationConfig : public DefaultSimulationConfig {
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
-const int initial_max = 50000;
 const int n_cells = 200;
 const int steps = 500;
 const double dt = 0.2;
@@ -27,29 +26,35 @@ const Scalar mean_distance = 0.75;
 const Scalar proliferation_rate = 0.006;
 
 int main() {
-  Simulation<SimulationConfig> sim(initial_max, "./output/passive_growth", r_max);
+  Simulation<SimulationConfig> sim(n_cells, "./output/passive_growth", r_max);
   auto& positions = sim.get_view<FIELD(Vector, positions)>();
   auto& polarities = sim.get_view<FIELD(Polarity, polarities)>();
-  View<int> types("cell_types", initial_max);
-  View<int> mesenchyme_neighbours("mesenchyme_neighbours", initial_max);
-  View<int> epithelium_neighbours("epithelium_neighbours", initial_max);
+  View<int> types("cell_types", n_cells);
+  View<int> mesenchyme_neighbours("mesenchyme_neighbours", n_cells);
+  View<int> epithelium_neighbours("epithelium_neighbours", n_cells);
+
+auto* positions_ptr = &positions;
+auto* polarities_ptr = &polarities;
+auto* types_ptr = &types;
+auto* mes_ptr = &mesenchyme_neighbours;
+auto* epi_ptr = &epithelium_neighbours;
 
   sim.set_agent_count(n_cells);
   sim.init_relaxed_sphere(1.0);
 
   // forces
   auto relu_w_epithelium = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
-    if (types(j) == CellType::Mesenchyme)
-      Kokkos::atomic_add(&mesenchyme_neighbours(i), 1);
+    if ((*types_ptr)(j) == CellType::Mesenchyme)
+      Kokkos::atomic_add(&(*mes_ptr)(i), 1);
     else
-      Kokkos::atomic_add(&epithelium_neighbours(i), 1);
+      Kokkos::atomic_add(&(*epi_ptr)(i), 1);
 
-    if (types(i) == types(j))
+    if ((*types_ptr)(i) == (*types_ptr)(j))
       position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f, 2.0f, 1.0f);
     else
       position.delta += forces::PiecewiseLinear(displacement, distance, 0.8f, 0.9f, 2.0f, 1.0f);
     
-    if (types(i) == CellType::Epithelium && types(j) == CellType::Epithelium) {
+    if ((*types_ptr)(i) == CellType::Epithelium && (*types_ptr)(j) == CellType::Epithelium) {
       auto result = polarity.self.bending_force(displacement, polarity.other, distance);
       position.delta += result.vector * 0.15;
       polarity.delta += result.polarity * 0.15;
@@ -59,9 +64,9 @@ int main() {
   Kokkos::View<int> counter("counter");
   Kokkos::View<Scalar> rate("proliferation_rate");
   auto proliferate = INIT_FUNC() {
-    if (types(i) == CellType::Mesenchyme && rng.drand(0.0, 1.0) > rate())
+    if ((*types_ptr)(i) == CellType::Mesenchyme && rng.drand(0.0, 1.0) > rate())
       return;
-    else if (types(i) == CellType::Epithelium && epithelium_neighbours(i) > mesenchyme_neighbours(i))
+    else if ((*types_ptr)(i) == CellType::Epithelium && (*epi_ptr)(i) > (*mes_ptr)(i))
       return;
 
     int n = Kokkos::atomic_fetch_add(&counter(), 1);
@@ -70,9 +75,9 @@ int main() {
       Kokkos::acos(2.0 * rng.drand(0.0, 1.0) - 1),
       rng.drand(0.0, 1.0) * 2.0 * Kokkos::numbers::pi_v<Scalar>
     );
-    positions(n) = positions(i) + mean_distance / 4 * temp_polarity.to_vector3();
-    polarities(n) = polarities(i);
-    types(n) = types(i);
+    (*positions_ptr)(n) = (*positions_ptr)(i) + mean_distance / 4 * temp_polarity.to_vector3();
+    (*polarities_ptr)(n) = (*polarities_ptr)(i);
+    (*types_ptr)(n) = (*types_ptr)(i);
   };
 
   // find epithelium
@@ -90,10 +95,11 @@ int main() {
     Kokkos::deep_copy(epithelium_neighbours, 0);
     sim.take_step(dt, relu_w_epithelium);
 
-    // TODO: this
+
+
     // ensure capacity is high enough to store all possible cells
-    // if (sim.get_agent_count() * 2 < sim.get_capacity())
-      // sim.set_capacity(sim.get_agent_count() * 2);
+    if (sim.get_agent_count() * 2 > sim.get_capacity())
+      sim.set_capacity(sim.get_agent_count() * 8, types, mesenchyme_neighbours, epithelium_neighbours);
 
     Kokkos::deep_copy(counter, sim.get_agent_count());
     Kokkos::deep_copy(rate, proliferation_rate * (i > 100));
@@ -103,8 +109,6 @@ int main() {
     auto counter_host = Kokkos::create_mirror_view(counter);
     Kokkos::deep_copy(counter_host, counter);
     sim.set_agent_count(counter_host());
-
-    Kokkos::printf("%d\n", sim.get_agent_count());
 
     
 

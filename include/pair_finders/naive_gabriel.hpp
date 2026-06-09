@@ -30,6 +30,10 @@ namespace kocs::pair_finders {
     Scalar cutoff_distance_squared;
     Scalar gabriel_coefficient_squared;
 
+    inline void set_agent_count(const unsigned int value) {
+      agent_count = value;
+    }
+
     template<typename RandomPool, typename Force, typename... Views>
     void evaluate_force(
       detail::ViewPack<Views...>& in_view_pack,

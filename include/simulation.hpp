@@ -28,29 +28,29 @@ namespace kocs {
 
     public:
       Simulation(
-        const unsigned int agent_count_,
+        const unsigned int capacity_,
         const std::string& output_path,
         const Scalar cutoff_distance = Scalar(1'000'000),
         const PairFinder::Settings& pair_finder_settings = {},
         const Writer::Settings& writer_settings = {},
         const uint64_t seed = 2807
       )
-        : agent_count(agent_count_)
-        , storage((get_runtime_guard(), Storage(agent_count_)))
+        : capacity(capacity_)
+        , storage((get_runtime_guard(), Storage(capacity_)))
         , random_pool(seed)
-        , pair_finder(agent_count_, cutoff_distance, pair_finder_settings)
+        , pair_finder(capacity_, cutoff_distance, pair_finder_settings)
         , com_fixer()
-        , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage))
-        , writer(output_path, agent_count_, writer_settings)
+        , integrator(make_integrator(capacity_, pair_finder, com_fixer, storage))
+        , writer(output_path, capacity_, writer_settings)
         , current_step(0) { }
 
     public:
+      unsigned int capacity;
       unsigned int agent_count;
       Storage storage;
 
       RandomPool random_pool;
 
-      // TODO: maybe add some specific options to construct these
       PairFinder pair_finder;
       ComFixer com_fixer;
       Integrator integrator;
@@ -110,19 +110,38 @@ namespace kocs {
         return std::get<0>(get_views());
       }
 
+      inline unsigned int get_capacity() const {
+        return capacity;
+      }
+
+      inline void set_capacity(const unsigned int value) {
+        capacity = value;
+        std::apply([&](auto&... views) {
+          ((Kokkos::resize(views, value)), ...);
+        }, get_views());
+
+        integrator.set_capacity(value);
+        std::apply([&](auto&... views) {
+          integrator.reattach_stage_0(views...);
+        }, get_views());
+      }
+
+      template<typename... AdditionalViews>
+      inline void set_capacity(const unsigned int value, AdditionalViews&... additional_views) {
+        set_capacity(value);
+        ((Kokkos::resize(additional_views, value)), ...);
+      }
+
       inline unsigned int get_agent_count() const {
         return agent_count;
       }
 
       // TODO: auto resize (shrink_to_fit & grow (vector like: double capacity))
-      // TODO: implement and call resize for integrator, pair_finder and writer
       inline void set_agent_count(const unsigned int value) {
         agent_count = value;
-        integrator.agent_count = value;
-        pair_finder.agent_count = value;
-        writer.agent_count = value;
-
-        // pair_finder.step_count = 0;
+        integrator.set_agent_count(value);
+        pair_finder.set_agent_count(value);
+        writer.set_agent_count(value);
       }
 
     private:
@@ -177,10 +196,7 @@ namespace kocs {
         const unsigned int relaxation_steps = 2000,
         InitFuncs&&... init_functions
       ) {
-        initializers::RelaxedSphere<SimulationConfig> initializer(get_positions_view(), initial_radius, relaxation_steps);
-        init(initializer);
-        initializer.relax(*this);
-
+        init_relaxed_sphere(initial_radius, relaxation_steps);
         init(init_functions...);
       }
 
@@ -201,10 +217,7 @@ namespace kocs {
         const unsigned int relaxation_steps = 2000,
         InitFuncs&&... init_functions
       ) {
-        initializers::RelaxedCuboid<SimulationConfig> initializer(get_positions_view(), min, max, relaxation_steps);
-        init(initializer);
-        initializer.relax(*this);
-
+        init_relaxed_cuboid(min, max, relaxation_steps);
         init(init_functions...);
       }
 

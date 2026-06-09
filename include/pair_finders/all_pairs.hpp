@@ -25,6 +25,10 @@ namespace kocs::pair_finders {
     unsigned int agent_count;
     Scalar cutoff_distance_squared;
 
+    inline void set_agent_count(const unsigned int value) {
+      agent_count = value;
+    }
+
     template<typename RandomPool, typename Force, typename... Views>
     void evaluate_force(
       detail::ViewPack<Views...>& in_view_pack,

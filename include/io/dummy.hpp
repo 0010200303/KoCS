@@ -13,6 +13,10 @@ namespace kocs::io {
       void write(unsigned int step, const Views&... views) { }
 
       unsigned int agent_count;
+
+      inline void set_agent_count(const unsigned int value) {
+        agent_count = value;
+      }
   };
 } // namespace kocs::io
 

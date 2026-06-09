@@ -51,6 +51,10 @@ namespace kocs::io {
 
       unsigned int agent_count;
 
+      inline void set_agent_count(const unsigned int value) {
+        agent_count = value;
+      }
+
     private:
       const std::size_t buffer_threshold;
 
