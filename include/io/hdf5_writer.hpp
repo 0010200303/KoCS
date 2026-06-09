@@ -72,6 +72,7 @@ namespace kocs::io {
       template<typename T>
       struct has_to_array<T, std::void_t<decltype(std::declval<const T&>().to_array())>> : std::true_type { };
 
+      // TODO: remove remove get_dimensions stuff / use dimensions directly instead
       template<typename T, typename = void>
       struct has_get_dimensions : std::false_type { };
 

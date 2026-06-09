@@ -285,11 +285,6 @@ namespace kocs {
       return normal / Kokkos::sqrt(normal.dot(normal));
     }
 
-    // TODO: remove, use dimensions member variable instead
-    constexpr unsigned int get_dimensions() const {
-      return dimensions;
-    }
-
     // unary operations
     KOKKOS_INLINE_FUNCTION
     constexpr VectorN operator+() const {
