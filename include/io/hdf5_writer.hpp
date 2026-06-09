@@ -67,12 +67,11 @@ namespace kocs::io {
       bool write_xmf;
 
       template<typename T, typename = void>
-      struct has_to_array : std::false_type { };
+      struct has_static_dimensions : std::false_type { };
 
       template<typename T>
-      struct has_to_array<T, std::void_t<decltype(std::declval<const T&>().to_array())>> : std::true_type { };
+      struct has_static_dimensions<T, std::void_t<decltype(T::dimensions)>> : std::true_type { };
 
-      // TODO: remove remove get_dimensions stuff / use dimensions directly instead
       template<typename T, typename = void>
       struct has_get_dimensions : std::false_type { };
 
@@ -148,7 +147,9 @@ namespace kocs::io {
           dimension_map.push_back(view.extent(i));
 
         using T = typename View::value_type;
-        if constexpr (has_get_dimensions<T>::value)
+        if constexpr (has_static_dimensions<T>::value)
+          dimension_map.push_back(T::dimensions);
+        else if constexpr (has_get_dimensions<T>::value)
           dimension_map.push_back(T{}.get_dimensions());
 
         // overwrite first dimension with agent_count
@@ -164,7 +165,7 @@ namespace kocs::io {
         std::string attribute_type = "Matrix";
         if (dimension_map.size() == 1)
           attribute_type = "Scalar";
-        else if (dimension_map.size() == 2 && dimension_map[1] == 3)
+        else if (dimension_map.size() == 2 && (dimension_map[1] == 2 || dimension_map[1] == 3))
           attribute_type = "Vector";
         else if (dimension_map.size() == 2 && dimension_map[1] == 9)
           attribute_type = "Tensor";
