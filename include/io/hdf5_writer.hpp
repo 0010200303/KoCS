@@ -206,7 +206,6 @@ namespace kocs::io {
           return;
 
         auto all_tuple = std::tuple<const Views&...>(views...);
-        const auto& first_view = std::get<0>(all_tuple);
 
         write_xmf_grid_start(step);
         write_xmf_grid_attributes_from_tuple(step, all_tuple, std::make_index_sequence<sizeof...(Views)>{});
