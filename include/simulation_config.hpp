@@ -191,7 +191,7 @@ namespace kocs {
 
     CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
     CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)
-    CONFIG_COM_FIXER(kocs::com_fixers::GlobalComFixer)
+    CONFIG_COM_FIXER(kocs::com_fixers::NoComFixer)
     CONFIG_INTEGRATOR(kocs::integrators::Heun)
 
     CONFIG_WRITER(kocs::io::HDF5_Writer)
