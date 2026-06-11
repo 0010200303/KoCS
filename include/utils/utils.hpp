@@ -77,33 +77,27 @@ namespace kocs {
 #define GENERIC_FORCE_IMPL kocs::detail::generic_force | KOKKOS_LAMBDA
 #define PAIRWISE_FORCE_IMPL kocs::detail::pairwise_force | KOKKOS_LAMBDA
 
-#define GENERIC_REF_IMPL(__TYPE__) detail::GenericFieldRef<__TYPE__>
-#define PAIRWISE_REF_IMPL(__TYPE__) detail::PairwiseFieldRef<__TYPE__>
+#define GENERIC_REF(__TYPE__, __NAME__) detail::GenericFieldRef<__TYPE__> __NAME__
+#define PAIRWISE_REF(__TYPE__, __NAME__) detail::PairwiseFieldRef<__TYPE__> __NAME__
 
-#define GENERIC_REF(__TYPE__, __NAME__) GENERIC_REF_IMPL(__TYPE__) __NAME__
-#define PAIRWISE_REF(__TYPE__, __NAME__) PAIRWISE_REF_IMPL(__TYPE__) __NAME__
+#define GENERIC_FORCE_PARAMETERS const unsigned int i, Random& rng, const GenericForceFields& ctx
+#define PAIRWISE_FORCE_PARAMETERS const unsigned int i, const unsigned int j, const Vector& displacement, \
+  const Scalar distance, Random& rng, Scalar& friction, const PairwiseForceFields& ctx
 
-#define GENERIC_FORCE(...) GENERIC_FORCE_IMPL( \
-  const unsigned int i, \
-  Random& rng __VA_OPT__(,) __VA_ARGS__)
-#define PAIRWISE_FORCE(...) PAIRWISE_FORCE_IMPL( \
-  const unsigned int i, \
-  const unsigned int j, \
-  const Vector& displacement, \
-  const Scalar& distance, \
-  Random& rng, \
-  Scalar& friction __VA_OPT__(,) __VA_ARGS__)
+#define GENERIC_FORCE(...) [&]() { return GENERIC_FORCE_IMPL(GENERIC_FORCE_PARAMETERS) { __VA_ARGS__ }; }
+#define PAIRWISE_FORCE(...) [&]() { return PAIRWISE_FORCE_IMPL(PAIRWISE_FORCE_PARAMETERS) { __VA_ARGS__ }; }
 
 #define INIT_FUNC() KOKKOS_LAMBDA(const unsigned int i, Random& rng)
 
-#define GENERIC_FORCE_OP(...) \
+#define GENERIC_FORCE_OP() \
   using tag = kocs::detail::GenericForceTag; \
   KOKKOS_INLINE_FUNCTION \
   void operator()( \
     const unsigned int i, \
-    Random& rng __VA_OPT__(,) __VA_ARGS__) const
+    Random& rng, \
+    const GenericForceFields& ctx) const
     
-#define PAIRWISE_FORCE_OP(...) \
+#define PAIRWISE_FORCE_OP() \
   using tag = kocs::detail::PairwiseForceTag; \
   KOKKOS_INLINE_FUNCTION \
   void operator()( \
@@ -112,17 +106,8 @@ namespace kocs {
     const Vector& displacement, \
     const Scalar& distance, \
     Random& rng, \
-    Scalar& friction __VA_OPT__(,) __VA_ARGS__) const
-
-// Body-only force lambdas — GENERIC_REFs are auto-injected from CONFIG_FIELDS
-#define GENERIC_FORCE_NAMED() GENERIC_FORCE_IMPL(const unsigned int i, Random& rng, const GenericForceFields& f)
-#define PAIRWISE_FORCE_NAMED() PAIRWISE_FORCE_IMPL(const unsigned int i, const unsigned int j, const Vector& displacement, const Scalar& distance, Random& rng, Scalar& friction, const PairwiseForceFields& f)
-
-#define MAKE_GENERIC_FORCE_NAMED(body) \
-  [&]() { return GENERIC_FORCE_NAMED() body; }
-
-#define MAKE_PAIRWISE_FORCE_NAMED(body) \
-  [&]() { return PAIRWISE_FORCE_NAMED() body; }
+    Scalar& friction, \
+    const PairwiseForceFields& ctx) const
 
 
 
@@ -148,9 +133,5 @@ namespace kocs {
 #define EXTRACT_VECTOR(__VECTOR__) \
   using Scalar = typename __VECTOR__::Scalar; \
   static constexpr unsigned int dimensions = __VECTOR__::dimensions; \
-
-// #define MAKE_DEFAULT_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
-//   struct __SIMULATION_CONFIG__ : public DefaultSimulationConfig { }; \
-//   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__)
 
 #endif // KOCS_UTILS_UTILS_HPP

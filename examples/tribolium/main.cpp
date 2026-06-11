@@ -92,18 +92,18 @@ int main(int argc, char* argv[]) {
   // simulation loop
   acceleration::Grid<Vector> grid(grid_view);
   grid.rebuild();
-  auto system_forces = MAKE_GENERIC_FORCE_NAMED({
-    int nearest_grid_point_idx = grid.get_nearest_point_index(f.position.self);
+  auto system_forces = GENERIC_FORCE(
+    int nearest_grid_point_idx = grid.get_nearest_point_index(ctx.position.self);
     if (nearest_grid_point_idx >= 0) {
-      Vector relative_position = f.position.self - grid_view(nearest_grid_point_idx);
+      Vector relative_position = ctx.position.self - grid_view(nearest_grid_point_idx);
       Vector normal = normals_view(nearest_grid_point_idx);
 
       Scalar F = -12.0f * relative_position.dot(normal);
-      f.position.delta += F * normal;
+      ctx.position.delta += F * normal;
     }
-  });
+  );
 
-  auto force_between_cells = MAKE_PAIRWISE_FORCE_NAMED({
+  auto force_between_cells = PAIRWISE_FORCE(
     const int this_type = cell_types_view(i);
     const Scalar exp_neg_d = Kokkos::exp(-distance);
 
@@ -111,18 +111,18 @@ int main(int argc, char* argv[]) {
       // do nothing
     }
     else if (this_type == CellType::Serosa) {
-      f.position.delta += (exp_neg_d - 0.5f) * displacement;
+      ctx.position.delta += (exp_neg_d - 0.5f) * displacement;
     }
     else {
       if (cell_types_view(j) == CellType::Pole)
-        f.position.delta += (-exp_neg_d) * displacement;
-      f.position.delta += (exp_neg_d - 0.4f) * displacement;
+        ctx.position.delta += (-exp_neg_d) * displacement;
+      ctx.position.delta += (exp_neg_d - 0.4f) * displacement;
     }
 
     // drag
     if (this_type != CellType::Anchor && this_type != CellType::Pole)
       friction += 1.0;
-  });
+  );
 
   // pre-allocate vectors for host-side cell removal
   std::vector<Vector> pole_positions;

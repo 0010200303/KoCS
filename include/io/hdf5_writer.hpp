@@ -128,7 +128,7 @@ namespace kocs::io {
         xmf_buffer += ".h5:t";
         xmf_buffer += std::to_string(step);
         xmf_buffer += "/";
-        xmf_buffer += "positions";
+        xmf_buffer += "positions";  // TODO: pass first view into this function and take the label instead of hard-coded string like this was meant to be anyway
         xmf_buffer += "\n\t\t\t\t\t</DataItem>\n\t\t\t\t</Geometry>\n";
       }
 
