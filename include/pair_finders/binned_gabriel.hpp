@@ -121,112 +121,230 @@ namespace kocs::pair_finders {
               const unsigned int start = grid.get_bin_offsets()(b);
               const unsigned int end = grid.get_bin_offsets()(b + 1);
 
-              for (unsigned int idx = start; idx < end; ++idx) {
-                const int j = static_cast<int>(grid.get_permute_vector()(idx));
-                if (j == i)
-                  continue;
 
-                const auto& position_j = input_positions(j);
-                const auto displacement = position_i - position_j;
-                const auto distance_squared = displacement.length_squared();
-                if (distance_squared >= cutoff_distance_squared)
-                  continue;
 
-                const auto midpoint = position_i - displacement * Scalar(0.5);
-                const auto radius_squared = distance_squared * gabriel_radius_factor;
-                const Scalar radius = Kokkos::sqrt(radius_squared);
 
-                // calculate exact overlapping bounds
-                VectorI min_bin;
-                VectorI span;
-                int task_count_2 = 1;
+              Kokkos::parallel_for(
+                Kokkos::ThreadVectorRange(team_member, start, end),
+                [&](const int idx) {
+                  const int j = static_cast<int>(grid.get_permute_vector()(idx));
+                  if (j == i)
+                    return;
 
-                for (int d = 0; d < dimensions; ++d) {
-                  min_bin[d] = Kokkos::max(0, Kokkos::min(
-                    static_cast<int>(Kokkos::floor((midpoint[d] - radius - min_bounds[d]) * inv_bin_size)),
-                    bin_extents[d] - 1
-                  ));
-                  const int max_b = Kokkos::max(0, Kokkos::min(
-                    static_cast<int>(Kokkos::floor((midpoint[d] + radius - min_bounds[d]) * inv_bin_size)),
-                    bin_extents[d] - 1
-                  ));
-                  span[d] = max_b - min_bin[d] + 1;
-                  task_count_2 *= span[d];
-                }
+                  const auto& position_j = input_positions(j);
+                  const auto displacement = position_i - position_j;
+                  const auto distance_squared = displacement.length_squared();
+                  if (distance_squared >= cutoff_distance_squared)
+                    return;
+                  
+                  const auto midpoint = position_i - displacement * Scalar(0.5);
+                  const auto radius_squared = distance_squared * gabriel_radius_factor;
+                  const Scalar radius = Kokkos::sqrt(radius_squared);
 
-                bool blocked = false;
-                for (int task_2 = 0; task_2 < task_count_2 && blocked == false; ++task_2) {
-                  int b_2 = 0;
-                  if constexpr (dimensions == 1) {
-                    b_2 = min_bin[0] + task_2;
+                  // calculate exact overlapping bounds
+                  VectorI min_bin;
+                  VectorI span;
+                  int task_count_2 = 1;
+
+                  for (int d = 0; d < dimensions; ++d) {
+                    min_bin[d] = Kokkos::max(0, Kokkos::min(
+                      static_cast<int>(Kokkos::floor((midpoint[d] - radius - min_bounds[d]) * inv_bin_size)),
+                      bin_extents[d] - 1
+                    ));
+                    const int max_b = Kokkos::max(0, Kokkos::min(
+                      static_cast<int>(Kokkos::floor((midpoint[d] + radius - min_bounds[d]) * inv_bin_size)),
+                      bin_extents[d] - 1
+                    ));
+                    span[d] = max_b - min_bin[d] + 1;
+                    task_count_2 *= span[d];
                   }
-                  else if constexpr (dimensions == 2) {
-                    const int b0 = min_bin[0] + (task_2 % span[0]);
-                    const int b1 = min_bin[1] + (task_2 / span[0]);
-                    b_2 = b0 + b1 * bin_extents[0];
-                  }
-                  else if constexpr (dimensions == 3) {
-                    const int temp = task_2 / span[0];
-                    const int b0 = min_bin[0] + (task_2 % span[0]);
-                    const int b1 = min_bin[1] + (temp % span[1]);
-                    const int b2 = min_bin[2] + (temp / span[1]);
-                    b_2 = b0 + b1 * bin_extents[0] + b2 * (bin_extents[0] * bin_extents[1]);
-                  }
-                  else if constexpr (dimensions == 4) {
-                    const int temp1 = task_2 / span[0];
-                    const int b0 = min_bin[0] + (task_2 % span[0]);
-                    const int b1 = min_bin[1] + (temp1 % span[1]);
-                    const int temp2 = temp1 / span[1];
-                    const int b2 = min_bin[2] + (temp2 % span[2]);
-                    const int b3 = min_bin[3] + (temp2 / span[2]);
-                    b_2 = b0 + b1 * bin_extents[0] + b2 * 
-                      (bin_extents[0] * bin_extents[1]) +
-                      b3 * (bin_extents[0] * bin_extents[1] * bin_extents[2]);
-                  }
-                  else {
-                    int temp = task_2;
-                    int stride = 1;
-                    for (int d = 0; d < dimensions; ++d) {
-                      b_2 += (min_bin[d] + (temp % span[d])) * stride;
-                      temp /= span[d];
-                      stride *= bin_extents[d];
+
+                  bool blocked = false;
+                  for (int task_2 = 0; task_2 < task_count_2 && blocked == false; ++task_2) {
+                    int b_2 = 0;
+                    if constexpr (dimensions == 1) {
+                      b_2 = min_bin[0] + task_2;
+                    }
+                    else if constexpr (dimensions == 2) {
+                      const int b0 = min_bin[0] + (task_2 % span[0]);
+                      const int b1 = min_bin[1] + (task_2 / span[0]);
+                      b_2 = b0 + b1 * bin_extents[0];
+                    }
+                    else if constexpr (dimensions == 3) {
+                      const int temp = task_2 / span[0];
+                      const int b0 = min_bin[0] + (task_2 % span[0]);
+                      const int b1 = min_bin[1] + (temp % span[1]);
+                      const int b2 = min_bin[2] + (temp / span[1]);
+                      b_2 = b0 + b1 * bin_extents[0] + b2 * (bin_extents[0] * bin_extents[1]);
+                    }
+                    else if constexpr (dimensions == 4) {
+                      const int temp1 = task_2 / span[0];
+                      const int b0 = min_bin[0] + (task_2 % span[0]);
+                      const int b1 = min_bin[1] + (temp1 % span[1]);
+                      const int temp2 = temp1 / span[1];
+                      const int b2 = min_bin[2] + (temp2 % span[2]);
+                      const int b3 = min_bin[3] + (temp2 / span[2]);
+                      b_2 = b0 + b1 * bin_extents[0] + b2 * 
+                        (bin_extents[0] * bin_extents[1]) +
+                        b3 * (bin_extents[0] * bin_extents[1] * bin_extents[2]);
+                    }
+                    else {
+                      int temp = task_2;
+                      int stride = 1;
+                      for (int d = 0; d < dimensions; ++d) {
+                        b_2 += (min_bin[d] + (temp % span[d])) * stride;
+                        temp /= span[d];
+                        stride *= bin_extents[d];
+                      }
+                    }
+
+                    const unsigned int start_2 = grid.get_bin_offsets()(b_2);
+                    const unsigned int end_2 = grid.get_bin_offsets()(b_2 + 1);
+
+                    for (unsigned int idx_2 = start_2; idx_2 < end_2; ++idx_2) {
+                      const int k = static_cast<int>(grid.get_permute_vector()(idx_2));
+                      if (k == i || k == j)
+                        continue;
+                      
+                      if (input_positions(k).distance_to_squared(midpoint) < radius_squared) {
+                        blocked = true;
+                        break;
+                      }
                     }
                   }
+                  if (blocked)
+                    return;
 
-                  const unsigned int start_2 = grid.get_bin_offsets()(b_2);
-                  const unsigned int end_2 = grid.get_bin_offsets()(b_2 + 1);
+                  const auto distance = Kokkos::sqrt(distance_squared);
+                  Scalar pair_friction = 0.0;
 
-                  for (unsigned int idx_2 = start_2; idx_2 < end_2; ++idx_2) {
-                    const int k = static_cast<int>(grid.get_permute_vector()(idx_2));
-                    if (k == i || k == j)
-                      continue;
-                    
-                    if (input_positions(k).distance_to_squared(midpoint) < radius_squared) {
-                      blocked = true;
-                      break;
-                    }
-                  }
-                }
-                if (blocked)
-                  continue;
-
-                const auto distance = Kokkos::sqrt(distance_squared);
-                Scalar pair_friction = 0.0;
-
-                auto generator = random_pool.get_state();
-                in_view_pack.apply([&](auto&... views) {
-                  local_delta.apply([&](auto&... deltas) {
-                    force(
-                      i, j, displacement, distance, generator, pair_friction,
-                      ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
-                    );
+                  auto generator = random_pool.get_state();
+                  in_view_pack.apply([&](auto&... views) {
+                    local_delta.apply([&](auto&... deltas) {
+                      force(
+                        i, j, displacement, distance, generator, pair_friction,
+                        ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
+                      );
+                    });
                   });
-                });
-                random_pool.free_state(generator);
+                  random_pool.free_state(generator);
 
-                local_friction += pair_friction;
-                local_velocity += pair_friction * old_velocities(j);
-              }
+                  local_friction += pair_friction;
+                  local_velocity += pair_friction * old_velocities(j);
+                }
+              );
+
+
+
+              // for (unsigned int idx = start; idx < end; ++idx) {
+              //   const int j = static_cast<int>(grid.get_permute_vector()(idx));
+              //   if (j == i)
+              //     continue;
+
+              //   const auto& position_j = input_positions(j);
+              //   const auto displacement = position_i - position_j;
+              //   const auto distance_squared = displacement.length_squared();
+              //   if (distance_squared >= cutoff_distance_squared)
+              //     continue;
+
+              //   const auto midpoint = position_i - displacement * Scalar(0.5);
+              //   const auto radius_squared = distance_squared * gabriel_radius_factor;
+              //   const Scalar radius = Kokkos::sqrt(radius_squared);
+
+              //   // calculate exact overlapping bounds
+              //   VectorI min_bin;
+              //   VectorI span;
+              //   int task_count_2 = 1;
+
+              //   for (int d = 0; d < dimensions; ++d) {
+              //     min_bin[d] = Kokkos::max(0, Kokkos::min(
+              //       static_cast<int>(Kokkos::floor((midpoint[d] - radius - min_bounds[d]) * inv_bin_size)),
+              //       bin_extents[d] - 1
+              //     ));
+              //     const int max_b = Kokkos::max(0, Kokkos::min(
+              //       static_cast<int>(Kokkos::floor((midpoint[d] + radius - min_bounds[d]) * inv_bin_size)),
+              //       bin_extents[d] - 1
+              //     ));
+              //     span[d] = max_b - min_bin[d] + 1;
+              //     task_count_2 *= span[d];
+              //   }
+
+              //   bool blocked = false;
+              //   for (int task_2 = 0; task_2 < task_count_2 && blocked == false; ++task_2) {
+              //     int b_2 = 0;
+              //     if constexpr (dimensions == 1) {
+              //       b_2 = min_bin[0] + task_2;
+              //     }
+              //     else if constexpr (dimensions == 2) {
+              //       const int b0 = min_bin[0] + (task_2 % span[0]);
+              //       const int b1 = min_bin[1] + (task_2 / span[0]);
+              //       b_2 = b0 + b1 * bin_extents[0];
+              //     }
+              //     else if constexpr (dimensions == 3) {
+              //       const int temp = task_2 / span[0];
+              //       const int b0 = min_bin[0] + (task_2 % span[0]);
+              //       const int b1 = min_bin[1] + (temp % span[1]);
+              //       const int b2 = min_bin[2] + (temp / span[1]);
+              //       b_2 = b0 + b1 * bin_extents[0] + b2 * (bin_extents[0] * bin_extents[1]);
+              //     }
+              //     else if constexpr (dimensions == 4) {
+              //       const int temp1 = task_2 / span[0];
+              //       const int b0 = min_bin[0] + (task_2 % span[0]);
+              //       const int b1 = min_bin[1] + (temp1 % span[1]);
+              //       const int temp2 = temp1 / span[1];
+              //       const int b2 = min_bin[2] + (temp2 % span[2]);
+              //       const int b3 = min_bin[3] + (temp2 / span[2]);
+              //       b_2 = b0 + b1 * bin_extents[0] + b2 * 
+              //         (bin_extents[0] * bin_extents[1]) +
+              //         b3 * (bin_extents[0] * bin_extents[1] * bin_extents[2]);
+              //     }
+              //     else {
+              //       int temp = task_2;
+              //       int stride = 1;
+              //       for (int d = 0; d < dimensions; ++d) {
+              //         b_2 += (min_bin[d] + (temp % span[d])) * stride;
+              //         temp /= span[d];
+              //         stride *= bin_extents[d];
+              //       }
+              //     }
+
+              //     const unsigned int start_2 = grid.get_bin_offsets()(b_2);
+              //     const unsigned int end_2 = grid.get_bin_offsets()(b_2 + 1);
+
+              //     for (unsigned int idx_2 = start_2; idx_2 < end_2; ++idx_2) {
+              //       const int k = static_cast<int>(grid.get_permute_vector()(idx_2));
+              //       if (k == i || k == j)
+              //         continue;
+                    
+              //       if (input_positions(k).distance_to_squared(midpoint) < radius_squared) {
+              //         blocked = true;
+              //         break;
+              //       }
+              //     }
+              //   }
+              //   if (blocked)
+              //     continue;
+
+              //   const auto distance = Kokkos::sqrt(distance_squared);
+              //   Scalar pair_friction = 0.0;
+
+              //   auto generator = random_pool.get_state();
+              //   in_view_pack.apply([&](auto&... views) {
+              //     local_delta.apply([&](auto&... deltas) {
+              //       force(
+              //         i, j, displacement, distance, generator, pair_friction,
+              //         ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
+              //       );
+              //     });
+              //   });
+              //   random_pool.free_state(generator);
+
+              //   local_friction += pair_friction;
+              //   local_velocity += pair_friction * old_velocities(j);
+              // }
+
+
+
             },
             Kokkos::Sum<decltype(total_delta_i)>(total_delta_i),
             Kokkos::Sum<Scalar>(total_friction_i),
