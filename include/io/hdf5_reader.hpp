@@ -25,7 +25,7 @@ namespace kocs::io {
       }
 
       template<typename T>
-      void read_dataset(const std::string& dataset_name, View<T> out_view) {
+      void read_dataset(const std::string& dataset_name, Kokkos::View<T> out_view) {
         auto out_view_host = Kokkos::create_mirror_view(out_view);
 
         HighFive::DataSet dataset = file.getDataSet(dataset_name);
@@ -37,9 +37,9 @@ namespace kocs::io {
       }
 
       template<typename T, typename HostView>
-      void read_dataset(const std::string& dataset_name, View<T> out_view, HostView out_view_host) {
-        static_assert(std::is_same_v<HostView, typename View<T>::host_mirror_type>,
-          "out_view_host must be the host mirror of out_view");
+      void read_dataset(const std::string& dataset_name, Kokkos::View<T> out_view, HostView out_view_host) {
+        // static_assert(std::is_same_v<HostView, typename View<T>::host_mirror_type>,
+        //   "out_view_host must be the host mirror of out_view");
 
         HighFive::DataSet dataset = file.getDataSet(dataset_name);
         dataset.read(out_view_host);

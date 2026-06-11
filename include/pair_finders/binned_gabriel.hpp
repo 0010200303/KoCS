@@ -73,7 +73,7 @@ namespace kocs::pair_finders {
       grid.rebuild();
     }
 
-    template<typename RandomPool, typename Force, typename... Views>
+    template<typename RandomPool, typename Force, typename ForceFields, typename... Views>
     void evaluate_force(
       detail::ViewPack<Views...>& in_view_pack,
       detail::ViewPack<Views...>& out_view_pack,
@@ -218,7 +218,7 @@ namespace kocs::pair_finders {
                   local_delta.apply([&](auto&... deltas) {
                     force(
                       i, j, displacement, distance, generator, pair_friction,
-                      detail::PairwiseFieldRef{views(i), views(j), deltas}...
+                      ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
                     );
                   });
                 });

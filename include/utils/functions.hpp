@@ -18,9 +18,9 @@ namespace kocs::utils {
   struct MinPerDimension {
     EXTRACT_VECTOR(Vector)
 
-    View<Vector> points_view;
+    Kokkos::View<Vector*> points_view;
 
-    MinPerDimension(const View<Vector> points_view_) : points_view(points_view_) { }
+    MinPerDimension(const Kokkos::View<Vector*> points_view_) : points_view(points_view_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Vector& local) const {
@@ -50,9 +50,9 @@ namespace kocs::utils {
   struct MaxPerDimension {
     EXTRACT_VECTOR(Vector)
 
-    View<Vector> points_view;
+    Kokkos::View<Vector*> points_view;
 
-    MaxPerDimension(const View<Vector> points_view_) : points_view(points_view_) { }
+    MaxPerDimension(const Kokkos::View<Vector*> points_view_) : points_view(points_view_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Vector& local) const {
@@ -82,9 +82,9 @@ namespace kocs::utils {
   struct BoundsPerDimension {
     EXTRACT_VECTOR(Vector)
 
-    View<Vector> points_view;
+    Kokkos::View<Vector*> points_view;
 
-    BoundsPerDimension(const View<Vector> points_view_) : points_view(points_view_) { }
+    BoundsPerDimension(const Kokkos::View<Vector*> points_view_) : points_view(points_view_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Bounds<Vector>& local) const {
@@ -118,7 +118,7 @@ namespace kocs::utils {
   };
 
   template<typename Vector>
-  Vector get_min_bounds(const View<Vector> points_view) {
+  Vector get_min_bounds(const Kokkos::View<Vector*> points_view) {
     Vector result;
     Kokkos::parallel_reduce(
       "utils_get_min_bounds",
@@ -130,7 +130,7 @@ namespace kocs::utils {
   }
 
   template<typename Vector>
-  Vector get_max_bounds(const View<Vector> points_view) {
+  Vector get_max_bounds(const Kokkos::View<Vector*> points_view) {
     Vector result;
     Kokkos::parallel_reduce(
       "utils_get_max_bounds",
@@ -142,7 +142,7 @@ namespace kocs::utils {
   }
 
   template<typename Vector>
-  Bounds<Vector> get_bounds(const View<Vector> points_view) {
+  Bounds<Vector> get_bounds(const Kokkos::View<Vector*> points_view) {
     Bounds<Vector> result;
     Kokkos::parallel_reduce(
       "utils_get_bounds",

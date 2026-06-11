@@ -114,6 +114,16 @@ namespace kocs {
     Random& rng, \
     Scalar& friction __VA_OPT__(,) __VA_ARGS__) const
 
+// Body-only force lambdas — GENERIC_REFs are auto-injected from CONFIG_FIELDS
+#define GENERIC_FORCE_NAMED() GENERIC_FORCE_IMPL(const unsigned int i, Random& rng, const GenericForceFields& f)
+#define PAIRWISE_FORCE_NAMED() PAIRWISE_FORCE_IMPL(const unsigned int i, const unsigned int j, const Vector& displacement, const Scalar& distance, Random& rng, Scalar& friction, const PairwiseForceFields& f)
+
+#define MAKE_GENERIC_FORCE_NAMED(body) \
+  [&]() { return GENERIC_FORCE_NAMED() body; }
+
+#define MAKE_PAIRWISE_FORCE_NAMED(body) \
+  [&]() { return PAIRWISE_FORCE_NAMED() body; }
+
 
 
 #define EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
@@ -123,7 +133,9 @@ namespace kocs {
   using VectorView = Kokkos::View<Vector*>; \
   using Polarity = kocs::Polarity_<Scalar>; \
   using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT; \
-  using Random = typename RandomPool::generator_type;
+  using Random = typename RandomPool::generator_type; \
+  using GenericForceFields = typename __SIMULATION_CONFIG__::template ForceFields<kocs::detail::GenericFieldRef>; \
+  using PairwiseForceFields = typename __SIMULATION_CONFIG__::template ForceFields<kocs::detail::PairwiseFieldRef>;
 
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \

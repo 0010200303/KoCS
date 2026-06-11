@@ -99,14 +99,8 @@ int main() {
 
 
     // ensure capacity is high enough to store all possible cells
-    if (sim.get_agent_count() * 2 > sim.get_capacity()) {
+    if (sim.get_agent_count() * 2 > sim.get_capacity())
       sim.set_capacity(sim.get_agent_count() * 4, _types, _mesenchyme_neighbours, _epithelium_neighbours);
-      update_tracked(positions, _positions);
-      update_tracked(polarities, _polarities);
-      update_tracked(types, _types);
-      update_tracked(mesenchyme_neighbours, _mesenchyme_neighbours);
-      update_tracked(epithelium_neighbours, _epithelium_neighbours);
-    }
 
     Kokkos::deep_copy(counter, sim.get_agent_count());
     Kokkos::deep_copy(rate, proliferation_rate * (i > 100));

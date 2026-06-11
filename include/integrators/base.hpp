@@ -9,7 +9,7 @@
 #include "../pair_finders/all_pairs.hpp"
 
 namespace kocs::integrators {
-  template<typename PairFinder, typename ComFixer, const unsigned int N, typename... Views>
+  template<typename PairFinder, typename ComFixer, const unsigned int N, typename ForceFields, typename PairwiseForceFields, typename... Views>
   struct Base {
     Base(
       unsigned int agent_count_,
@@ -68,7 +68,7 @@ namespace kocs::integrators {
           auto generator = random_pool.get_state();
           in_view_pack.apply([&](auto&... in_views) {
             out_view_pack.apply([&](auto&... out_views) {
-              force(i, generator, detail::GenericFieldRef{in_views(i), out_views(i)}...);
+              force(i, generator, ForceFields{detail::GenericFieldRef{in_views(i), out_views(i)}...});
             });
           });
           random_pool.free_state(generator);
@@ -85,7 +85,9 @@ namespace kocs::integrators {
       detail::ViewPack<Views...>& in_view_pack,
       detail::ViewPack<Views...>& out_view_pack
     ) {
-      pair_finder.evaluate_force(in_view_pack, out_view_pack, old_velocities, random_pool, force, is_full_step);
+      pair_finder.template evaluate_force<RandomPool, Force, PairwiseForceFields>(
+        in_view_pack, out_view_pack, old_velocities, random_pool, force, is_full_step
+      );
     }
 
     template<typename RandomPool, typename Force>

@@ -1,5 +1,12 @@
 #include "../../include/kocs.hpp"
-#include "include/forces.hpp"
+
+// TODO: : byte
+enum class CellType {
+  Serosa,
+  Anchor,
+  Pole,
+  Embryo
+};
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
@@ -16,15 +23,12 @@ Scalar r_min = 0.0f;
 
 int main(int argc, char* argv[]) {
   // argparse settings
-  std::string function;
   std::string output_path;
   std::string input_path;
   std::string surface_path;
   bool ok = Arguments("tribolium")
     .add_argument("-rmax", "--rmax", r_max, 1.0f)
     .add_argument("-rmin", "--rmin", r_min, 0.0f)
-    .add_argument("-f", "--function", function, "custom", "function for force evaluation",
-      "custom", "morse")  // only allowed choices
     .add_argument("-o", "--output", output_path, "./output/serosa")
     .add_argument("-i", "--input", input_path, "./examples/tribolium/initial_data/serosa.h5")
     .add_argument("-s", "--surface", surface_path, "./examples/tribolium/initial_data/surface.h5")
@@ -38,7 +42,6 @@ int main(int argc, char* argv[]) {
   std::cout << "\toutput path: " << output_path << "\n";
   std::cout << "\tinput path: " << input_path << "\n";
   std::cout << "\tsurface path: " << surface_path << "\n";
-  std::cout << "\tfunction used: " << function << "\n";
   std::cout << "===========================================================" << std::endl;
 
   /*
@@ -53,7 +56,7 @@ int main(int argc, char* argv[]) {
 
   // create simulation
   PairFinder::Settings pair_finder_settings;
-  pair_finder_settings.rebuild_every_n = 20;
+  // pair_finder_settings.rebuild_every_n = 20;
   Simulation<SimulationConfig> sim(
     serosa_reader.get_dataset_dimensions("POINTS")[0],
     output_path,
@@ -62,22 +65,22 @@ int main(int argc, char* argv[]) {
   );
 
   // read initial positions
-  auto positions_view = sim.get_view<FIELD(Vector, positions)>();
+  auto positions_view = sim.get_view<FIELD(Vector, position)>();
   auto positions_host = Kokkos::create_mirror_view(positions_view);
   serosa_reader.read_dataset("POINTS", positions_view, positions_host);
 
   // read cell types
-  View<int> cell_types_view("cell_types", sim.get_agent_count());
+  Kokkos::View<int*> cell_types_view("cell_types", sim.get_agent_count());
   auto cell_types_host = Kokkos::create_mirror_view(cell_types_view);
   serosa_reader.read_dataset("cell_type", cell_types_view, cell_types_host);
 
   // read normals
-  View<Vector> normals_view("normals_data", surface_reader.get_dataset_dimensions("POINTS")[0]);
+  Kokkos::View<Vector*> normals_view("normals_data", surface_reader.get_dataset_dimensions("POINTS")[0]);
   auto normals_host = Kokkos::create_mirror_view(normals_view);
   surface_reader.read_dataset("POINTS", normals_view, normals_host);
 
   // surface points
-  View<Vector> grid_view("grid_data", normals_view.extent(0));
+  Kokkos::View<Vector*> grid_view("grid_data", normals_view.extent(0));
   auto grid_host = Kokkos::create_mirror_view(grid_view);
   for (int i = 0; i < normals_view.extent(0); ++i)
     grid_host(i) = 15 * normals_host(i);
@@ -89,17 +92,46 @@ int main(int argc, char* argv[]) {
 
   // simulation loop
   std::vector<Vector> pole_positions;
-  auto system_forces = SystemForces<SimulationConfig>(grid_view, normals_view);
+
+  acceleration::Grid<Vector> grid(grid_view);
+  grid.rebuild();
+  auto system_forces = MAKE_GENERIC_FORCE_NAMED({
+    int nearest_grid_point_idx = grid.get_nearest_point_index(f.position.self);
+    if (nearest_grid_point_idx >= 0) {
+      Vector relative_position = f.position.self - grid_view(nearest_grid_point_idx);
+      Vector normal = normals_view(nearest_grid_point_idx);
+
+      Scalar F = -12.0f * relative_position.dot(normal);
+      f.position.delta += F * normal;
+    }
+  });
+
+  auto force_between_cells = MAKE_PAIRWISE_FORCE_NAMED({
+    const CellType this_type = static_cast<CellType>(cell_types_view(i));
+    const CellType other_type = static_cast<CellType>(cell_types_view(j));
+
+    if (this_type == CellType::Anchor || this_type == CellType::Pole) {
+      // do nothing
+    }
+    else if (this_type == CellType::Serosa) {
+      f.position.delta += (Kokkos::exp(-distance) - 0.5f) * displacement;
+    }
+    else {
+      if (other_type == CellType::Pole)
+        f.position.delta += (-Kokkos::exp(-distance)) * displacement;
+      f.position.delta += (Kokkos::exp(-distance) - 0.4f) * displacement;
+    }
+
+    // drag
+    if (this_type != CellType::Anchor && this_type != CellType::Pole)
+      friction += 1.0;
+  });
+
   for (int i = 0; i < steps; ++i) {
     Kokkos::printf("%d step %d\n", sim.get_agent_count(), i);
 
-    for (int j = 0; j < steps_per_reduction; ++j) {
-      // choose force
-      if (function == "custom")
-        sim.take_step(dt, ForceBetweenCellsCustom<SimulationConfig>(cell_types_view), system_forces);
-      else if (function == "morse")
-        sim.take_step(dt, ForceBetweenCellsMorse<SimulationConfig>(cell_types_view), system_forces);
-    }
+    for (int j = 0; j < steps_per_reduction; ++j)
+      sim.take_step(dt, force_between_cells(), system_forces());
 
     // remove embryo cells near poles
     Kokkos::deep_copy(positions_host, positions_view);

@@ -82,6 +82,8 @@ namespace kocs {
       using type = IntegratorT<
         typename SimulationConfig::template PairFinderT<SimulationConfig>,
         typename SimulationConfig::template ComFixerT<SimulationConfig>,
+        typename SimulationConfig::template ForceFields<kocs::detail::GenericFieldRef>,
+        typename SimulationConfig::template ForceFields<kocs::detail::PairwiseFieldRef>,
         typename ViewFromField<Fields>::type...
       >;
     };
@@ -174,8 +176,47 @@ namespace kocs {
 #define FIELD(__SCALAR_TYPE__, __FIELD_NAME__) \
   kocs::detail::Field<__SCALAR_TYPE__, #__FIELD_NAME__>
 
+// #define CONFIG_FIELDS(...) \
+//   using Fields = kocs::detail::FieldList<__VA_ARGS__>;
+
+
+
+#define APPLY_PAIR(M, PAIR) M PAIR
+
+// PP_NARG: count the number of arguments
+#define PP_NARG(...) PP_NARG_IMPL(__VA_ARGS__,8,7,6,5,4,3,2,1,0)
+#define PP_NARG_IMPL(x8,x7,x6,x5,x4,x3,x2,x1,n,...) n
+
+// CAT with argument expansion (avoids ## not expanding args)
+#define CAT(a, b) CAT_IMPL(a, b)
+#define CAT_IMPL(a, b) a ## b
+
+// FOR_EACH_PAIR: iterate over (type, name) pairs (comma-separated for FieldList)
+#define FOR_EACH_PAIR_1(M, A) APPLY_PAIR(M, A)
+#define FOR_EACH_PAIR_2(M, A, B) APPLY_PAIR(M, A), APPLY_PAIR(M, B)
+#define FOR_EACH_PAIR_3(M, A, B, C) APPLY_PAIR(M, A), APPLY_PAIR(M, B), APPLY_PAIR(M, C)
+#define FOR_EACH_PAIR_4(M, A, B, C, D) APPLY_PAIR(M, A), APPLY_PAIR(M, B), APPLY_PAIR(M, C), APPLY_PAIR(M, D)
+
+#define FOR_EACH_PAIR(M, ...) CAT(FOR_EACH_PAIR_, PP_NARG(__VA_ARGS__))(M, __VA_ARGS__)
+
+// helpers for generating ForceFields struct members (semicolon-separated)
+#define FIELDS_ITERATE_1(M, A) APPLY_PAIR(M, A);
+#define FIELDS_ITERATE_2(M, A, B) APPLY_PAIR(M, A); APPLY_PAIR(M, B);
+#define FIELDS_ITERATE_3(M, A, B, C) APPLY_PAIR(M, A); APPLY_PAIR(M, B); APPLY_PAIR(M, C);
+#define FIELDS_ITERATE_4(M, A, B, C, D) APPLY_PAIR(M, A); APPLY_PAIR(M, B); APPLY_PAIR(M, C); APPLY_PAIR(M, D);
+
+#define FIELDS_ITERATE(M, ...) CAT(FIELDS_ITERATE_, PP_NARG(__VA_ARGS__))(M, __VA_ARGS__)
+
+#define FIELD_FORCE_MEMBER(TYPE, NAME) FieldRefT<TYPE> NAME
+
 #define CONFIG_FIELDS(...) \
-  using Fields = kocs::detail::FieldList<__VA_ARGS__>;
+  using Fields = kocs::detail::FieldList<FOR_EACH_PAIR(FIELD, __VA_ARGS__)>; \
+  template<template<typename> typename FieldRefT = kocs::detail::GenericFieldRef> \
+  struct ForceFields { \
+    FIELDS_ITERATE(FIELD_FORCE_MEMBER, __VA_ARGS__) \
+  }; /* ForceFields */
+
+
 
   // default simulation configs
   struct DefaultSimulationConfig {
@@ -186,7 +227,7 @@ namespace kocs {
     using Polarity = kocs::Polarity_<Scalar>;
 
     CONFIG_FIELDS(
-      FIELD(Vector, positions)
+      (Vector, position)
     )
 
     CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
