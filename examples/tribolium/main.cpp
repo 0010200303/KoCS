@@ -1,7 +1,6 @@
 #include "../../include/kocs.hpp"
 
-// TODO: : byte
-enum class CellType {
+enum CellType {
   Serosa,
   Anchor,
   Pole,
@@ -107,8 +106,7 @@ int main(int argc, char* argv[]) {
   });
 
   auto force_between_cells = MAKE_PAIRWISE_FORCE_NAMED({
-    const CellType this_type = static_cast<CellType>(cell_types_view(i));
-    const CellType other_type = static_cast<CellType>(cell_types_view(j));
+    int this_type = cell_types_view(i);
 
     if (this_type == CellType::Anchor || this_type == CellType::Pole) {
       // do nothing
@@ -117,7 +115,7 @@ int main(int argc, char* argv[]) {
       f.position.delta += (Kokkos::exp(-distance) - 0.5f) * displacement;
     }
     else {
-      if (other_type == CellType::Pole)
+      if (cell_types_view(j) == CellType::Pole)
         f.position.delta += (-Kokkos::exp(-distance)) * displacement;
       f.position.delta += (Kokkos::exp(-distance) - 0.4f) * displacement;
     }
@@ -139,7 +137,7 @@ int main(int argc, char* argv[]) {
 
     pole_positions.clear();
     for (int i = 0; i < sim.get_agent_count(); ++i) {
-      if (cell_types_host(i) == static_cast<int>(CellType::Pole))
+      if (cell_types_host(i) == CellType::Pole)
         pole_positions.push_back(positions_host(i));
     }
 
@@ -149,7 +147,7 @@ int main(int argc, char* argv[]) {
       int cell_type_k = cell_types_host(k);
 
       bool keep = true;
-      if (cell_type_k == static_cast<int>(CellType::Embryo)) {
+      if (cell_type_k == CellType::Embryo) {
         for (const auto& pole_position : pole_positions) {
           if (position_k.distance_to_squared(pole_position) < 0.25f) {
             keep = false;
