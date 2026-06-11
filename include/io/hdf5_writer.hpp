@@ -105,7 +105,8 @@ namespace kocs::io {
         xmf_file.close();
       }
 
-      void write_xmf_grid_start(const unsigned int step) {
+      template<typename View>
+      void write_xmf_grid_start(const unsigned int step, const View& first_view) {
         xmf_buffer += "\t\t\t<Grid Name=\"t";
         xmf_buffer += std::to_string(step);
         xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
@@ -128,7 +129,7 @@ namespace kocs::io {
         xmf_buffer += ".h5:t";
         xmf_buffer += std::to_string(step);
         xmf_buffer += "/";
-        xmf_buffer += "positions";  // TODO: pass first view into this function and take the label instead of hard-coded string like this was meant to be anyway
+        xmf_buffer += first_view.label();
         xmf_buffer += "\n\t\t\t\t\t</DataItem>\n\t\t\t\t</Geometry>\n";
       }
 
@@ -207,7 +208,7 @@ namespace kocs::io {
 
         auto all_tuple = std::tuple<const Views&...>(views...);
 
-        write_xmf_grid_start(step);
+        write_xmf_grid_start(step, std::get<0>(all_tuple));
         write_xmf_grid_attributes_from_tuple(step, all_tuple, std::make_index_sequence<sizeof...(Views)>{});
         write_xmf_grid_end();
       }
