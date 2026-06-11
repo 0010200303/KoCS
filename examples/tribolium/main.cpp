@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
 
   // create simulation
   PairFinder::Settings pair_finder_settings;
-  pair_finder_settings.rebuild_every_n = 10;
+  pair_finder_settings.rebuild_every_n = 20;
   Simulation<SimulationConfig> sim(
     serosa_reader.get_dataset_dimensions("POINTS")[0],
     output_path,

@@ -160,8 +160,10 @@ function(add_KoCS_simulation target_name source_file)
     KoCS_core
   )
 
-  # ccache: only for non-CUDA builds (interferes with nvcc wrapper setup)
-  if(CCACHE_PROGRAM AND NOT Kokkos_BACKEND STREQUAL "CUDA")
+  # ccache: wrap CXX compiler for faster incremental rebuilds
+  # for CUDA builds with Kokkos, the RULE_LAUNCH_COMPILE chain is managed
+  # globally by Kokkos (kokkos_launch_compiler → nvcc_wrapper → nvcc)
+  if(CCACHE_PROGRAM AND NOT CMAKE_CUDA_COMPILER)
     set_target_properties(${target_name} PROPERTIES
       RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}"
       RULE_LAUNCH_LINK "${CCACHE_PROGRAM}"
