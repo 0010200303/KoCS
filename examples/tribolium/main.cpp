@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
 
   // create simulation
   PairFinder::Settings pair_finder_settings;
-  // pair_finder_settings.rebuild_every_n = 20;
+  pair_finder_settings.rebuild_every_n = 10;
   Simulation<SimulationConfig> sim(
     serosa_reader.get_dataset_dimensions("POINTS")[0],
     output_path,
@@ -90,8 +90,6 @@ int main(int argc, char* argv[]) {
   sim.write(cell_types_host);
 
   // simulation loop
-  std::vector<Vector> pole_positions;
-
   acceleration::Grid<Vector> grid(grid_view);
   grid.rebuild();
   auto system_forces = MAKE_GENERIC_FORCE_NAMED({
@@ -106,18 +104,19 @@ int main(int argc, char* argv[]) {
   });
 
   auto force_between_cells = MAKE_PAIRWISE_FORCE_NAMED({
-    int this_type = cell_types_view(i);
+    const int this_type = cell_types_view(i);
+    const Scalar exp_neg_d = Kokkos::exp(-distance);
 
     if (this_type == CellType::Anchor || this_type == CellType::Pole) {
       // do nothing
     }
     else if (this_type == CellType::Serosa) {
-      f.position.delta += (Kokkos::exp(-distance) - 0.5f) * displacement;
+      f.position.delta += (exp_neg_d - 0.5f) * displacement;
     }
     else {
       if (cell_types_view(j) == CellType::Pole)
-        f.position.delta += (-Kokkos::exp(-distance)) * displacement;
-      f.position.delta += (Kokkos::exp(-distance) - 0.4f) * displacement;
+        f.position.delta += (-exp_neg_d) * displacement;
+      f.position.delta += (exp_neg_d - 0.4f) * displacement;
     }
 
     // drag
@@ -125,8 +124,12 @@ int main(int argc, char* argv[]) {
       friction += 1.0;
   });
 
+  // pre-allocate vectors for host-side cell removal
+  std::vector<Vector> pole_positions;
+  pole_positions.reserve(sim.get_agent_count() / 10);
+
   for (int i = 0; i < steps; ++i) {
-    Kokkos::printf("%d step %d\n", sim.get_agent_count(), i);
+    std::cout << sim.get_agent_count() << " step " << i << "\n";
 
     for (int j = 0; j < steps_per_reduction; ++j)
       sim.take_step(dt, force_between_cells(), system_forces());
@@ -136,9 +139,9 @@ int main(int argc, char* argv[]) {
     Kokkos::deep_copy(cell_types_host, cell_types_view);
 
     pole_positions.clear();
-    for (int i = 0; i < sim.get_agent_count(); ++i) {
-      if (cell_types_host(i) == CellType::Pole)
-        pole_positions.push_back(positions_host(i));
+    for (int k = 0; k < sim.get_agent_count(); ++k) {
+      if (cell_types_host(k) == CellType::Pole)
+        pole_positions.push_back(positions_host(k));
     }
 
     int new_cell_count = 0;

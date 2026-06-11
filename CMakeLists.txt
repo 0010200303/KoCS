@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 4.0)
 
 project(KoCS
   VERSION 0.1
@@ -91,6 +91,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(argparse)
 
+# ccache support (faster compilation)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+else()
+  message(STATUS "ccache not found — compile caching disabled")
+endif()
+
 add_library(KoCS_core INTERFACE)
 
 target_include_directories(KoCS_core INTERFACE
@@ -152,11 +160,26 @@ function(add_KoCS_simulation target_name source_file)
     KoCS_core
   )
 
-  # Debug: no opt + full debug symbols; Release: -O3
+  # ccache: only for non-CUDA builds (interferes with nvcc wrapper setup)
+  if(CCACHE_PROGRAM AND NOT Kokkos_BACKEND STREQUAL "CUDA")
+    set_target_properties(${target_name} PROPERTIES
+      RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}"
+      RULE_LAUNCH_LINK "${CCACHE_PROGRAM}"
+    )
+  endif()
+
+  # Debug: no opt + full debug symbols
+  # Release: -O3
   target_compile_options(${target_name} PRIVATE
     $<$<CONFIG:Debug>:-O0;-g3;-ggdb>
     $<$<CONFIG:Release>:-O3>
   )
+
+  if(CMAKE_CUDA_COMPILER)
+    target_compile_options(${target_name} PRIVATE
+      $<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:SHELL:--use_fast_math>
+    )
+  endif()
 endfunction()
 
 set(KOCS_USER_TARGET "kocs"

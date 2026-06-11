@@ -36,8 +36,6 @@ namespace kocs::integrators {
     void integrate(double dt, RandomPool& random_pool, Forces... forces) {
       this->evaluate_forces(true, random_pool, this->stage_pack[0], this->stage_pack[1], forces...);
       apply_euler(dt);
-
-      Kokkos::fence();
     }
   };
 } // namespace kocs::integrators

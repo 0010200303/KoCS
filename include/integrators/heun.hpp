@@ -57,8 +57,6 @@ namespace kocs::integrators {
 
       this->evaluate_forces(false, random_pool, this->stage_pack[2], this->stage_pack[3], forces...);
       apply_heun_corrector(dt);
-
-      Kokkos::fence();
     }
   };
 } // namespace kocs::integrators

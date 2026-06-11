@@ -128,7 +128,30 @@ if [ "$DEBUG_BUILD" = true ]; then
 	echo "Building in DEBUG mode with Kokkos bounds checking enabled"
 fi
 
-cmake -S "$PROJECT_ROOT" -B "$BUILD_DIR" "${CMAKE_OPTS[@]}"
+# hash the CMakeLists.txt, the user's source file, and cmake options to detect changes
+CMAKE_CACHE_FILE="$BUILD_DIR/CMakeCache.txt"
+NEEDS_RECONFIGURE=false
+
+# compute hash of inputs that affect cmake configuration
+CONFIG_HASH_FILE="$BUILD_DIR/.cmake_configure_hash"
+NEW_HASH=$( (cat "$PROJECT_ROOT/CMakeLists.txt" "$USER_MAIN" 2>/dev/null; echo "${CMAKE_OPTS[@]}") | sha256sum | cut -d' ' -f1)
+
+if [ ! -f "$CMAKE_CACHE_FILE" ]; then
+	NEEDS_RECONFIGURE=true
+else
+	OLD_HASH=$(cat "$CONFIG_HASH_FILE" 2>/dev/null || echo "")
+	if [ "$NEW_HASH" != "$OLD_HASH" ]; then
+		NEEDS_RECONFIGURE=true
+	fi
+fi
+
+if [ "$NEEDS_RECONFIGURE" = true ]; then
+	cmake -S "$PROJECT_ROOT" -B "$BUILD_DIR" "${CMAKE_OPTS[@]}"
+	# Store hash for next run
+	echo "$NEW_HASH" > "$CONFIG_HASH_FILE"
+fi
+
+
 
 cmake --build "$BUILD_DIR" --target "$TARGET_NAME" -- -j$(nproc || echo 1)
 
