@@ -86,8 +86,7 @@ namespace kocs {
 
 #define GENERIC_FORCE(...) [&]() { return GENERIC_FORCE_IMPL(GENERIC_FORCE_PARAMETERS) { __VA_ARGS__ }; }
 #define PAIRWISE_FORCE(...) [&]() { return PAIRWISE_FORCE_IMPL(PAIRWISE_FORCE_PARAMETERS) { __VA_ARGS__ }; }
-
-#define INIT_FUNC() KOKKOS_LAMBDA(const unsigned int i, Random& rng)
+#define INIT_FUNC(...) [&]() { return KOKKOS_LAMBDA(const unsigned int i, Random& rng) { __VA_ARGS__ }; }
 
 #define GENERIC_FORCE_OP() \
   using tag = kocs::detail::GenericForceTag; \

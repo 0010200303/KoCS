@@ -13,8 +13,8 @@ using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
   CONFIG_FIELDS(
-    FIELD(Vector, positions),
-    FIELD(Polarity, polarities)
+    (Vector, positions),
+    (Polarity, polarities)
   )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -44,27 +44,27 @@ int main() {
   sim.init_relaxed_sphere(1.0);
 
   // forces
-  auto relu_w_epithelium = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
+  auto relu_w_epithelium = PAIRWISE_FORCE(
     if (types(j) == CellType::Mesenchyme)
       Kokkos::atomic_add(&mesenchyme_neighbours(i), 1);
     else
       Kokkos::atomic_add(&epithelium_neighbours(i), 1);
 
     if (types(i) == types(j))
-      position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f, 2.0f, 1.0f);
+      ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f, 2.0f, 1.0f);
     else
-      position.delta += forces::PiecewiseLinear(displacement, distance, 0.8f, 0.9f, 2.0f, 1.0f);
+      ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.8f, 0.9f, 2.0f, 1.0f);
     
     if (types(i) == CellType::Epithelium && types(j) == CellType::Epithelium) {
-      auto result = polarity.self.bending_force(displacement, polarity.other, distance);
-      position.delta += result.vector * 0.15;
-      polarity.delta += result.polarity * 0.15;
+      auto result = ctx.polarity.self.bending_force(displacement, ctx.polarity.other, distance);
+      ctx.position.delta += result.vector * 0.15;
+      ctx.polarity.delta += result.polarity * 0.15;
     }
-  };
+  );
 
   Kokkos::View<int> counter("counter");
   Kokkos::View<Scalar> rate("proliferation_rate");
-  auto proliferate = INIT_FUNC() {
+  auto proliferate = INIT_FUNC(
     if (types(i) == CellType::Mesenchyme && rng.drand(0.0, 1.0) > rate())
       return;
     else if (types(i) == CellType::Epithelium && epithelium_neighbours(i) > mesenchyme_neighbours(i))
@@ -79,22 +79,22 @@ int main() {
     positions(n) = positions(i) + mean_distance / 4 * temp_polarity.to_vector3();
     polarities(n) = polarities(i);
     types(n) = types(i);
-  };
+  );
 
   // find epithelium
   sim.take_step(dt, relu_w_epithelium);
-  sim.init(INIT_FUNC() {
+  sim.init(INIT_FUNC(
     if (mesenchyme_neighbours(i) < 12 * 2) {  // *2 for 2nd order solver
       types(i) = CellType::Epithelium;
       polarities(i) = Polarity(positions(i));
     }
-  });
+  ));
 
   sim.write(_types, _mesenchyme_neighbours, _epithelium_neighbours);
   for (int i = 0; i < steps; ++i) {
     Kokkos::deep_copy(_mesenchyme_neighbours, 0);
     Kokkos::deep_copy(_epithelium_neighbours, 0);
-    sim.take_step(dt, relu_w_epithelium);
+    sim.take_step(dt, relu_w_epithelium());
 
 
 
@@ -104,7 +104,7 @@ int main() {
 
     Kokkos::deep_copy(counter, sim.get_agent_count());
     Kokkos::deep_copy(rate, proliferation_rate * (i > 100));
-    sim.init(proliferate);
+    sim.init(proliferate());
 
     auto counter_host = Kokkos::create_mirror_view(counter);
     Kokkos::deep_copy(counter_host, counter);

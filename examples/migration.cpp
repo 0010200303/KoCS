@@ -6,8 +6,8 @@
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_FIELDS(
-    FIELD(Vector, positions),
-    FIELD(Polarity, polarities)
+    (Vector, position),
+    (Polarity, polarity)
   )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -19,25 +19,25 @@ const Scalar r_max = 1.0;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/migration", r_max);
-  auto& positions_view = sim.get_view<FIELD(Vector, positions)>();
-  auto& polarities_view = sim.get_view<FIELD(Polarity, polarities)>();
-  auto initial_conditions = INIT_FUNC() {
+  auto& positions_view = sim.get_view<FIELD(Vector, position)>();
+  auto& polarities_view = sim.get_view<FIELD(Polarity, polarity)>();
+  auto initial_conditions = INIT_FUNC(
     if (i == 0) {
       positions_view(i) = Vector{0.0};
       polarities_view(i) = Polarity{0.0, 0.01};
     }
-  };
+  );
 
-  sim.init_relaxed_cuboid(Vector{-1.5, -1.5, 0.0}, Vector{1.5, 1.5, 10.0}, 2000, initial_conditions);
+  sim.init_relaxed_cuboid(Vector{-1.5, -1.5, 0.0}, Vector{1.5, 1.5, 10.0}, 2000, initial_conditions());
   sim.write();
 
-  auto relu_w_migration = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
-    position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f, 1.0f, 2.0f) +
-      polarity.self.migration_force(displacement, polarity.other, distance);
-  };
+  auto relu_w_migration = PAIRWISE_FORCE(
+    ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f, 1.0f, 2.0f) +
+      ctx.polarity.self.migration_force(displacement, ctx.polarity.other, distance);
+  );
 
   for (int i = 1; i <= steps; ++i) {
-    sim.take_step(dt, relu_w_migration);
+    sim.take_step(dt, relu_w_migration());
     sim.write();
   }
 

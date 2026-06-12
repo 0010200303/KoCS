@@ -16,12 +16,12 @@ int main() {
   sim.init_random_filled_sphere(3.0);
   sim.write();
 
-  auto spring = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position)) {
-    position.delta += forces::Spring(displacement, distance, L_0);
-  };
+  auto spring = PAIRWISE_FORCE(
+    ctx.position.delta += forces::Spring(displacement, distance, L_0);
+  );
 
   for (int i = 1; i <= steps; ++i) {
-    sim.take_step(dt, spring);
+    sim.take_step(dt, spring());
     sim.write();
   }
 

@@ -7,8 +7,8 @@ using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_DIMENSIONS(2)
   CONFIG_FIELDS(
-    FIELD(Vector, positions),
-    FIELD(Scalar, gradients)
+    (Vector, position),
+    (Scalar, gradient)
   )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -21,22 +21,22 @@ const Scalar D = 10;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/gradient", r_max);
-  auto gradient_view = sim.get_view<FIELD(Scalar, gradients)>();
-  auto gradient_init = INIT_FUNC() {
+  auto gradient_view = sim.get_view<FIELD(Scalar, gradient)>();
+  auto gradient_init = INIT_FUNC(
     if (i == 11)
       gradient_view(i) = Scalar(1);
-  };
-  sim.init_regular_hexagon(0.75, gradient_init);
+  );
+  sim.init_regular_hexagon(0.75, gradient_init());
   sim.write();
 
-  auto diffusion = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Scalar, gradient)) {
+  auto diffusion = PAIRWISE_FORCE(
     if (i == 11)
       return;
-    gradient.delta += -(gradient.self - gradient.other) * D;
-  };
+    ctx.gradient.delta += -(ctx.gradient.self - ctx.gradient.other) * D;
+  );
 
   for (int i = 1; i <= steps; ++i) {
-    sim.take_step(dt, diffusion);
+    sim.take_step(dt, diffusion());
     sim.write();
   }
 

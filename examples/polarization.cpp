@@ -1,14 +1,13 @@
 // example translated from https://github.com/germannp/yalla/blob/main/examples/polarization.cu
 // Simulate randomly migrating cell
 
-#include <numbers>
 #include "../include/kocs.hpp"
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_FIELDS(
-    FIELD(Vector, positions),
-    FIELD(Polarity, polarities)
+    (Vector, position),
+    (Polarity, polarity)
   )
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
 };
@@ -22,27 +21,27 @@ const Scalar r_min = 0.6;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/polarization", r_max);
-  auto& polarities_view = sim.get_view<FIELD(Polarity, polarities)>();
-  auto initial_conditions = INIT_FUNC() {
+  auto& polarities_view = sim.get_view<FIELD(Polarity, polarity)>();
+  auto initial_conditions = INIT_FUNC(
     polarities_view(i) = Polarity{
       Kokkos::acos(2.0 * rng.drand(0.0, 1.0) - 1.0),
-      2.0 * std::numbers::pi * rng.drand(0.0, 1.0)
+      2.0 * Kokkos::numbers::pi_v<Scalar> * rng.drand(0.0, 1.0)
     };
-  };
+  );
 
-  sim.init_random_filled_sphere(1.5, initial_conditions);
+  sim.init_random_filled_sphere(1.5, initial_conditions());
   sim.write();
 
-  auto polarization = PAIRWISE_FORCE(PAIRWISE_REF(Vector, position), PAIRWISE_REF(Polarity, polarity)) {
+  auto polarization = PAIRWISE_FORCE(
     Scalar F = 2.0 * (r_min - distance) * (r_max - distance) + Kokkos::pow(r_max - distance, 2);
-    position.delta += displacement * F / distance;
+    ctx.position.delta += displacement * F / distance;
 
     // U_Pol = -(Σ(n_i . n_j)^2) / 2
-    polarity.delta += polarity.self.bidirectional_polarization_force(polarity.other);
-  };
+    ctx.polarity.delta += ctx.polarity.self.bidirectional_polarization_force(ctx.polarity.other);
+  );
 
   for (int i = 1; i <= steps; ++i) {
-    sim.take_step(dt, polarization);
+    sim.take_step(dt, polarization());
     sim.write();
   }
 
