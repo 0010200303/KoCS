@@ -6,9 +6,9 @@
 namespace kocs {
   template<typename T>
   struct Var : public Kokkos::DualView<T> {
-    View(const std::string& label, const unsigned int count)
-      : Kokkos::DualView<T>(label, count)
-      , device_modified_flag("DualView:device_modified_flag") { }
+    Var(const std::string& label)
+      : Kokkos::DualView<T>(label)
+      , device_modified_flag("Var:device_modified_flag") { }
 
     Kokkos::View<bool> device_modified_flag;
 
