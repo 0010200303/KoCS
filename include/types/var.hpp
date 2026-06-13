@@ -76,13 +76,13 @@ namespace kocs {
       this->sync_device();
     }
 
-    inline void deep_copy(const View<T>& src) {
-      Kokkos::deep_copy(static_cast<Kokkos::DualView<T*>&>(*this), static_cast<const Kokkos::DualView<T*>&>(src));
+    inline void deep_copy(const Var<T>& src) {
+      Kokkos::deep_copy(static_cast<Kokkos::DualView<T>&>(*this), static_cast<const Kokkos::DualView<T>&>(src));
       Kokkos::deep_copy(device_modified_flag, false);
     }
 
     inline void deep_copy(const T& src) {
-      Kokkos::deep_copy(static_cast<Kokkos::DualView<T*>&>(*this), src);
+      Kokkos::deep_copy(static_cast<Kokkos::DualView<T>&>(*this), src);
       Kokkos::deep_copy(device_modified_flag, false);
     }
   };

@@ -13,8 +13,8 @@ using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_COM_FIXER(com_fixers::NoComFixer)
   CONFIG_FIELDS(
-    (Vector, positions),
-    (Polarity, polarities)
+    (Vector, position),
+    (Polarity, polarity)
   )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
@@ -28,17 +28,11 @@ const Scalar proliferation_rate = 0.006;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/passive_growth", r_max);
-  auto& _positions = sim.get_view<FIELD(Vector, positions)>();
-  auto& _polarities = sim.get_view<FIELD(Polarity, polarities)>();
-  View<int> _types("cell_types", n_cells);
-  View<int> _mesenchyme_neighbours("mesenchyme_neighbours", n_cells);
-  View<int> _epithelium_neighbours("epithelium_neighbours", n_cells);
-
-  auto positions = track_view(_positions);
-  auto polarities = track_view(_polarities);
-  auto types = track_view(_types);
-  auto mesenchyme_neighbours = track_view(_mesenchyme_neighbours);
-  auto epithelium_neighbours = track_view(_epithelium_neighbours);
+  auto& positions = sim.get_view<FIELD(Vector, position)>();
+  auto& polarities = sim.get_view<FIELD(Polarity, polarity)>();
+  View<int> types("cell_types", n_cells);
+  View<int> mesenchyme_neighbours("mesenchyme_neighbours", n_cells);
+  View<int> epithelium_neighbours("epithelium_neighbours", n_cells);
 
   sim.set_agent_count(n_cells);
   sim.init_relaxed_sphere(1.0);
@@ -76,7 +70,8 @@ int main() {
       Kokkos::acos(2.0 * rng.drand(0.0, 1.0) - 1),
       rng.drand(0.0, 1.0) * 2.0 * Kokkos::numbers::pi_v<Scalar>
     );
-    positions(n) = positions(i) + mean_distance / 4 * temp_polarity.to_vector3();
+    auto pos_i = Vector(positions(i));
+positions(n) = pos_i + mean_distance / 4 * temp_polarity.to_vector3();
     polarities(n) = polarities(i);
     types(n) = types(i);
   );
@@ -90,17 +85,17 @@ int main() {
     }
   ));
 
-  sim.write(_types, _mesenchyme_neighbours, _epithelium_neighbours);
+  sim.write(types, mesenchyme_neighbours, epithelium_neighbours);
   for (int i = 0; i < steps; ++i) {
-    Kokkos::deep_copy(_mesenchyme_neighbours, 0);
-    Kokkos::deep_copy(_epithelium_neighbours, 0);
+    mesenchyme_neighbours.deep_copy(0);
+    epithelium_neighbours.deep_copy(0);
     sim.take_step(dt, relu_w_epithelium());
 
 
 
     // ensure capacity is high enough to store all possible cells
     if (sim.get_agent_count() * 2 > sim.get_capacity())
-      sim.set_capacity(sim.get_agent_count() * 4, _types, _mesenchyme_neighbours, _epithelium_neighbours);
+      sim.set_capacity(sim.get_agent_count() * 4, types, mesenchyme_neighbours, epithelium_neighbours);
 
     Kokkos::deep_copy(counter, sim.get_agent_count());
     Kokkos::deep_copy(rate, proliferation_rate * (i > 100));
@@ -112,6 +107,6 @@ int main() {
 
     
 
-    sim.write(_types, _mesenchyme_neighbours, _epithelium_neighbours);
+    sim.write(types, mesenchyme_neighbours, epithelium_neighbours);
   }
 }

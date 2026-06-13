@@ -89,11 +89,13 @@ namespace kocs {
       }
     
     public:
+      // TODO: add static_assert for better error message
       template <typename Field>
       inline auto& get_view() {
         return detail::get<Field>(storage);
       }
-
+      
+      // TODO: add static_assert for better error message
       template <typename Field>
       inline const auto& get_view() const {
         return detail::get<Field>(storage);

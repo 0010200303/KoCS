@@ -3,6 +3,9 @@
 
 #include <string_view>
 
+#include <Kokkos_Random.hpp>
+
+#include "types/view.hpp"
 #include "integrators/detail.hpp"
 #include "integrators/heun.hpp"
 #include "pair_finders/all_pairs.hpp"
@@ -48,7 +51,7 @@ namespace kocs {
       using field_type = std::remove_cv_t<typename Field::type>;
       static_assert(pointer_depth<field_type>::value <= 1,
                     "Field element types must not be pointer-to-pointer or higher (depth >= 2)");
-      using type = Kokkos::View<std::remove_pointer_t<field_type>*>;
+      using type = View<std::remove_pointer_t<field_type>>;
     };
 
     template <typename Field>
@@ -223,7 +226,7 @@ namespace kocs {
     CONFIG_SCALAR(float)
     CONFIG_DIMENSIONS(3)
 
-    using VectorView = Kokkos::View<Vector*>;
+    using VectorView = kocs::View<Vector>;
     using Polarity = kocs::Polarity_<Scalar>;
 
     CONFIG_FIELDS(
