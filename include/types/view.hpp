@@ -85,32 +85,17 @@ namespace kocs {
       this->sync_host();
       this->sync_device();
     }
+
+    inline void deep_copy(const View<T>& src) {
+      Kokkos::deep_copy(static_cast<Kokkos::DualView<T*>&>(*this), static_cast<const Kokkos::DualView<T*>&>(src));
+      Kokkos::deep_copy(device_modified_flag, false);
+    }
+
+    inline void deep_copy(const T& src) {
+      Kokkos::deep_copy(static_cast<Kokkos::DualView<T*>&>(*this), src);
+      Kokkos::deep_copy(device_modified_flag, false);
+    }
   };
 } // namespace kocs
-
-// Partial specialization of Kokkos::deep_copy() for kocs::View objects.
-namespace Kokkos {
-  template <class DT, class ST>
-  void deep_copy(kocs::View<DT>& dst, const kocs::View<ST>& src) {
-    if (src.need_sync_device()) {
-      deep_copy(dst.view_host(), src.view_host());
-      dst.modify_host();
-    } else {
-      deep_copy(dst.view_device(), src.view_device());
-      dst.modify_device();
-    }
-  }
-
-  template <class ExecutionSpace, class DT, class ST>
-  void deep_copy(const ExecutionSpace& exec, kocs::View<DT>& dst, const kocs::View<ST>& src) {
-    if (src.need_sync_device()) {
-      deep_copy(exec, dst.view_host(), src.view_host());
-      dst.modify_host();
-    } else {
-      deep_copy(exec, dst.view_device(), src.view_device());
-      dst.modify_device();
-    }
-  }
-}  // namespace Kokkos
 
 #endif // KOCS_TYPES_VIEW_HPP
