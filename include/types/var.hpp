@@ -19,7 +19,7 @@ namespace kocs {
         return this->view_device()();
       ))
       KOKKOS_IF_ON_HOST((
-        const_cast<View*>(this)->modify_host();
+        const_cast<Var*>(this)->modify_host();
         return this->view_host()();
       ))
     }
