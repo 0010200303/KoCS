@@ -32,12 +32,11 @@ int main() {
     sim.take_step(dt, generic());
     sim.write();
   }
-  view.sync_device_to_host();
+  view.auto_sync();
 
   Kokkos::parallel_for(sim.get_agent_count(), KOKKOS_LAMBDA(const unsigned int i) {
     Kokkos::printf("%d\n", view(i));
   });
-  Kokkos::fence();
 
   Kokkos::printf("\n");
 
@@ -55,13 +54,11 @@ int main() {
 
   for (int i = prev_size; i < sim.get_agent_count(); ++i)
     view(i) = 10 + i;
-  view.sync_host_to_device();
-  Kokkos::fence();
+  view.auto_sync();
 
   Kokkos::parallel_for(sim.get_agent_count(), KOKKOS_LAMBDA(const unsigned int i) {
-    Kokkos::printf("%d\n", view(i));
+    Kokkos::printf("%d %d\n", view.read(i), view.device_modified_flag());
   });
-  Kokkos::fence();
 
   Kokkos::printf("\n");
 

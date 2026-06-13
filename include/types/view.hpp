@@ -9,35 +9,81 @@
 namespace kocs {
   template<typename T>
   struct View : public Kokkos::DualView<T*> {
-    View(const std::string& label, const unsigned int count) : Kokkos::DualView<T*>(label, count) { }
+    View(const std::string& label, const unsigned int count)
+      : Kokkos::DualView<T*>(label, count)
+      , device_modified_flag("DualView:device_modified_flag") { }
+
+    Kokkos::View<bool> device_modified_flag;
 
     KOKKOS_INLINE_FUNCTION
-    T& operator()(int i) const {
+    T& operator()(const int i) const {
+      KOKKOS_IF_ON_DEVICE((
+        device_modified_flag() = true;
+        return this->view_device()(i);
+      ))
+      KOKKOS_IF_ON_HOST((
+        const_cast<View*>(this)->modify_host();
+        return this->view_host()(i);
+      ))
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    const T& read(const int i) const {
       KOKKOS_IF_ON_DEVICE((
         return this->view_device()(i);
       ))
-
       KOKKOS_IF_ON_HOST((
         return this->view_host()(i);
       ))
     }
 
-    // hide base class methods
+    // same as normal operator, just here for completeness
+    KOKKOS_INLINE_FUNCTION
+    T& write(int i) const {
+      return (*this)(i);
+    }
+
+    // hide base class method
     inline void resize(const int value) {
       Kokkos::DualView<T*>::resize(value);
-      this->sync_host();
+      Kokkos::deep_copy(device_modified_flag, false);
+      Kokkos::DualView<T*>::sync_host();
     }
 
-    // unconditional sync
-    inline void sync_host_to_device() {
+    // 
+    inline void sync_host() {
+      auto flag_host = Kokkos::create_mirror_view(device_modified_flag);
+      Kokkos::deep_copy(flag_host, device_modified_flag);
+
+      if (flag_host() == true) {
+        this->modify_device();
+        Kokkos::deep_copy(device_modified_flag, false);
+      }
+      Kokkos::DualView<T*>::sync_host();
+    }
+
+    inline void uncontioninal_sync_device() {
       this->modify_host();
-      this->sync_device();
+      Kokkos::DualView<T*>::sync_device();
     }
 
-    // unconditional sync
-    inline void sync_device_to_host() {
+    inline void unconditional_sync_host() {
       this->modify_device();
+      Kokkos::deep_copy(device_modified_flag, false);
+      Kokkos::DualView<T*>::sync_host();
+    }
+
+    // will do nothing if neither view was modified
+    // will abort if both views were modified
+    // eitherwise will sync correctly based on which view was modified
+    inline void auto_sync() {
+      auto flag_host = Kokkos::create_mirror_view(device_modified_flag);
+      Kokkos::deep_copy(flag_host, device_modified_flag);
+      if (flag_host() == true)
+        this->modify_device();
+      
       this->sync_host();
+      this->sync_device();
     }
   };
 } // namespace kocs
