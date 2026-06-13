@@ -6,7 +6,7 @@
 #include "types/vector.hpp"
 #include "types/polarity.hpp"
 #include "types/view.hpp"
-#include "types/var.hpp"
+#include "types/device_var.hpp"
 
 #include "integrators/base.hpp"
 #include "forces/detail.hpp"
