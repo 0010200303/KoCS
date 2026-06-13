@@ -1,53 +1,43 @@
-#ifndef KOCS_TYPES_VIEW_HPP
-#define KOCS_TYPES_VIEW_HPP
-
-#include <string>
+#ifndef KOCS_TYPES_VAR_HPP
+#define KOCS_TYPES_VAR_HPP
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_DualView.hpp>
 
 namespace kocs {
   template<typename T>
-  struct View : public Kokkos::DualView<T*> {
+  struct Var : public Kokkos::DualView<T> {
     View(const std::string& label, const unsigned int count)
-      : Kokkos::DualView<T*>(label, count)
+      : Kokkos::DualView<T>(label, count)
       , device_modified_flag("DualView:device_modified_flag") { }
 
     Kokkos::View<bool> device_modified_flag;
 
     KOKKOS_INLINE_FUNCTION
-    T& operator()(const int i) const {
+    T& operator()() const {
       KOKKOS_IF_ON_DEVICE((
         device_modified_flag() = true;
-        return this->view_device()(i);
+        return this->view_device()();
       ))
       KOKKOS_IF_ON_HOST((
         const_cast<View*>(this)->modify_host();
-        return this->view_host()(i);
+        return this->view_host()();
       ))
     }
 
     KOKKOS_INLINE_FUNCTION
-    const T& read(const int i) const {
+    const T& read() const {
       KOKKOS_IF_ON_DEVICE((
-        return this->view_device()(i);
+        return this->view_device()();
       ))
       KOKKOS_IF_ON_HOST((
-        return this->view_host()(i);
+        return this->view_host()();
       ))
     }
 
     // same as normal operator, just here for completeness
     KOKKOS_INLINE_FUNCTION
-    T& write(const int i) const {
-      return (*this)(i);
-    }
-
-    // hide base class method
-    inline void resize(const int value) {
-      Kokkos::DualView<T*>::resize(value);
-      Kokkos::deep_copy(device_modified_flag, false);
-      Kokkos::DualView<T*>::sync_host();
+    T& write() const {
+      return (*this)();
     }
 
     // 
@@ -64,13 +54,13 @@ namespace kocs {
 
     inline void uncontioninal_sync_device() {
       this->modify_host();
-      Kokkos::DualView<T*>::sync_device();
+      Kokkos::DualView<T>::sync_device();
     }
 
     inline void unconditional_sync_host() {
       this->modify_device();
       Kokkos::deep_copy(device_modified_flag, false);
-      Kokkos::DualView<T*>::sync_host();
+      Kokkos::DualView<T>::sync_host();
     }
 
     // will do nothing if neither view was modified
@@ -88,4 +78,4 @@ namespace kocs {
   };
 } // namespace kocs
 
-#endif // KOCS_TYPES_VIEW_HPP
+#endif // KOCS_TYPES_VAR_HPP
