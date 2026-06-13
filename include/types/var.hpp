@@ -78,4 +78,29 @@ namespace kocs {
   };
 } // namespace kocs
 
+// Partial specialization of Kokkos::deep_copy() for kocs::Var objects.
+namespace Kokkos {
+  template <class DT, class ST>
+  void deep_copy(kocs::Var<DT>& dst, const kocs::Var<ST>& src) {
+    if (src.need_sync_device()) {
+      deep_copy(dst.view_host(), src.view_host());
+      dst.modify_host();
+    } else {
+      deep_copy(dst.view_device(), src.view_device());
+      dst.modify_device();
+    }
+  }
+
+  template <class ExecutionSpace, class DT, class ST>
+  void deep_copy(const ExecutionSpace& exec, kocs::Var<DT>& dst, const kocs::Var<ST>& src) {
+    if (src.need_sync_device()) {
+      deep_copy(exec, dst.view_host(), src.view_host());
+      dst.modify_host();
+    } else {
+      deep_copy(exec, dst.view_device(), src.view_device());
+      dst.modify_device();
+    }
+  }
+}  // namespace Kokkos
+
 #endif // KOCS_TYPES_VAR_HPP

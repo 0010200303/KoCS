@@ -81,11 +81,36 @@ namespace kocs {
       Kokkos::deep_copy(flag_host, device_modified_flag);
       if (flag_host() == true)
         this->modify_device();
-      
+
       this->sync_host();
       this->sync_device();
     }
   };
 } // namespace kocs
+
+// Partial specialization of Kokkos::deep_copy() for kocs::View objects.
+namespace Kokkos {
+  template <class DT, class ST>
+  void deep_copy(kocs::View<DT>& dst, const kocs::View<ST>& src) {
+    if (src.need_sync_device()) {
+      deep_copy(dst.view_host(), src.view_host());
+      dst.modify_host();
+    } else {
+      deep_copy(dst.view_device(), src.view_device());
+      dst.modify_device();
+    }
+  }
+
+  template <class ExecutionSpace, class DT, class ST>
+  void deep_copy(const ExecutionSpace& exec, kocs::View<DT>& dst, const kocs::View<ST>& src) {
+    if (src.need_sync_device()) {
+      deep_copy(exec, dst.view_host(), src.view_host());
+      dst.modify_host();
+    } else {
+      deep_copy(exec, dst.view_device(), src.view_device());
+      dst.modify_device();
+    }
+  }
+}  // namespace Kokkos
 
 #endif // KOCS_TYPES_VIEW_HPP
