@@ -4,11 +4,30 @@
 #include <Kokkos_Core.hpp>
 
 namespace kocs {
+  // only direct assignments are supported on the host
+  // modifying fiels on host like "vector.x = 13" will not get copied to device!
   template<typename T>
   struct DeviceVar {
-    DeviceVar(const std::string& label) : device_view(label) { }
+    DeviceVar() : device_view("DeviceVar (default constructed)") {
+      Kokkos::deep_copy(device_view, T());
+    }
+    
+    DeviceVar(const std::string& label) : device_view(label) {
+      Kokkos::deep_copy(device_view, T());
+    }
+
+    DeviceVar(const std::string& label, const T& value) : device_view(label) {
+      Kokkos::deep_copy(device_view, value);
+    }
+
+    DeviceVar(const T& value) : device_view("DeviceVar (directly assigned)") {
+      Kokkos::deep_copy(device_view, value);
+    }
 
     Kokkos::View<T> device_view;
+
+    KOKKOS_INLINE_FUNCTION
+    DeviceVar(const DeviceVar& other) : device_view(other.device_view) { }
 
     KOKKOS_INLINE_FUNCTION
     DeviceVar& operator=(const T& value) {
@@ -31,6 +50,16 @@ namespace kocs {
         Kokkos::deep_copy(host_value, device_view);
         return host_value;
       ))
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    T* data() {
+      return &device_view();
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    T* data() const {
+      return &device_view();
     }
   };
 } // namespace kocs

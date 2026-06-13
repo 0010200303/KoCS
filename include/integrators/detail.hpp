@@ -186,11 +186,11 @@ namespace kocs::detail {
 
       if constexpr (sizeof...(RestViews) == 0) {
         return ViewPack<mirror_first_type>(
-          Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), pack.first())
+          FirstView(pack.first().label(), pack.first().extent(0))
         );
       } else {
         return ViewPack<mirror_first_type, RestViews...>(
-          Kokkos::create_mirror(Kokkos::DefaultExecutionSpace(), pack.first()),
+          FirstView(pack.first().label(), pack.first().extent(0)),
           make_mirror_view_pack_impl(static_cast<const ViewPack<RestViews...>&>(pack))
         );
       }

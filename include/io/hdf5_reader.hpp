@@ -2,13 +2,11 @@
 #define KOCS_IO_HDF5_READER_HPP
 
 #include <string>
-#include <vector>
-#include <type_traits>
 
-#include <Kokkos_Core.hpp>
 #include <highfive/highfive.hpp>
 
-#include "../utils/utils.hpp"
+#include "../types/view.hpp"
+#include "view.hpp"
 
 namespace kocs::io {
   class HDF5_Reader {
@@ -25,28 +23,10 @@ namespace kocs::io {
       }
 
       template<typename T>
-      void read_dataset(const std::string& dataset_name, Kokkos::View<T> out_view) {
-        auto out_view_host = Kokkos::create_mirror_view(out_view);
-
+      void read_dataset(const std::string& dataset_name, View<T> out_view) {
         HighFive::DataSet dataset = file.getDataSet(dataset_name);
-        dataset.read(out_view_host);
-
-        if (out_view.data() != out_view_host.data()) {
-          Kokkos::deep_copy(out_view, out_view_host);
-        }
-      }
-
-      template<typename T, typename HostView>
-      void read_dataset(const std::string& dataset_name, Kokkos::View<T> out_view, HostView out_view_host) {
-        // static_assert(std::is_same_v<HostView, typename View<T>::host_mirror_type>,
-        //   "out_view_host must be the host mirror of out_view");
-
-        HighFive::DataSet dataset = file.getDataSet(dataset_name);
-        dataset.read(out_view_host);
-
-        if (out_view.data() != out_view_host.data()) {
-          Kokkos::deep_copy(out_view, out_view_host);
-        }
+        dataset.read(const_cast<typename View<T>::t_host&>(out_view.view_host()));
+        out_view.unconditional_sync_device();
       }
   };
 } // namespace kocs::io

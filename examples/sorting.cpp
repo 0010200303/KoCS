@@ -12,7 +12,7 @@ const Scalar r_max = 1.0;
 
 int main() {
   Simulation<DefaultSimulationConfig> sim(n_cells, "./output/sorting", r_max);
-  Kokkos::View<bool*> types("types", n_cells);
+  View<bool> types("types", n_cells);
   auto types_init = INIT_FUNC(
     types(i) = (i < n_cells / 2) ? 0 : 1;
   );

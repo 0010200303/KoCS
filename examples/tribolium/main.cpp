@@ -63,31 +63,22 @@ int main(int argc, char* argv[]) {
     pair_finder_settings
   );
 
-  // read initial positions
+  // read data
   auto positions_view = sim.get_view<FIELD(Vector, position)>();
-  auto positions_host = Kokkos::create_mirror_view(positions_view);
-  serosa_reader.read_dataset("POINTS", positions_view, positions_host);
+  serosa_reader.read_dataset("POINTS", positions_view);
 
-  // read cell types
-  Kokkos::View<int*> cell_types_view("cell_types", sim.get_agent_count());
-  auto cell_types_host = Kokkos::create_mirror_view(cell_types_view);
-  serosa_reader.read_dataset("cell_type", cell_types_view, cell_types_host);
+  View<int> cell_types_view("cell_types_view", sim.get_agent_count());
+  serosa_reader.read_dataset("cell_type", cell_types_view);
 
-  // read normals
-  Kokkos::View<Vector*> normals_view("normals_data", surface_reader.get_dataset_dimensions("POINTS")[0]);
-  auto normals_host = Kokkos::create_mirror_view(normals_view);
-  surface_reader.read_dataset("POINTS", normals_view, normals_host);
+  View<Vector> normals_view("normals_view", surface_reader.get_dataset_dimensions("POINTS")[0]);
+  surface_reader.read_dataset("POINTS", normals_view);
 
-  // surface points
-  Kokkos::View<Vector*> grid_view("grid_data", normals_view.extent(0));
-  auto grid_host = Kokkos::create_mirror_view(grid_view);
-  for (int i = 0; i < normals_view.extent(0); ++i)
-    grid_host(i) = 15 * normals_host(i);
-  Kokkos::deep_copy(grid_view, grid_host);
+  View<Vector> grid_view("grid_view", normals_view.get_capacity());
+  for (int i = 0; i < normals_view.get_capacity(); ++i)
+    grid_view(i) = 15 * normals_view(i);
+  grid_view.auto_sync();
 
-
-
-  sim.write(cell_types_host);
+  sim.write(cell_types_view);
 
   // simulation loop
   acceleration::Grid<Vector> grid(grid_view);
@@ -135,19 +126,19 @@ int main(int argc, char* argv[]) {
       sim.take_step(dt, force_between_cells(), system_forces());
 
     // remove embryo cells near poles
-    Kokkos::deep_copy(positions_host, positions_view);
-    Kokkos::deep_copy(cell_types_host, cell_types_view);
+    positions_view.auto_sync();
+    cell_types_view.auto_sync();
 
     pole_positions.clear();
     for (int k = 0; k < sim.get_agent_count(); ++k) {
-      if (cell_types_host(k) == CellType::Pole)
-        pole_positions.push_back(positions_host(k));
+      if (cell_types_view(k) == CellType::Pole)
+        pole_positions.push_back(positions_view(k));
     }
 
     int new_cell_count = 0;
     for (int k = 0; k < sim.get_agent_count(); ++k) {
-      Vector position_k = positions_host(k);
-      int cell_type_k = cell_types_host(k);
+      Vector position_k = positions_view(k);
+      int cell_type_k = cell_types_view(k);
 
       bool keep = true;
       if (cell_type_k == CellType::Embryo) {
@@ -160,16 +151,16 @@ int main(int argc, char* argv[]) {
       }
 
       if (keep == true) {
-        positions_host(new_cell_count) = position_k;
-        cell_types_host(new_cell_count) = cell_type_k;
+        positions_view(new_cell_count) = position_k;
+        cell_types_view(new_cell_count) = cell_type_k;
         ++new_cell_count;
       }
     }
-    Kokkos::deep_copy(positions_view, positions_host);
-    Kokkos::deep_copy(cell_types_view, cell_types_host);
+    positions_view.auto_sync();
+    cell_types_view.auto_sync();
     sim.set_agent_count(new_cell_count);
 
-    sim.write(cell_types_host);
+    sim.write(cell_types_view);
   }
 
   return 0;

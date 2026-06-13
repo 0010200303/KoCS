@@ -12,7 +12,7 @@ namespace HighFive::details {
     using type = Kokkos::View<DataType, Properties...>;
     
     static_assert(Kokkos::SpaceAccessibility<Kokkos::HostSpace, typename type::memory_space>::accessible,
-      "HighFive only operate on Kokkos Views accessible from the host memory space");
+      "HighFive can only operate on Kokkos Views accessible from the host memory space");
 
     using value_type = typename type::value_type;
     using base_type = typename inspector<value_type>::base_type;

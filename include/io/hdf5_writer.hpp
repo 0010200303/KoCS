@@ -14,6 +14,7 @@
 #include <highfive/highfive.hpp>
 
 #include "../utils/utils.hpp"
+#include "../types/view.hpp"
 #include "view.hpp"
 
 namespace kocs::io {
@@ -78,13 +79,10 @@ namespace kocs::io {
       template<typename T>
       struct has_get_dimensions<T, std::void_t<decltype(std::declval<const T&>().get_dimensions())>> : std::true_type { };
 
-      template<typename View>
-      void write_single(HighFive::Group& group, const View& view) {
-        auto sub_view = Kokkos::subview(view, std::make_pair(0u, agent_count));
-        auto host_view = Kokkos::create_mirror_view(sub_view);
-        Kokkos::deep_copy(host_view, sub_view);
-
-        group.createDataSet(view.label(), host_view);
+      template<typename T>
+      void write_single(HighFive::Group& group, View<T>& view) {
+        view.sync_host();
+        group.createDataSet(view.label(), view.view_host());
       }
 
       void init_xmf(const std::string& path) {
@@ -105,8 +103,8 @@ namespace kocs::io {
         xmf_file.close();
       }
 
-      template<typename View>
-      void write_xmf_grid_start(const unsigned int step, const View& first_view) {
+      template<typename T>
+      void write_xmf_grid_start(const unsigned int step, const View<T>& first_view) {
         xmf_buffer += "\t\t\t<Grid Name=\"t";
         xmf_buffer += std::to_string(step);
         xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
@@ -138,8 +136,8 @@ namespace kocs::io {
         (void)std::initializer_list<int>{ (Is == 0 ? 0 : (write_xmf_grid_attribute(step, std::get<Is>(tpl)), 0))... };
       }
 
-      template<typename View>
-      void write_xmf_grid_attribute(const unsigned int step, const View& view) {
+      template<typename T>
+      void write_xmf_grid_attribute(const unsigned int step, const View<T>& view) {
         // TODO: optimize this
 
         // extract dimensions
@@ -147,7 +145,6 @@ namespace kocs::io {
         for (int i = 0; i < view.rank(); ++i)
           dimension_map.push_back(view.extent(i));
 
-        using T = typename View::value_type;
         if constexpr (has_static_dimensions<T>::value)
           dimension_map.push_back(T::dimensions);
         else if constexpr (has_get_dimensions<T>::value)
@@ -197,19 +194,19 @@ namespace kocs::io {
       }
 
     public:
-      // always expects the positions view to be passed first
-      template<typename... Views>
-      void write(unsigned int step, const Views&... views) {
+      // always expects the position view to be passed first
+      template<typename... Ts>
+      void write(unsigned int step, View<Ts>&... views) {
         HighFive::Group group = h5_file->createGroup(std::string("t") + std::to_string(step));
         (write_single(group, views), ...);
 
         if (write_xmf == false || xmf_file.is_open() == false)
           return;
 
-        auto all_tuple = std::tuple<const Views&...>(views...);
+        auto all_tuple = std::tuple<const View<Ts>&...>(views...);
 
         write_xmf_grid_start(step, std::get<0>(all_tuple));
-        write_xmf_grid_attributes_from_tuple(step, all_tuple, std::make_index_sequence<sizeof...(Views)>{});
+        write_xmf_grid_attributes_from_tuple(step, all_tuple, std::make_index_sequence<sizeof...(Ts)>{});
         write_xmf_grid_end();
       }
   };

@@ -365,6 +365,26 @@ namespace HighFive::details {
     static const hdf5_type* data(const type& value) {
       return inspector<Scalar>::data(value[0]);
     }
+
+    static void serialize(const type& val,
+                          const std::vector<size_t>& m_dims,
+                          hdf5_type* m) {
+      const size_t count = (m_dims.empty() ? 1 : m_dims[0]);
+      for (size_t i = 0; i < count; ++i) {
+        std::vector<size_t> inner_dims(m_dims.begin() + 1, m_dims.end());
+        inspector<Scalar>::serialize(val.data_[i], inner_dims, m + i);
+      }
+    }
+
+    static void unserialize(const hdf5_type* vec,
+                            const std::vector<size_t>& m_dims,
+                            type& val) {
+      const size_t count = (m_dims.empty() ? 1 : m_dims[0]);
+      for (size_t i = 0; i < count; ++i) {
+        std::vector<size_t> inner_dims(m_dims.begin() + 1, m_dims.end());
+        inspector<Scalar>::unserialize(vec + i, inner_dims, val.data_[i]);
+      }
+    }
   };
 } // namespace HighFive::details
 

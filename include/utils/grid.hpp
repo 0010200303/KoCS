@@ -6,6 +6,7 @@
 #include <Kokkos_NumericTraits.hpp>
 
 #include "functions.hpp"
+#include "../types/view.hpp"
 
 namespace kocs::acceleration {
   template<typename Vector>
@@ -35,7 +36,7 @@ namespace kocs::acceleration {
 
     public:
       Grid(
-        const Kokkos::View<Vector*> data_view_,
+        const View<Vector> data_view_,
         const unsigned int agent_count_,
         const Vector& min_bounds_,
         const Vector& max_bounds_,
@@ -51,7 +52,7 @@ namespace kocs::acceleration {
         , sorter(particle_bins, 0, agent_count_, BinOp{bin_count, 0, bin_count}) { }
       
       Grid(
-        const Kokkos::View<Vector*> data_view_,
+        const View<Vector> data_view_,
         const unsigned int agent_count_,
         const utils::Bounds<Vector>& bounds,
         const unsigned int agents_per_bin_ = 1
@@ -63,7 +64,7 @@ namespace kocs::acceleration {
           get_bin_size(bounds.min, bounds.max, agent_count_, agents_per_bin_)) { }
 
       Grid(
-        const Kokkos::View<Vector*> data_view_,
+        const View<Vector> data_view_,
         const unsigned int agent_count_,
         const unsigned int agents_per_bin_ = 1
       ) : Grid(
@@ -73,14 +74,14 @@ namespace kocs::acceleration {
           agents_per_bin_) { }
 
       Grid(
-        const Kokkos::View<Vector*> data_view_,
+        const View<Vector> data_view_,
         const unsigned int agents_per_bin_ = 1
       ) : Grid(data_view_, data_view_.extent(0), agents_per_bin_) { }
 
       Grid() : sorter(particle_bins, 0, 0, BinOp{0, 0, 0}) {}
 
     public:
-      Kokkos::View<Vector*> data_view;
+      View<Vector> data_view;
       unsigned int agent_count = 0;
 
       Vector min_bounds;

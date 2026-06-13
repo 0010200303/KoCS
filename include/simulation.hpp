@@ -119,10 +119,8 @@ namespace kocs {
 
       inline void set_capacity(const unsigned int value) {
         capacity = value;
-        // TODO: this
         std::apply([&](auto&... views) {
-          ((Kokkos::resize(views, value)), ...);
-          // ((views.resize(value)), ...);
+          ((views.resize(value)), ...);
         }, get_views());
 
         integrator.set_capacity(value);
@@ -134,7 +132,7 @@ namespace kocs {
       template<typename... AdditionalViews>
       inline void set_capacity(const unsigned int value, AdditionalViews&... additional_views) {
         set_capacity(value);
-        ((Kokkos::resize(additional_views, value)), ...);
+        ((additional_views.resize(value)), ...);
       }
 
       inline unsigned int get_agent_count() const {

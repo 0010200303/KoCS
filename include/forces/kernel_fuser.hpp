@@ -48,6 +48,30 @@ namespace kocs::detail {
   template<typename T>
   struct has_force_member<T, std::void_t<decltype(std::declval<T>().force)>> : std::true_type { };
 
+  template<typename T, typename = void>
+  struct has_tag_member : std::false_type { };
+
+  template<typename T>
+  struct has_tag_member<T, std::void_t<typename T::tag>> : std::true_type { };
+
+  template<typename T, typename = void>
+  struct is_nullary_callable : std::false_type { };
+
+  template<typename T>
+  struct is_nullary_callable<T, std::void_t<decltype(std::declval<T>()())>> : std::true_type { };
+
+  // Unwrap nullary lambdas that return TaggedForce; pass through types with tag directly
+  template<typename T>
+  decltype(auto) unwrap_force(T&& force) {
+    if constexpr (has_tag_member<std::decay_t<T>>::value) {
+      return std::forward<T>(force);
+    } else if constexpr (is_nullary_callable<T>::value) {
+      return std::forward<T>(force)();
+    } else {
+      return std::forward<T>(force);
+    }
+  }
+
   template<typename Tag, typename Force>
   auto collect_tagged_force(Force&& force) {
     if constexpr (std::is_same_v<typename std::decay_t<Force>::tag, Tag>) {
@@ -68,7 +92,7 @@ namespace kocs::detail {
       return KernelFuser<Tag, std::decay_t<decltype(kernels)>...> {
         std::forward<decltype(kernels)>(kernels)...
       };
-    }, std::tuple_cat(collect_tagged_force<Tag>(std::forward<Forces>(forces))...));
+    }, std::tuple_cat(collect_tagged_force<Tag>(unwrap_force(std::forward<Forces>(forces)))...));
   }
 
   template<typename T>

@@ -55,7 +55,7 @@ active migration in response to mechanical force F (interaction with neighbourin
   auto& positions_view = sim.get_view<FIELD(Vector, position)>();
   auto& velocities_view = sim.get_view<FIELD(Vector, velocity)>();
   auto& polarities_view = sim.get_view<FIELD(Polarity, polarity)>();
-  Kokkos::View<bool*> types("types", n_cells);
+  View<bool> types("types", n_cells);
 
   auto initial_conditions = INIT_FUNC(
     polarities_view(i) = Polarity(positions_view(i));

@@ -9,11 +9,24 @@
 namespace kocs {
   template<typename T>
   struct View : public Kokkos::DualView<T*> {
+    View()
+      : Kokkos::DualView<T*>("kocs::View default", 0)
+      , device_modified_flag("DualView:device_modified_flag") { }
+
     View(const std::string& label, const unsigned int count)
       : Kokkos::DualView<T*>(label, count)
       , device_modified_flag("DualView:device_modified_flag") { }
 
     Kokkos::View<bool> device_modified_flag;
+
+    inline std::string label() const {
+      return this->view_device().label();
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    int rank() const {
+      return 1;
+    }
 
     KOKKOS_INLINE_FUNCTION
     T& operator()(const int i) const {
@@ -43,6 +56,11 @@ namespace kocs {
       return (*this)(i);
     }
 
+    KOKKOS_INLINE_FUNCTION
+    unsigned int get_capacity() const {
+      return this->extent(0);
+    }
+
     // hide base class method
     inline void resize(const int value) {
       Kokkos::DualView<T*>::resize(value);
@@ -62,7 +80,7 @@ namespace kocs {
       Kokkos::DualView<T*>::sync_host();
     }
 
-    inline void uncontioninal_sync_device() {
+    inline void unconditional_sync_device() {
       this->modify_host();
       Kokkos::DualView<T*>::sync_device();
     }
@@ -92,7 +110,8 @@ namespace kocs {
     }
 
     inline void deep_copy(const T& src) {
-      Kokkos::deep_copy(static_cast<Kokkos::DualView<T*>&>(*this), src);
+      Kokkos::deep_copy(this->view_device(), src);
+      Kokkos::deep_copy(this->view_host(), src);
       Kokkos::deep_copy(device_modified_flag, false);
     }
   };
