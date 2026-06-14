@@ -9,19 +9,19 @@ namespace kocs {
   template<typename T>
   struct DeviceVar {
     DeviceVar() : device_view("DeviceVar (default constructed)") {
-      Kokkos::deep_copy(device_view, T());
+      device_view() = T();
     }
     
     DeviceVar(const std::string& label) : device_view(label) {
-      Kokkos::deep_copy(device_view, T());
+      device_view() = T();
     }
 
     DeviceVar(const std::string& label, const T& value) : device_view(label) {
-      Kokkos::deep_copy(device_view, value);
+      device_view() = value;
     }
 
     DeviceVar(const T& value) : device_view("DeviceVar (directly assigned)") {
-      Kokkos::deep_copy(device_view, value);
+      device_view() = value;
     }
 
     Kokkos::View<T> device_view;
@@ -30,26 +30,25 @@ namespace kocs {
     DeviceVar(const DeviceVar& other) : device_view(other.device_view) { }
 
     KOKKOS_INLINE_FUNCTION
-    DeviceVar& operator=(const T& value) {
-      KOKKOS_IF_ON_DEVICE((
-        device_view() = value;
-      ))
-      KOKKOS_IF_ON_HOST((
-        Kokkos::deep_copy(device_view, value);
-      ))
-      return *this;
+    operator T() const {
+      if constexpr (Kokkos::SpaceAccessibility<Kokkos::HostSpace, typename Kokkos::View<T>::memory_space>::accessible) {
+        return device_view();
+      } else {
+        KOKKOS_IF_ON_DEVICE((
+          return device_view();
+        ))
+        KOKKOS_IF_ON_HOST((
+          T host_value;
+          Kokkos::deep_copy(host_value, device_view);
+          return host_value;
+        ))
+      }
     }
 
     KOKKOS_INLINE_FUNCTION
-    operator T() const {
-      KOKKOS_IF_ON_DEVICE((
-        return device_view();
-      ))
-      KOKKOS_IF_ON_HOST((
-        T host_value;
-        Kokkos::deep_copy(host_value, device_view);
-        return host_value;
-      ))
+    DeviceVar& operator=(const T& value) {
+      device_view() = value;
+      return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
