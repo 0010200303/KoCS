@@ -2,6 +2,7 @@
 #define KOCS_TYPES_VIEW_HPP
 
 #include <string>
+#include <source_location>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
@@ -28,6 +29,20 @@ namespace kocs {
       return 1;
     }
 
+
+
+// T& operator()(const int i, const std::source_location loc = std::source_location::current()) const {
+//   if (std::string_view(loc.file_name()).find("view.hpp") == std::string_view::npos &&
+//       std::string_view(loc.file_name()).find("main.cpp") == std::string_view::npos) {
+//     printf("[%s:%d %s] View::operator()(%d)\n", loc.file_name(), loc.line(), loc.function_name(), i);
+//   }
+
+//   const_cast<View*>(this)->modify_host();
+//   return this->view_host()(i);
+// }
+
+
+
     KOKKOS_INLINE_FUNCTION
     T& operator()(const int i) const {
       KOKKOS_IF_ON_DEVICE((
@@ -40,14 +55,20 @@ namespace kocs {
       ))
     }
 
+    // does not set modified flags
     KOKKOS_INLINE_FUNCTION
-    const T& read(const int i) const {
+    T& access(const int i) const {
       KOKKOS_IF_ON_DEVICE((
         return this->view_device()(i);
       ))
       KOKKOS_IF_ON_HOST((
         return this->view_host()(i);
       ))
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    T& read(const int i) const {
+      return access(i);
     }
 
     // same as normal operator, just here for completeness
@@ -61,14 +82,14 @@ namespace kocs {
       return this->extent(0);
     }
 
-    // hide base class method
+    // shadow base class method
     inline void resize(const int value) {
       Kokkos::DualView<T*>::resize(value);
       Kokkos::deep_copy(device_modified_flag, false);
       Kokkos::DualView<T*>::sync_host();
     }
 
-    // 
+    // shadow base class method
     inline void sync_host() {
       auto flag_host = Kokkos::create_mirror_view(device_modified_flag);
       Kokkos::deep_copy(flag_host, device_modified_flag);
@@ -95,13 +116,15 @@ namespace kocs {
     // will abort if both views were modified
     // eitherwise will sync correctly based on which view was modified
     inline void auto_sync() {
-      auto flag_host = Kokkos::create_mirror_view(device_modified_flag);
+      bool flag_host;
       Kokkos::deep_copy(flag_host, device_modified_flag);
-      if (flag_host() == true)
+      if (flag_host == true)
         this->modify_device();
 
-      this->sync_host();
-      this->sync_device();
+      if (this->need_sync_host())
+        this->sync_host();
+      else if (this->need_sync_device())
+        this->sync_device();
     }
 
     inline void deep_copy(const View<T>& src) {

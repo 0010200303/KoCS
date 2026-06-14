@@ -107,8 +107,8 @@ namespace kocs::detail {
 
     template<typename F>
     decltype(auto) apply_host(F&& f) const {
-      return static_cast<base_type&>(*this).apply_host(
-        [&](auto&... rest_values) -> decltype(auto) {
+      return static_cast<const base_type&>(*this).apply_host(
+        [&](const auto&... rest_values) -> decltype(auto) {
           return static_cast<F&&>(f)(first_value, rest_values...);
         }
       );

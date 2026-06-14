@@ -9,7 +9,7 @@
 #include "../types/view.hpp"
 
 namespace kocs::acceleration {
-  template<typename Vector>
+  template<typename Vector, typename ViewType = View<Vector>>
   class Grid {
     EXTRACT_VECTOR(Vector)
     using VectorI = VectorN<int, dimensions>;
@@ -36,7 +36,7 @@ namespace kocs::acceleration {
 
     public:
       Grid(
-        const View<Vector> data_view_,
+        const ViewType& data_view_,
         const unsigned int agent_count_,
         const Vector& min_bounds_,
         const Vector& max_bounds_,
@@ -52,7 +52,7 @@ namespace kocs::acceleration {
         , sorter(particle_bins, 0, agent_count_, BinOp{bin_count, 0, bin_count}) { }
       
       Grid(
-        const View<Vector> data_view_,
+        const ViewType& data_view_,
         const unsigned int agent_count_,
         const utils::Bounds<Vector>& bounds,
         const unsigned int agents_per_bin_ = 1
@@ -64,24 +64,24 @@ namespace kocs::acceleration {
           get_bin_size(bounds.min, bounds.max, agent_count_, agents_per_bin_)) { }
 
       Grid(
-        const View<Vector> data_view_,
+        const ViewType& data_view_,
         const unsigned int agent_count_,
         const unsigned int agents_per_bin_ = 1
       ) : Grid(
           data_view_,
           agent_count_,
-          utils::get_bounds(data_view_),
+          utils::get_bounds<Vector, ViewType>(data_view_),
           agents_per_bin_) { }
 
       Grid(
-        const View<Vector> data_view_,
+        const ViewType& data_view_,
         const unsigned int agents_per_bin_ = 1
       ) : Grid(data_view_, data_view_.extent(0), agents_per_bin_) { }
 
       Grid() : sorter(particle_bins, 0, 0, BinOp{0, 0, 0}) {}
 
     public:
-      View<Vector> data_view;
+      ViewType data_view;
       unsigned int agent_count = 0;
 
       Vector min_bounds;
@@ -279,7 +279,7 @@ namespace kocs::acceleration {
           std::string("Grid") + std::to_string(dimensions) + "rebuild",
           agent_count,
           KOKKOS_CLASS_LAMBDA(const unsigned int i) {
-            VectorI bin_coords = calc_bin_coords_from_point(data_view(i));
+            VectorI bin_coords = calc_bin_coords_from_point(read_element(data_view, i));
             particle_bins(i) = flatten_bin_index(bin_coords);
           }
         );
@@ -308,7 +308,7 @@ namespace kocs::acceleration {
           for (int idx = start; idx < end; ++idx) {
             const int j = static_cast<int>(sorter.get_permute_vector()(idx));
 
-            const Scalar distance_squared = point.distance_to_squared(data_view(j));
+            const Scalar distance_squared = point.distance_to_squared(read_element(data_view, j));
             if (distance_squared < min_distance_squared) {
               nearest_idx = j;
               min_distance_squared = distance_squared;

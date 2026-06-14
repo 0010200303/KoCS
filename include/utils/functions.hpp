@@ -15,17 +15,17 @@ namespace kocs::utils {
     Vector max;
   };
 
-  template<typename Vector>
+  template<typename Vector, typename PointsView = View<Vector>>
   struct MinPerDimension {
     EXTRACT_VECTOR(Vector)
 
-    View<Vector> points_view;
+    PointsView points_view;
 
-    MinPerDimension(const View<Vector> points_view_) : points_view(points_view_) { }
+    MinPerDimension(const PointsView& points_view_) : points_view(points_view_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Vector& local) const {
-      Vector point = points_view(i);
+      Vector point = read_element(points_view, i);
       for (unsigned int d = 0; d < dimensions; ++d) {
         const Scalar value = point[d];
         if (value < local[d])
@@ -47,17 +47,17 @@ namespace kocs::utils {
     }
   };
 
-  template<typename Vector>
+  template<typename Vector, typename PointsView = View<Vector>>
   struct MaxPerDimension {
     EXTRACT_VECTOR(Vector)
 
-    View<Vector> points_view;
+    PointsView points_view;
 
-    MaxPerDimension(const View<Vector> points_view_) : points_view(points_view_) { }
+    MaxPerDimension(const PointsView& points_view_) : points_view(points_view_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Vector& local) const {
-      Vector point = points_view(i);
+      Vector point = read_element(points_view, i);
       for (unsigned int d = 0; d < dimensions; ++d) {
         const Scalar value = point[d];
         if (value > local[d])
@@ -79,17 +79,17 @@ namespace kocs::utils {
     }
   };
 
-  template<typename Vector>
+  template<typename Vector, typename PointsView = View<Vector>>
   struct BoundsPerDimension {
     EXTRACT_VECTOR(Vector)
 
-    View<Vector> points_view;
+    PointsView points_view;
 
-    BoundsPerDimension(const View<Vector> points_view_) : points_view(points_view_) { }
+    BoundsPerDimension(const PointsView& points_view_) : points_view(points_view_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Bounds<Vector>& local) const {
-      Vector point = points_view(i);
+      Vector point = read_element(points_view, i);
       for (unsigned int d = 0; d < dimensions; ++d) {
         const Scalar value = point[d];
         if (value < local.min[d])
@@ -118,37 +118,37 @@ namespace kocs::utils {
     }
   };
 
-  template<typename Vector>
-  Vector get_min_bounds(const View<Vector> points_view) {
+  template<typename Vector, typename PointsView = View<Vector>>
+  Vector get_min_bounds(const PointsView& points_view) {
     Vector result;
     Kokkos::parallel_reduce(
       "utils_get_min_bounds",
       points_view.extent(0),
-      MinPerDimension(points_view),
+      MinPerDimension<Vector, PointsView>(points_view),
       result
     );
     return result;
   }
 
-  template<typename Vector>
-  Vector get_max_bounds(const View<Vector> points_view) {
+  template<typename Vector, typename PointsView = View<Vector>>
+  Vector get_max_bounds(const PointsView& points_view) {
     Vector result;
     Kokkos::parallel_reduce(
       "utils_get_max_bounds",
       points_view.extent(0),
-      MaxPerDimension(points_view),
+      MaxPerDimension<Vector, PointsView>(points_view),
       result
     );
     return result;
   }
 
-  template<typename Vector>
-  Bounds<Vector> get_bounds(const View<Vector> points_view) {
+  template<typename Vector, typename PointsView = View<Vector>>
+  Bounds<Vector> get_bounds(const PointsView& points_view) {
     Bounds<Vector> result;
     Kokkos::parallel_reduce(
       "utils_get_bounds",
       points_view.extent(0),
-      BoundsPerDimension(points_view),
+      BoundsPerDimension<Vector, PointsView>(points_view),
       result
     );
     return result;

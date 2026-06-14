@@ -54,6 +54,13 @@ namespace kocs {
       using type = View<std::remove_pointer_t<field_type>>;
     };
 
+    // Device-only view used for internal integrator/pair_finder buffers that never need host sync
+    template <typename Field>
+    struct DeviceViewFromField {
+      using field_type = std::remove_cv_t<typename Field::type>;
+      using type = Kokkos::View<std::remove_pointer_t<field_type>*>;
+    };
+
     template <typename Field>
     auto make_view(std::size_t n) {
       using view_type = typename ViewFromField<Field>::type;
@@ -74,7 +81,10 @@ namespace kocs {
     template <template<typename, typename, int> typename PairFinderT, typename SimulationConfig, typename... Fields>
     struct PairFinderFromFields<PairFinderT, SimulationConfig, FieldList<Fields...>> {
       using FirstField = typename FirstFieldFromList<FieldList<Fields...>>::type;
-      using type = PairFinderT<typename ViewFromField<FirstField>::type, typename SimulationConfig::Scalar, SimulationConfig::dimensions>;
+      using type = PairFinderT<
+        typename DeviceViewFromField<FirstField>::type,
+        typename SimulationConfig::Scalar, SimulationConfig::dimensions
+      >;
     };
 
     template <template<typename, typename...> typename IntegratorT, typename SimulationConfig, typename FieldList>
@@ -82,12 +92,14 @@ namespace kocs {
 
     template <template<typename, typename...> typename IntegratorT, typename SimulationConfig, typename... Fields>
     struct IntegratorFromFields<IntegratorT, SimulationConfig, FieldList<Fields...>> {
+      // Integrators receive device only Kokkos::Views for internal storage
+      // (The simulation's storage retains kocs::View for host sync management)
       using type = IntegratorT<
         typename SimulationConfig::template PairFinderT<SimulationConfig>,
         typename SimulationConfig::template ComFixerT<SimulationConfig>,
         typename SimulationConfig::template ForceFields<kocs::detail::GenericFieldRef>,
         typename SimulationConfig::template ForceFields<kocs::detail::PairwiseFieldRef>,
-        typename ViewFromField<Fields>::type...
+        typename DeviceViewFromField<Fields>::type...
       >;
     };
 

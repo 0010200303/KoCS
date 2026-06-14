@@ -71,6 +71,54 @@ namespace kocs {
       }
     };
   };
+
+
+
+  // free function to support read, write and access function for Kokkos::View in internal use
+  template<typename T, typename = void>
+  struct has_read : std::false_type {};
+
+  template<typename T>
+  struct has_read<T, std::void_t<decltype(std::declval<const T&>().read(0))>> : std::true_type {};
+
+  template<typename T, typename = void>
+  struct has_write : std::false_type {};
+
+  template<typename T>
+  struct has_write<T, std::void_t<decltype(std::declval<T&>().write(0))>> : std::true_type {};
+
+  template<typename T, typename = void>
+  struct has_access : std::false_type {};
+
+  template<typename T>
+  struct has_access<T, std::void_t<decltype(std::declval<T&>().access(0))>> : std::true_type {};
+
+  template<typename ViewType>
+  KOKKOS_INLINE_FUNCTION
+  auto read_element(const ViewType& v, const int i) -> decltype(v(i)) {
+    if constexpr (has_read<ViewType>::value)
+      return v.read(i);
+    else
+      return v(i);
+  }
+
+  template<typename ViewType>
+  KOKKOS_INLINE_FUNCTION
+  auto write_element(ViewType& v, const int i) -> decltype(v(i)) {
+    if constexpr (has_write<ViewType>::value)
+      return v.write(i);
+    else
+      return v(i);
+  }
+
+  template<typename ViewType>
+  KOKKOS_INLINE_FUNCTION
+  auto access_element(ViewType& v, const int i) -> decltype(v(i)) {
+    if constexpr (has_access<ViewType>::value)
+      return v.access(i);
+    else
+      return v(i);
+  }
 } // namespace kocs
 
 // force macros

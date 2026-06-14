@@ -16,7 +16,7 @@ namespace kocs::pair_finders {
     using positions_view_type = PositionsView;
     using Vector = VectorN<Scalar, dimensions>;
     using VectorI = VectorN<int, dimensions>;
-    using Grid = acceleration::Grid<Vector>;
+    using Grid = acceleration::Grid<Vector, PositionsView>;
 
     using BinOp = Kokkos::BinOp1D<View<int>>;
 
@@ -67,8 +67,7 @@ namespace kocs::pair_finders {
       step_count = 0;
     }
 
-    template<typename View>
-    void rebuild(const View input_positions) {
+    void rebuild(const PositionsView& input_positions) {
       grid = Grid(input_positions, agent_count, min_bounds, max_bounds, bin_size);
       grid.rebuild();
     }

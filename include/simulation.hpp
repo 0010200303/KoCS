@@ -82,7 +82,9 @@ namespace kocs {
       ) {
         return std::apply(
           [&](auto&... views) {
-            return Integrator(agent_count_, pair_finder_, com_fixer_, views...);
+            // Pass device-only views (Kokkos::View) to the integrator,
+            // since its internal buffers never need host-device sync.
+            return Integrator(agent_count_, pair_finder_, com_fixer_, views.view_device()...);
           },
           detail::ViewsFromStorage<Fields, Storage>::get(storage_)
         );
@@ -119,13 +121,11 @@ namespace kocs {
 
       inline void set_capacity(const unsigned int value) {
         capacity = value;
+        integrator.set_capacity(value);
+
         std::apply([&](auto&... views) {
           ((views.resize(value)), ...);
-        }, get_views());
-
-        integrator.set_capacity(value);
-        std::apply([&](auto&... views) {
-          integrator.reattach_stage_0(views...);
+          integrator.reattach_stage_0(views.view_device()...);
         }, get_views());
       }
 
@@ -151,6 +151,10 @@ namespace kocs {
       template<typename... Forces>
       void take_step_impl(double dt, Forces&&... forces) {
         integrator.integrate(dt, random_pool, static_cast<Forces&&>(forces)...);
+
+        std::apply([&](auto&... views) {
+          ((views.modify_device()), ...);
+        }, get_views());
       }
 
     public:
