@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
 
     // drag
     if (this_type != CellType::Anchor && this_type != CellType::Pole)
-      friction += 1.0;
+      drag += 1.0;
   );
 
   // pre-allocate vectors for host-side cell removal

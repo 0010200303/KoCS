@@ -40,7 +40,7 @@ int main() {
     ctx.position.delta += bending_force.vector * 0.3f;
     ctx.polarity_a.delta += bending_force.polarity * 0.3f;
 
-    friction += 1.0f;
+    drag += 1.0f;
   );
 
   auto force_b = PAIRWISE_FORCE(
@@ -50,7 +50,7 @@ int main() {
     ctx.position.delta += bending_force.vector * 0.3f;
     ctx.polarity_b.delta += bending_force.polarity * 0.3f;
 
-    friction += 1.0f;
+    drag += 1.0f;
   );
 
   for (int i = 0; i < steps / 2; ++i) {

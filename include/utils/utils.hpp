@@ -130,7 +130,7 @@ namespace kocs {
 
 #define GENERIC_FORCE_PARAMETERS const unsigned int i, Random& rng, const GenericForceFields& ctx
 #define PAIRWISE_FORCE_PARAMETERS const unsigned int i, const unsigned int j, const Vector& displacement, \
-  const Scalar distance, Random& rng, Scalar& friction, const PairwiseForceFields& ctx
+  const Scalar distance, Random& rng, Scalar& drag, const PairwiseForceFields& ctx
 
 #define GENERIC_FORCE(...) [&]() { return GENERIC_FORCE_IMPL(GENERIC_FORCE_PARAMETERS) { __VA_ARGS__ }; }
 #define PAIRWISE_FORCE(...) [&]() { return PAIRWISE_FORCE_IMPL(PAIRWISE_FORCE_PARAMETERS) { __VA_ARGS__ }; }

@@ -105,12 +105,12 @@ namespace kocs::pair_finders {
 
           // setup data for accumulation
           auto total_delta_i = detail::make_accumulator_pack(out_view_pack);
-          Scalar total_friction_i = 0.0;
+          Scalar total_drag_i = 0.0;
           typename PositionsView::value_type total_velocity_i{0.0};
 
           Kokkos::parallel_reduce(
             Kokkos::TeamThreadRange(team_member, task_count),
-            [&](const int task_idx, auto& local_delta, auto& local_friction, auto& local_velocity) {
+            [&](const int task_idx, auto& local_delta, auto& local_drag, auto& local_velocity) {
               // map task_idx -> per-dimension offsets in [-search_radius, search_radius]
               const VectorI ni = bin_coords + grid.linear_index_to_offset(task_idx, side, search_radius);
               if (grid.is_bin_outside_extents(ni) == true)
@@ -215,21 +215,21 @@ namespace kocs::pair_finders {
                     return;
 
                   const auto distance = Kokkos::sqrt(distance_squared);
-                  Scalar pair_friction = 0.0;
+                  Scalar pairwise_drag = 0.0;
 
                   auto generator = random_pool.get_state();
                   in_view_pack.apply([&](auto&... views) {
                     local_delta.apply([&](auto&... deltas) {
                       force(
-                        i, j, displacement, distance, generator, pair_friction,
+                        i, j, displacement, distance, generator, pairwise_drag,
                         ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
                       );
                     });
                   });
                   random_pool.free_state(generator);
 
-                  local_friction += pair_friction;
-                  local_velocity += pair_friction * old_velocities(j);
+                  local_drag += pairwise_drag;
+                  local_velocity += pairwise_drag * old_velocities(j);
                 }
               );
 
@@ -325,28 +325,28 @@ namespace kocs::pair_finders {
               //     continue;
 
               //   const auto distance = Kokkos::sqrt(distance_squared);
-              //   Scalar pair_friction = 0.0;
+              //   Scalar pairwise_drag = 0.0;
 
               //   auto generator = random_pool.get_state();
               //   in_view_pack.apply([&](auto&... views) {
               //     local_delta.apply([&](auto&... deltas) {
               //       force(
-              //         i, j, displacement, distance, generator, pair_friction,
+              //         i, j, displacement, distance, generator, pairwise_drag,
               //         ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
               //       );
               //     });
               //   });
               //   random_pool.free_state(generator);
 
-              //   local_friction += pair_friction;
-              //   local_velocity += pair_friction * old_velocities(j);
+              //   local_drag += pairwise_drag;
+              //   local_velocity += pairwise_drag * old_velocities(j);
               // }
 
 
 
             },
             Kokkos::Sum<decltype(total_delta_i)>(total_delta_i),
-            Kokkos::Sum<Scalar>(total_friction_i),
+            Kokkos::Sum<Scalar>(total_drag_i),
             Kokkos::Sum<typename PositionsView::value_type>(total_velocity_i)
           );
 
@@ -360,7 +360,7 @@ namespace kocs::pair_finders {
               });
 
               out_view_pack.first()(i) += total_velocity_i /
-                Kokkos::fmax(total_friction_i, Kokkos::Experimental::epsilon_v<Scalar>);
+                Kokkos::fmax(total_drag_i, Kokkos::Experimental::epsilon_v<Scalar>);
             }
           );
         }

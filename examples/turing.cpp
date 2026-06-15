@@ -65,7 +65,7 @@ int main() {
     Vector f = (2.0f * (r_min - distance) * (r_max - distance) + Kokkos::pow(r_max - distance, 2.0f))
       * displacement / distance;
 
-    friction += 1.0f;
+    drag += 1.0f;
   );
 
   for (int i = 0; i < steps; ++i) {

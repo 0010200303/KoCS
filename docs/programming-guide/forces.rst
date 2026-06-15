@@ -19,7 +19,7 @@ All field updates inside a force must be written to the corresponding delta memb
 
 .. attention::
   
-  Never use the assignment operator (``=``) when writing to delta or friction values. Since multiple forces may contribute to the same variable during a timestep, assignments can overwrite previous contributions. Always use additive opreation such as ``+=`` or ``-=`` instead.
+  Never use the assignment operator (``=``) when writing to delta or drag values. Since multiple forces may contribute to the same variable during a timestep, assignments can overwrite previous contributions. Always use additive opreation such as ``+=`` or ``-=`` instead.
 
 Generic Force
 ^^^^^^^^^^^^^
@@ -76,13 +76,13 @@ Additional variables automatically available inside the force include:
 - ``Vector displacement`` — Relative displacement vector from j to i
 - ``Scalar distance`` — Distance between agents i and j
 - ``Random rng`` — Random number generator
-- ``Scalar friction`` — Pairwise friction contribution for the current interaction
+- ``Scalar drag`` — Pairwise drag contribution for the current interaction
 
-The friction parameter can be modified to introduce friction-weighted velocity coupling.
+The drag parameter can be modified to introduce drag-weighted velocity coupling.
 
 .. attention::
 
-  ``delta`` and ``friction`` values are accumulated across all active pairwise interactions. Always use ``+=`` or ``-=`` when modying them. Using direct assignment (``=``) may overwrite previous contributions.
+  ``delta`` and ``drag`` values are accumulated across all active pairwise interactions. Always use ``+=`` or ``-=`` when modying them. Using direct assignment (``=``) may overwrite previous contributions.
 
 .. attention::
 
