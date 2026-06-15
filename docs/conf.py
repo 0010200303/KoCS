@@ -3,7 +3,8 @@ copyright = '2026, 0010200303'
 author = '0010200303'
 
 extensions = [
-  'breathe'
+  'breathe',
+  'sphinxcontrib.video'
 ]
 
 breathe_projects = {
