@@ -30,13 +30,13 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_(const Vector3<Scalar>& vector, const Scalar distance) : Base(
-      Kokkos::acos(vector[2] / distance),
+      Kokkos::acos(Kokkos::fmin(Scalar(1.0), Kokkos::fmax(Scalar(-1.0), vector[2] / distance))),
       Kokkos::atan2(vector[1], vector[0])
     ) { }
 
     KOKKOS_INLINE_FUNCTION
     constexpr Polarity_(const Vector3<Scalar>& vector) : Base(
-      Kokkos::acos(vector[2] / vector.length()),
+      Kokkos::acos(Kokkos::fmin(Scalar(1.0), Kokkos::fmax(Scalar(-1.0), vector[2] / vector.length()))),
       Kokkos::atan2(vector[1], vector[0])
     ) { }
 
@@ -107,6 +107,26 @@ namespace kocs {
 
       Vector3<Scalar> other_vector = to_vector3(other_polarity);
       Scalar prod_j = other_vector.dot(displacement) / distance;
+
+      return BendingForceResult{
+        -prod_i / distance * this_vector + Kokkos::pow(prod_i, 2) / Kokkos::pow(distance, 2) * displacement +
+        -prod_j / distance * other_vector + Kokkos::pow(prod_j, 2) / Kokkos::pow(distance, 2) * displacement,
+        -prod_i * unidirectional_polarization_force(from_vector3(displacement, distance))
+      };
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr BendingForceResult apical_constriction_force(
+      const Vector3<Scalar>& displacement,
+      const Scalar distance,
+      const Polarity_& other_polarity,
+      const Scalar preferred_angle
+    ) const {
+      Vector3<Scalar> this_vector = to_vector3();
+      Scalar prod_i = this_vector.dot(displacement) / distance + Kokkos::cos(preferred_angle);
+
+      Vector3<Scalar> other_vector = to_vector3(other_polarity);
+      Scalar prod_j = other_vector.dot(displacement) / distance - Kokkos::cos(preferred_angle);
 
       return BendingForceResult{
         -prod_i / distance * this_vector + Kokkos::pow(prod_i, 2) / Kokkos::pow(distance, 2) * displacement +

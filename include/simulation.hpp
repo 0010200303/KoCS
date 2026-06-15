@@ -165,19 +165,19 @@ namespace kocs {
       }
 
       template<typename... InitFuncs>
-      inline void init_random_hollow_sphere(Scalar radius, InitFuncs&&... init_functions) {
+      inline void init_random_hollow_sphere(const Scalar radius, InitFuncs&&... init_functions) {
         initializers::RandomHollowSphere<SimulationConfig> initializer(get_positions_view(), radius);
         init(initializer, init_functions...);
       }
 
       template<typename... InitFuncs>
-      inline void init_random_filled_sphere(Scalar radius, InitFuncs&&... init_functions) {
+      inline void init_random_filled_sphere(const Scalar radius, InitFuncs&&... init_functions) {
         initializers::RandomFilledSphere<SimulationConfig> initializer(get_positions_view(), radius);
         init(initializer, init_functions...);
       }
 
       template<typename... InitFuncs>
-      inline void init_regular_hexagon(Scalar distance_to_neighbour, InitFuncs&&... init_functions) {
+      inline void init_regular_hexagon(const Scalar distance_to_neighbour, InitFuncs&&... init_functions) {
         initializers::RegularHexagon<SimulationConfig> initializer(get_positions_view(), distance_to_neighbour);
         init(initializer, init_functions...);
       }
@@ -185,6 +185,22 @@ namespace kocs {
       template<typename... InitFuncs>
       inline void init_random_cuboid(const Vector& min, const Vector& max, InitFuncs&&... init_functions) {
         initializers::RandomCuboid<SimulationConfig> initializer(get_positions_view(), min, max);
+        init(initializer, init_functions...);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_regular_rectangle(
+        const Scalar distance_to_neighbour,
+        const unsigned int nx,
+        InitFuncs&&... init_functions
+      ) {
+        initializers::RegularRectangle<SimulationConfig> initializer(get_positions_view(), distance_to_neighbour, nx);
+        init(initializer, init_functions...);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_random_disk(const Scalar distance_to_neighbour, InitFuncs&&... init_functions) {
+        initializers::RandomDisk<SimulationConfig> initializer(get_positions_view(), distance_to_neighbour);
         init(initializer, init_functions...);
       }
 
@@ -207,6 +223,15 @@ namespace kocs {
         init(init_functions...);
       }
 
+      template<typename... InitFuncs>
+      inline void init_relaxed_sphere(
+        const Scalar initial_radius,
+        InitFuncs&&... init_functions
+      ) {
+        init_relaxed_sphere(initial_radius, 2000u);
+        init(init_functions...);
+      }
+
       inline void init_relaxed_cuboid(
         const Vector& min,
         const Vector& max,
@@ -225,6 +250,16 @@ namespace kocs {
         InitFuncs&&... init_functions
       ) {
         init_relaxed_cuboid(min, max, relaxation_steps);
+        init(init_functions...);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_relaxed_cuboid(
+        const Vector& min,
+        const Vector& max,
+        InitFuncs&&... init_functions
+      ) {
+        init_relaxed_cuboid(min, max, 2000u);
         init(init_functions...);
       }
 
