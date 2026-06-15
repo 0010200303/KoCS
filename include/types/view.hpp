@@ -29,20 +29,6 @@ namespace kocs {
       return 1;
     }
 
-
-
-// T& operator()(const int i, const std::source_location loc = std::source_location::current()) const {
-//   if (std::string_view(loc.file_name()).find("view.hpp") == std::string_view::npos &&
-//       std::string_view(loc.file_name()).find("main.cpp") == std::string_view::npos) {
-//     printf("[%s:%d %s] View::operator()(%d)\n", loc.file_name(), loc.line(), loc.function_name(), i);
-//   }
-
-//   const_cast<View*>(this)->modify_host();
-//   return this->view_host()(i);
-// }
-
-
-
     KOKKOS_INLINE_FUNCTION
     T& operator()(const int i) const {
       KOKKOS_IF_ON_DEVICE((

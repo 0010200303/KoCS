@@ -213,6 +213,15 @@ namespace kocs {
         initializer.relax(*this);
       }
 
+      inline void init_relaxed_sphere(
+        const Scalar initial_radius,
+        const int relaxation_steps
+      ) {
+        initializers::RelaxedSphere<SimulationConfig> initializer(get_positions_view(), initial_radius, static_cast<unsigned int>(relaxation_steps));
+        init(initializer);
+        initializer.relax(*this);
+      }
+
       template<typename... InitFuncs>
       inline void init_relaxed_sphere(
         const Scalar initial_radius,
@@ -220,6 +229,16 @@ namespace kocs {
         InitFuncs&&... init_functions
       ) {
         init_relaxed_sphere(initial_radius, relaxation_steps);
+        init(init_functions...);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_relaxed_sphere(
+        const Scalar initial_radius,
+        const int relaxation_steps,
+        InitFuncs&&... init_functions
+      ) {
+        init_relaxed_sphere(initial_radius, static_cast<unsigned int>(relaxation_steps));
         init(init_functions...);
       }
 
@@ -242,6 +261,16 @@ namespace kocs {
         initializer.relax(*this);
       }
 
+      inline void init_relaxed_cuboid(
+        const Vector& min,
+        const Vector& max,
+        const int relaxation_steps
+      ) {
+        initializers::RelaxedCuboid<SimulationConfig> initializer(get_positions_view(), min, max, static_cast<unsigned int>(relaxation_steps));
+        init(initializer);
+        initializer.relax(*this);
+      }
+
       template<typename... InitFuncs>
       inline void init_relaxed_cuboid(
         const Vector& min,
@@ -250,6 +279,17 @@ namespace kocs {
         InitFuncs&&... init_functions
       ) {
         init_relaxed_cuboid(min, max, relaxation_steps);
+        init(init_functions...);
+      }
+
+      template<typename... InitFuncs>
+      inline void init_relaxed_cuboid(
+        const Vector& min,
+        const Vector& max,
+        const int relaxation_steps,
+        InitFuncs&&... init_functions
+      ) {
+        init_relaxed_cuboid(min, max, static_cast<unsigned int>(relaxation_steps));
         init(init_functions...);
       }
 

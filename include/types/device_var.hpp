@@ -9,19 +9,19 @@ namespace kocs {
   template<typename T>
   struct DeviceVar {
     DeviceVar() : device_view("DeviceVar (default constructed)") {
-      device_view() = T();
+      Kokkos::deep_copy(device_view, T());
     }
     
     DeviceVar(const std::string& label) : device_view(label) {
-      device_view() = T();
+      Kokkos::deep_copy(device_view, T());
     }
 
     DeviceVar(const std::string& label, const T& value) : device_view(label) {
-      device_view() = value;
+      Kokkos::deep_copy(device_view, value);
     }
 
     DeviceVar(const T& value) : device_view("DeviceVar (directly assigned)") {
-      device_view() = value;
+      Kokkos::deep_copy(device_view, value);
     }
 
     Kokkos::View<T> device_view;
@@ -35,7 +35,7 @@ namespace kocs {
         return device_view();
       } else {
         KOKKOS_IF_ON_DEVICE((
-          return device_view();
+          return *device_view.data();
         ))
         KOKKOS_IF_ON_HOST((
           T host_value;
@@ -47,18 +47,23 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     DeviceVar& operator=(const T& value) {
-      device_view() = value;
+      KOKKOS_IF_ON_DEVICE((
+        *device_view.data() = value;
+      ))
+      KOKKOS_IF_ON_HOST((
+        Kokkos::deep_copy(device_view, value);
+      ))
       return *this;
     }
 
     KOKKOS_INLINE_FUNCTION
     T* data() {
-      return &device_view();
+      return device_view.data();
     }
 
     KOKKOS_INLINE_FUNCTION
     T* data() const {
-      return &device_view();
+      return device_view.data();
     }
   };
 } // namespace kocs

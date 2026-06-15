@@ -9,9 +9,9 @@ docs at: https://0010200303.github.io/KoCS/
 - Kokkos (pulled automatically if not installed)
 
 # TODO
-- add custom abstraction over Kokkos::View that auto updates on resize for captured lambdas and holds device and views internally
 - rework some syntax (FIELDS, custom View defintions)
+- implement delauney pair finder
+- implement approximate gabriel pair finder (maybe use cones approach)
 - add custom integrator example
 - add custom pair finder example
 - (add optimizations per PairFinder x Integrator pair where possible, disable per compiler flag)
-- benchmark Kokkos::pow(x, 2) vs. x * x and Kokkos::pow(x, 3/2) vs. x * Kokkos::sqrt(x)
