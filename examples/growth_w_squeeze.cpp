@@ -1,5 +1,4 @@
-// example translated from https://github.com/germannp/yalla/blob/main/examples/growth_w_wall.cu
-// Simulate growing mesenchyme constrained by a planar wall
+// Simulate growing mesenchyme constrained by two xy walls 0.5 units apart and an xz wall at -0.5
 
 #include "../include/kocs.hpp"
 
@@ -21,16 +20,14 @@ const Scalar mean_distance = 0.75;
 const Scalar proliferation_rate = 0.005;
 
 int main() {
-  Plane wall(0.0f, 0.0f, 1.0f, 0.0f);
+  Plane xy_lower_wall(0.0f, 0.0f, 1.0f, 0.25f);   // normal +z, constraint: z >= -0.25
+  Plane xy_upper_wall(0.0f, 0.0f, -1.0f, 0.25f);  // normal -z, constraint: z <=  0.25
+  Plane xz_wall(0.0f, 1.0f, 0.0f, 0.5f);          // normal +y, constraint: y >= -0.5
 
-  Simulation<SimulationConfig> sim(n_max, "./output/growth_w_wall", r_max);
+  Simulation<SimulationConfig> sim(n_max, "./output/growth_w_squeeze", r_max);
   sim.set_agent_count(n_cells);
   auto& positions = sim.get_view<FIELD(Vector, position)>();
-  auto move_cells = INIT_FUNC(
-    if (positions(i).z() < 0.0f)
-      positions(i).z() *= -1.0f;
-  );
-  sim.init_random_filled_sphere(3.0f, move_cells());
+  sim.init_random_filled_sphere(3.0f);
   sim.write();
 
   auto relu_force = PAIRWISE_FORCE(
@@ -38,9 +35,21 @@ int main() {
   );
 
   auto repulsion_from_wall = GENERIC_FORCE(
-    Scalar sd = wall.signed_distance(ctx.position.self);
-    if (sd < 0.0f)
-      ctx.position.delta += wall.normal() * (-sd * 10.0f);
+    {
+      Scalar sd = xy_lower_wall.signed_distance(ctx.position.self);
+      if (sd < 0.0f)
+        ctx.position.delta += xy_lower_wall.normal() * 0.5 * -sd;
+    }
+    {
+      Scalar sd = xy_upper_wall.signed_distance(ctx.position.self);
+      if (sd < 0.0f)
+        ctx.position.delta += xy_upper_wall.normal() * 0.5 * -sd;
+    }
+    {
+      Scalar sd = xz_wall.signed_distance(ctx.position.self);
+      if (sd < 0.0f)
+        ctx.position.delta += xz_wall.normal() * 0.5 * -sd;
+    }
   );
 
   DeviceVar<int> counter = sim.get_agent_count();
