@@ -39,11 +39,10 @@ namespace kocs::integrators {
     inline void set_capacity(const unsigned int value) {
       Kokkos::resize(old_velocities, value);
 
-      // TODO: maybe use realloc instead of resize because old data is not needed anyway
       // resize all views from auxiliary stages
       [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         ((stage_pack[Is + 1].apply_host([&](auto&... views) {
-          ((Kokkos::resize(views, value)), ...);
+          ((Kokkos::realloc(views, value)), ...);
         })), ...);
       }(std::make_index_sequence<N - 1>{});
     }

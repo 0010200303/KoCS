@@ -82,7 +82,9 @@ namespace kocs::io {
       template<typename T>
       void write_single(HighFive::Group& group, View<T>& view) {
         view.sync_host();
-        group.createDataSet(view.label(), view.view_host());
+
+        auto sub_host = Kokkos::subview(view.view_host(), Kokkos::make_pair(0u, agent_count));
+        group.createDataSet(view.label(), sub_host);
       }
 
       void init_xmf(const std::string& path) {
