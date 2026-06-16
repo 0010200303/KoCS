@@ -256,9 +256,9 @@ namespace kocs {
 
     KOKKOS_INLINE_FUNCTION
     VectorN& normalize() {
-      const Scalar len = length();
+      const Scalar inv_norm = Scalar(1) / length();
       for (int i = 0; i < dimensions; ++i)
-        data_[i] /= len;
+        data_[i] *= inv_norm;
       return *this;
     }
 

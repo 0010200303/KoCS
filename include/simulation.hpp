@@ -147,6 +147,10 @@ namespace kocs {
         writer.set_agent_count(value);
       }
 
+      inline auto get_old_velocities_view_from_integrator() const {
+        return integrator.old_velocities;
+      }
+
     private:
       template<typename... Forces>
       void take_step_impl(double dt, Forces&&... forces) {

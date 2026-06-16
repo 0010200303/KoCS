@@ -56,7 +56,7 @@ int main() {
     }
   );
 
-  DeviceVar<Scalar> rate;
+  Scalar rate;
   DeviceVar<int> counter = sim.get_agent_count();
   auto proliferate = INIT_FUNC(
     if (types(i) == CellType::Mesenchyme && rng.drand(0.0, 1.0) > rate)

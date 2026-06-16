@@ -152,6 +152,7 @@ namespace kocs {
   using Vector = kocs::VectorN<Scalar, dimensions>; \
   using VectorView = kocs::View<Vector>; \
   using Polarity = kocs::Polarity_<Scalar>; \
+  using Plane = kocs::PlaneN<Scalar, dimensions>; \
   using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT; \
   using Random = typename RandomPool::generator_type; \
   using GenericForceFields = typename __SIMULATION_CONFIG__::template ForceFields<kocs::detail::GenericFieldRef>; \

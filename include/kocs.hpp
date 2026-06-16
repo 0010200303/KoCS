@@ -5,6 +5,7 @@
 
 #include "types/vector.hpp"
 #include "types/polarity.hpp"
+#include "types/plane.hpp"
 #include "types/view.hpp"
 #include "types/device_var.hpp"
 

@@ -118,6 +118,7 @@ target_sources(KoCS_core INTERFACE
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/types/vector.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/types/polarity.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/types/plane.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/types/view.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/types/device_var.hpp
 
