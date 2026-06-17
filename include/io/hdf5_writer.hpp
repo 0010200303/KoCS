@@ -15,6 +15,7 @@
 
 #include "../utils/utils.hpp"
 #include "../types/view.hpp"
+#include "../types/link.hpp"
 #include "view.hpp"
 
 namespace kocs::io {
@@ -81,6 +82,9 @@ namespace kocs::io {
 
       template<typename T>
       void write_single(HighFive::Group& group, View<T>& view) {
+        if (view.extent(0) == 0)
+          return;
+
         view.sync_host();
 
         auto sub_host = Kokkos::subview(view.view_host(), Kokkos::make_pair(0u, agent_count));
@@ -141,6 +145,8 @@ namespace kocs::io {
       template<typename T>
       void write_xmf_grid_attribute(const unsigned int step, const View<T>& view) {
         // TODO: optimize this
+        if (view.extent(0) == 0)
+          return;
 
         // extract dimensions
         std::vector<int> dimension_map;
@@ -198,7 +204,7 @@ namespace kocs::io {
     public:
       // always expects the position view to be passed first
       template<typename... Ts>
-      void write(unsigned int step, View<Ts>&... views) {
+      void write(const unsigned int step, View<Ts>&... views) {
         HighFive::Group group = h5_file->createGroup(std::string("t") + std::to_string(step));
         (write_single(group, views), ...);
 

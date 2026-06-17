@@ -7,9 +7,16 @@
 #include "base.hpp"
 
 namespace kocs::integrators {
-  template<typename PairFinder, typename ComFixer, typename ForceFields, typename PairwiseForceFields, typename... Views>
-  struct Heun : public Base<PairFinder, ComFixer, 4, ForceFields, PairwiseForceFields, Views...> {
-    using Base<PairFinder, ComFixer, 4, ForceFields, PairwiseForceFields, Views...>::Base;
+  template<
+    typename PairFinder,
+    typename ComFixer,
+    typename GenericForceFields,
+    typename PairwiseForceFields,
+    typename LinkForceFields,
+    typename... Views
+  >
+  struct Heun : public Base<PairFinder, ComFixer, 4, GenericForceFields, PairwiseForceFields, LinkForceFields, Views...> {
+    using Base<PairFinder, ComFixer, 4, GenericForceFields, PairwiseForceFields, LinkForceFields, Views...>::Base;
 
   public:
     void apply_euler_predictor(double dt) {

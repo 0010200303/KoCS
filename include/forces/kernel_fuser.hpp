@@ -107,7 +107,9 @@ namespace kocs::detail {
   auto fuse_forces(Forces&&... forces) {
     return std::tuple_cat(
       as_tuple_if_not_empty(fuse_forces_for_tag<detail::GenericForceTag>(std::forward<Forces>(forces)...)),
-      as_tuple_if_not_empty(fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...))
+      as_tuple_if_not_empty(fuse_forces_for_tag<detail::PairwiseForceTag>(std::forward<Forces>(forces)...)),
+      as_tuple_if_not_empty(fuse_forces_for_tag<detail::UpdateFuncTag>(std::forward<Forces>(forces)...)),
+      as_tuple_if_not_empty(fuse_forces_for_tag<detail::LinkForceTag>(std::forward<Forces>(forces)...))
     );
   }
 } // namespace kocs::detail

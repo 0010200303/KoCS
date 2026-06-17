@@ -35,9 +35,9 @@ const double dt = 0.05 * r_min * r_min / D_v;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/turing", r_max);
-  auto polarities = sim.get_view<FIELD(Polarity, polarity)>();
-  auto u_view = sim.get_view<FIELD(Scalar, u)>();
-  auto v_view = sim.get_view<FIELD(Scalar, v)>();
+  auto& polarities = sim.get_view<FIELD(Polarity, polarity)>();
+  auto& u_view = sim.get_view<FIELD(Scalar, u)>();
+  auto& v_view = sim.get_view<FIELD(Scalar, v)>();
   auto init = INIT_FUNC(
     polarities(i).theta() = Kokkos::numbers::pi_v<Scalar> / 2.0f;
     u_view(i) = rng.drand(-0.1, 0.1);

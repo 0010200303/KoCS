@@ -7,6 +7,8 @@
 namespace kocs::detail {
   struct GenericForceTag { };
   struct PairwiseForceTag { };
+  struct UpdateFuncTag { };
+  struct LinkForceTag { };
 
   template<typename Tag, typename Force>
   struct TaggedForce {
@@ -39,6 +41,8 @@ namespace kocs::detail {
 
   constexpr ForceTagger<GenericForceTag> generic_force{};
   constexpr ForceTagger<PairwiseForceTag> pairwise_force{};
+  constexpr ForceTagger<UpdateFuncTag> update_func{};
+  constexpr ForceTagger<LinkForceTag> link_force{};
 
 
 
@@ -129,6 +133,14 @@ namespace kocs::detail {
     const T& self;
     const T& other;
     T& delta;
+  };
+
+  template<typename T>
+  struct LinkFieldRef {
+    const T& a;
+    const T& b;
+    T& delta_a;
+    T& delta_b;
   };
 } // namespace kocs::detail
 

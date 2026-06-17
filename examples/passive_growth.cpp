@@ -56,9 +56,9 @@ int main() {
     }
   );
 
-  Scalar rate;
+  Scalar rate = 0.0f;
   DeviceVar<int> counter = sim.get_agent_count();
-  auto proliferate = INIT_FUNC(
+  auto proliferate = UPDATE_FUNC(
     if (types(i) == CellType::Mesenchyme && rng.drand(0.0, 1.0) > rate)
       return;
     else if (types(i) == CellType::Epithelium && epithelium_neighbours(i) > mesenchyme_neighbours(i))
@@ -87,16 +87,16 @@ int main() {
 
   sim.write(types, mesenchyme_neighbours, epithelium_neighbours);
   for (int i = 0; i < steps; ++i) {
-    mesenchyme_neighbours.deep_copy(0);
-    epithelium_neighbours.deep_copy(0);
-    sim.take_step(dt, relu_w_epithelium());
-
     // ensure capacity is high enough to store all possible cells
     if (sim.get_agent_count() * 2 > sim.get_capacity())
       sim.set_capacity(sim.get_agent_count() * 4, types, mesenchyme_neighbours, epithelium_neighbours);
 
+    mesenchyme_neighbours.deep_copy(0);
+    epithelium_neighbours.deep_copy(0);
     rate = proliferation_rate * (i > 100);
-    sim.init(proliferate());
+
+    sim.take_step(dt, relu_w_epithelium());
+    sim.run(proliferate());
 
     sim.set_agent_count(counter);
 

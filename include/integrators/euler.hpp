@@ -6,9 +6,16 @@
 #include "base.hpp"
 
 namespace kocs::integrators {
-  template<typename PairFinder, typename ComFixer, typename ForceFields, typename PairwiseForceFields, typename... Views>
-  struct Euler : public Base<PairFinder, ComFixer, 2, ForceFields, PairwiseForceFields, Views...> {
-    using Base<PairFinder, ComFixer, 2, ForceFields, PairwiseForceFields, Views...>::Base;
+  template<
+    typename PairFinder,
+    typename ComFixer,
+    typename GenericForceFields,
+    typename PairwiseForceFields,
+    typename LinkForceFields,
+    typename... Views
+  >
+  struct Euler : public Base<PairFinder, ComFixer, 2, GenericForceFields, PairwiseForceFields, LinkForceFields, Views...> {
+    using Base<PairFinder, ComFixer, 2, GenericForceFields, PairwiseForceFields, LinkForceFields, Views...>::Base;
 
     void apply_euler(double dt) {
       const auto com_fix_delta = this->com_fixer.fix(this->stage_pack[1].first());

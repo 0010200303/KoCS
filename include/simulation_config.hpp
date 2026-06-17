@@ -99,6 +99,7 @@ namespace kocs {
         typename SimulationConfig::template ComFixerT<SimulationConfig>,
         typename SimulationConfig::template ForceFields<kocs::detail::GenericFieldRef>,
         typename SimulationConfig::template ForceFields<kocs::detail::PairwiseFieldRef>,
+        typename SimulationConfig::template ForceFields<kocs::detail::LinkFieldRef>,
         typename DeviceViewFromField<Fields>::type...
       >;
     };

@@ -12,13 +12,17 @@
 #include "simulation_config.hpp"
 #include "utils/runtime_guard.hpp"
 #include "utils/utils.hpp"
-#include "types/vector.hpp"
 #include "forces/kernel_fuser.hpp"
+
+#include "types/vector.hpp"
+#include "types/link.hpp"
 
 #include "initializers/line.hpp"
 #include "initializers/spheres.hpp"
 #include "initializers/hexagon.hpp"
 #include "initializers/cuboid.hpp"
+#include "initializers/rectangle.hpp"
+#include "initializers/disk.hpp"
 
 namespace kocs {
   template<typename SimulationConfig>
@@ -27,6 +31,29 @@ namespace kocs {
     using Storage = typename detail::FieldStorageFromList<Fields>::type;
 
     public:
+      // legacy constructor
+      // TODO: remove later
+      struct Settings {
+        Settings(const unsigned int agent_count_, const std::string& output_path_)
+          : agent_count(agent_count_)
+          , output_path(output_path_)
+          , capacity(agent_count_) { }
+
+        unsigned int agent_count;
+        std::string output_path;
+
+        unsigned int capacity;
+
+        Scalar cutoff_distance = Scalar(1'000'000);
+        uint64_t seed = 2807;
+
+        PairFinder::Settings pair_finder_settings = {};
+        Writer::Settings writer_settings = {};
+
+        // settings for additional features
+        unsigned int link_count = 0;
+      };
+
       Simulation(
         const unsigned int agent_count_,
         const std::string& output_path,
@@ -41,14 +68,28 @@ namespace kocs {
         , random_pool(seed)
         , pair_finder(agent_count_, cutoff_distance, pair_finder_settings)
         , com_fixer()
-        , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage))
+        , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage, links))
         , writer(output_path, agent_count_, writer_settings)
         , current_step(0) { }
+
+    Simulation(const Settings settings)
+      : agent_count(settings.agent_count)
+      , capacity(settings.agent_count)
+      , storage((get_runtime_guard(), Storage(settings.agent_count)))
+      , random_pool(settings.seed)
+      , pair_finder(settings.agent_count, settings.cutoff_distance, settings.pair_finder_settings)
+      , com_fixer()
+      , links(settings.link_count != 0 ? View<Link>("links", settings.link_count) : View<Link>())
+      , integrator(make_integrator(settings.agent_count, pair_finder, com_fixer, storage, links))
+      , writer(settings.output_path, settings.agent_count, settings.writer_settings)
+      , current_step(0) { }
 
     public:
       unsigned int capacity;
       unsigned int agent_count;
       Storage storage;
+
+      View<Link> links;
 
       RandomPool random_pool;
 
@@ -78,13 +119,14 @@ namespace kocs {
         unsigned int agent_count_,
         PairFinder& pair_finder_,
         ComFixer& com_fixer_,
-        Storage& storage_
+        Storage& storage_,
+        View<Link>& links_
       ) {
         return std::apply(
           [&](auto&... views) {
             // Pass device-only views (Kokkos::View) to the integrator,
             // since its internal buffers never need host-device sync.
-            return Integrator(agent_count_, pair_finder_, com_fixer_, views.view_device()...);
+            return Integrator(agent_count_, pair_finder_, com_fixer_, links_.view_device(), views.view_device()...);
           },
           detail::ViewsFromStorage<Fields, Storage>::get(storage_)
         );
@@ -149,6 +191,22 @@ namespace kocs {
 
       inline auto get_old_velocities_view_from_integrator() const {
         return integrator.old_velocities;
+      }
+
+      inline View<Link>& get_links() {
+        return links;
+      }
+
+      inline const View<Link>& get_links() const {
+        return links;
+      }
+
+      inline unsigned int get_link_count() const {
+        return links.extent(0);
+      }
+
+      inline void resize_links(const unsigned int value) {
+        links.resize(value);
       }
 
     private:
@@ -310,7 +368,7 @@ namespace kocs {
       template<typename Initializer>
       inline void init(Initializer initializer) {
         auto& random_pool_ = random_pool;
-        Kokkos::parallel_for("init", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
+        Kokkos::parallel_for("Simulation::init", agent_count, KOKKOS_LAMBDA(const unsigned int i) {
           Random generator = random_pool_.get_state();
 
           initializer(i, generator);
@@ -335,9 +393,40 @@ namespace kocs {
         }, fused_forces);
       }
 
+      template<typename Func>
+      inline void run_custom(unsigned int count, Func function) {
+        auto& random_pool_ = random_pool;
+        Kokkos::parallel_for("Simulation::run", count, KOKKOS_LAMBDA(const unsigned int i) {
+          Random generator = random_pool_.get_state();
+
+          function(i, generator);
+
+          random_pool_.free_state(generator);
+        });
+      }
+
+      template<typename... Funcs>
+      inline void run_custom(unsigned int count, Funcs&&... functions) {
+        auto fused_funcs = detail::fuse_forces(static_cast<Funcs&&>(functions)...);
+
+        std::apply([&](auto&&... args) {
+          run_custom(count, static_cast<decltype(args)&&>(args)...);
+        }, fused_funcs);
+      }
+
+      template<typename... Funcs>
+      inline void run(Funcs&&... functions) {
+        run_custom(agent_count, std::forward<Funcs>(functions)...);
+      }
+
+      template<typename... Funcs>
+      inline void run_links(Funcs&&... functions) {
+        run_custom(links.extent(0), std::forward<Funcs>(functions)...);
+      }
+
       inline void write() {
         std::apply([&](auto&&... args) {
-          writer.write(current_step++, static_cast<decltype(args)&&>(args)...);
+          writer.write(current_step++, static_cast<decltype(args)&&>(args)..., links);
         }, get_views());
       }
 
@@ -347,7 +436,8 @@ namespace kocs {
           writer.write(
             current_step++,
             static_cast<decltype(args)&&>(args)...,
-            std::forward<Views>(additional_views)...
+            std::forward<Views>(additional_views)...,
+            links
           );
         }, get_views());
       }

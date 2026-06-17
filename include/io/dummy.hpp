@@ -1,6 +1,11 @@
 #ifndef KOCS_IO_DUMMY_HPP
 #define KOCS_IO_DUMMY_HPP
 
+#include <Kokkos_Core.hpp>
+
+#include "../types/view.hpp"
+#include "../types/link.hpp"
+
 namespace kocs::io {
   template<typename SimulationConfig>
   class Dummy {
@@ -10,7 +15,7 @@ namespace kocs::io {
       Dummy(const std::string& path, const unsigned int agent_count, const Settings& settings) { }
 
       template<typename... Views>
-      void write(unsigned int step, const Views&... views) { }
+      void write(const unsigned int step, const Views&... views) { }
 
       unsigned int agent_count;
 

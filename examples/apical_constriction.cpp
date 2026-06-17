@@ -21,7 +21,7 @@ const int save_every_nth = 40;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/apical_constriction", r_max);
-  auto polarities = sim.get_view<FIELD(Polarity, polarity)>();
+  auto& polarities = sim.get_view<FIELD(Polarity, polarity)>();
   auto init_polarities = INIT_FUNC(
     polarities(i) = Polarity(Kokkos::acos(1.0f), Kokkos::atan2(1.0f, 1.0f));
   );

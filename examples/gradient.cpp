@@ -21,7 +21,7 @@ const Scalar D = 10;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/gradient", r_max);
-  auto gradient_view = sim.get_view<FIELD(Scalar, gradient)>();
+  auto& gradient_view = sim.get_view<FIELD(Scalar, gradient)>();
   auto gradient_init = INIT_FUNC(
     if (i == 11)
       gradient_view(i) = Scalar(1);

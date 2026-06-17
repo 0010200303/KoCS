@@ -12,6 +12,7 @@
 
 #include "types/vector.hpp"
 #include "types/polarity.hpp"
+#include "types/link.hpp"
 
 namespace kocs {
   // extract types from Fields
@@ -122,19 +123,24 @@ namespace kocs {
 } // namespace kocs
 
 // force macros
-#define GENERIC_FORCE_IMPL kocs::detail::generic_force | KOKKOS_LAMBDA
-#define PAIRWISE_FORCE_IMPL kocs::detail::pairwise_force | KOKKOS_LAMBDA
-
 #define GENERIC_REF(__TYPE__, __NAME__) detail::GenericFieldRef<__TYPE__> __NAME__
 #define PAIRWISE_REF(__TYPE__, __NAME__) detail::PairwiseFieldRef<__TYPE__> __NAME__
+
+#define GENERIC_FORCE_IMPL kocs::detail::generic_force | KOKKOS_LAMBDA
+#define PAIRWISE_FORCE_IMPL kocs::detail::pairwise_force | KOKKOS_LAMBDA
+#define UPDATE_FUNC_IMPL kocs::detail::update_func | KOKKOS_LAMBDA
+#define LINK_FORCE_IMPL kocs::detail::link_force | KOKKOS_LAMBDA
 
 #define GENERIC_FORCE_PARAMETERS const unsigned int i, Random& rng, const GenericForceFields& ctx
 #define PAIRWISE_FORCE_PARAMETERS const unsigned int i, const unsigned int j, const Vector& displacement, \
   const Scalar distance, Random& rng, Scalar& drag, const PairwiseForceFields& ctx
+#define UPDATE_FUNC_PARAMETERS const unsigned int i, Random& rng
+#define LINK_FORCE_PARAMETERS const Link& link, Random& rng, const LinkForceFields& ctx
 
 #define GENERIC_FORCE(...) [&]() { return GENERIC_FORCE_IMPL(GENERIC_FORCE_PARAMETERS) { __VA_ARGS__ }; }
 #define PAIRWISE_FORCE(...) [&]() { return PAIRWISE_FORCE_IMPL(PAIRWISE_FORCE_PARAMETERS) { __VA_ARGS__ }; }
-#define INIT_FUNC(...) [&]() { return KOKKOS_LAMBDA(const unsigned int i, Random& rng) { __VA_ARGS__ }; }
+#define UPDATE_FUNC(...) [&]() { return UPDATE_FUNC_IMPL(UPDATE_FUNC_PARAMETERS) { __VA_ARGS__ }; }
+#define LINK_FORCE(...) [&]() { return LINK_FORCE_IMPL(LINK_FORCE_PARAMETERS) { __VA_ARGS__ }; }
 
 #define GENERIC_FORCE_OP() \
   using tag = kocs::detail::GenericForceTag; \
@@ -143,6 +149,17 @@ namespace kocs {
 #define PAIRWISE_FORCE_OP() \
   using tag = kocs::detail::PairwiseForceTag; \
   KOKKOS_INLINE_FUNCTION void operator()(PAIRWISE_FORCE_PARAMETERS) const
+
+#define UPDATE_FUNC_OP() \
+  using tag = kocs::detail::UpdateFuncTag; \
+  KOKKOS_INLINE_FUNCTION void operator()(UPDATE_FUNC_PARAMETERS) const
+
+#define LINK_FORCE_OP() \
+  using tag = kocs::detail::LinkForceTag; \
+  KOKKOS_INLINE_FUNCTION void operator()(LINK_FORCE_PARAMETERS) const
+
+// special version for inits
+#define INIT_FUNC(...) [&]() { return KOKKOS_LAMBDA(const unsigned int i, Random& rng) { __VA_ARGS__ }; }
 
 
 
@@ -156,7 +173,8 @@ namespace kocs {
   using RandomPool = typename __SIMULATION_CONFIG__::RandomPoolT; \
   using Random = typename RandomPool::generator_type; \
   using GenericForceFields = typename __SIMULATION_CONFIG__::template ForceFields<kocs::detail::GenericFieldRef>; \
-  using PairwiseForceFields = typename __SIMULATION_CONFIG__::template ForceFields<kocs::detail::PairwiseFieldRef>;
+  using PairwiseForceFields = typename __SIMULATION_CONFIG__::template ForceFields<kocs::detail::PairwiseFieldRef>; \
+  using LinkForceFields = typename __SIMULATION_CONFIG__::template ForceFields<kocs::detail::LinkFieldRef>;
 
 #define EXTRACT_ALL_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(__SIMULATION_CONFIG__) \

@@ -19,8 +19,8 @@ const Scalar r_max = 1.0;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/epithelium", r_max);
-  auto positions = sim.get_view<FIELD(Vector, position)>();
-  auto polarities = sim.get_view<FIELD(Polarity, polarity)>();
+  auto& positions = sim.get_view<FIELD(Vector, position)>();
+  auto& polarities = sim.get_view<FIELD(Polarity, polarity)>();
   auto init_polarities = INIT_FUNC(
     polarities(i) = Polarity(positions(i));
   );

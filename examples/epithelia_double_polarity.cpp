@@ -23,9 +23,9 @@ const int save_every_nth = 5; // skip_step
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/epithelia_double_polarity", r_max);
-  auto positions = sim.get_view<FIELD(Vector, position)>();
-  auto polarities_a = sim.get_view<FIELD(Polarity, polarity_a)>();
-  auto polarities_b = sim.get_view<FIELD(Polarity, polarity_b)>();
+  auto& positions = sim.get_view<FIELD(Vector, position)>();
+  auto& polarities_a = sim.get_view<FIELD(Polarity, polarity_a)>();
+  auto& polarities_b = sim.get_view<FIELD(Polarity, polarity_b)>();
   auto init_polarities = INIT_FUNC(
     polarities_a(i) = Polarity(positions(i));
     polarities_b(i) = Polarity(Kokkos::acos(0.0f), Kokkos::atan2(0.0f, 1.0f));

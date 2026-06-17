@@ -21,8 +21,8 @@ const Scalar radius = 1.6;
 
 int main() {
   Simulation<SimulationConfig> sim(n_cells, "./output/bending", r_max);
-  auto positions = sim.get_view<FIELD(Vector, position)>();
-  auto polarities = sim.get_view<FIELD(Polarity, polarity)>();
+  auto& positions = sim.get_view<FIELD(Vector, position)>();
+  auto& polarities = sim.get_view<FIELD(Polarity, polarity)>();
   auto wrap_hexagon = INIT_FUNC(
     auto& x = positions(i).x();
     auto& y = positions(i).y();

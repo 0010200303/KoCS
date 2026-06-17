@@ -1,11 +1,14 @@
 #ifndef KOCS_HPP
 #define KOCS_HPP
 
+// TODO: remove unnecessary includes?
+
 #include "utils/utils.hpp"
 
 #include "types/vector.hpp"
 #include "types/polarity.hpp"
 #include "types/plane.hpp"
+#include "types/link.hpp"
 #include "types/view.hpp"
 #include "types/device_var.hpp"
 
