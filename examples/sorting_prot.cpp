@@ -7,7 +7,8 @@ using namespace kocs;
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(DefaultSimulationConfig)
 
 const int n_cells = 200;
-const int steps = 300;
+// const int steps = 300;
+const int steps = 3;
 const double dt = 0.05;
 const Scalar r_max = 1.0;
 const Scalar r_min = 0.5;
@@ -35,7 +36,8 @@ int main() {
     types(i) = !get_type(i);
   );
   sim.init_random_filled_sphere(2.0, types_init());
-  sim.write(types);
+  sim.write_static(types);
+  sim.write();
 
   unsigned int agent_count = sim.get_agent_count();
   auto update_protrusions = UPDATE_FUNC(
@@ -100,7 +102,7 @@ int main() {
     sim.take_step(dt, prot_forces(), clipped_cubic());
 
     // TODO: write links
-    sim.write(types);
+    sim.write();
   }
 
   return 0;

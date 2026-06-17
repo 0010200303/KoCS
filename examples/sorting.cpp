@@ -37,7 +37,8 @@ int main(int argc, char* argv[]) {
     types(i) = (i < n_cells / 2) ? 0 : 1;
   );
   sim.init_random_filled_sphere(1.0, types_init());
-  sim.write(types);
+  sim.write_static(types);
+  sim.write(0.0);
 
   auto differential_adhesion = PAIRWISE_FORCE(
     Scalar tau;
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]) {
 
   for (int i = 1; i <= steps; ++i) {
     sim.take_step(dt, differential_adhesion());
-    sim.write(types);
+    sim.write(i * dt);
   }
 
   return 0;

@@ -12,13 +12,17 @@ namespace kocs {
   struct View : public Kokkos::DualView<T*> {
     View()
       : Kokkos::DualView<T*>("kocs::View default", 0)
-      , device_modified_flag("DualView:device_modified_flag") { }
+      , device_modified_flag("DualView:device_modified_flag")
+      , active_count(0) { }
 
     View(const std::string& label, const unsigned int count)
       : Kokkos::DualView<T*>(label, count)
-      , device_modified_flag("DualView:device_modified_flag") { }
+      , device_modified_flag("DualView:device_modified_flag")
+      , active_count(count) { }
 
     Kokkos::View<bool> device_modified_flag;
+
+    unsigned int active_count;
 
     inline std::string label() const {
       return this->view_device().label();
@@ -61,18 +65,6 @@ namespace kocs {
     KOKKOS_INLINE_FUNCTION
     T& write(const int i) const {
       return (*this)(i);
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    unsigned int get_capacity() const {
-      return this->extent(0);
-    }
-
-    // shadow base class method
-    inline void resize(const int value) {
-      Kokkos::DualView<T*>::resize(value);
-      Kokkos::deep_copy(device_modified_flag, false);
-      Kokkos::DualView<T*>::sync_host();
     }
 
     // shadow base class method
@@ -122,6 +114,26 @@ namespace kocs {
       Kokkos::deep_copy(this->view_device(), src);
       Kokkos::deep_copy(this->view_host(), src);
       Kokkos::deep_copy(device_modified_flag, false);
+    }
+
+    // shadow base class method
+    inline void resize(const int value) {
+      Kokkos::DualView<T*>::resize(value);
+      Kokkos::deep_copy(device_modified_flag, false);
+      Kokkos::DualView<T*>::sync_host();
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    unsigned int get_capacity() const {
+      return this->extent(0);
+    }
+
+    inline  unsigned int get_active_count() const {
+      return active_count;
+    }
+
+    inline void set_active_count(const unsigned int value) {
+      active_count = value;
     }
   };
 } // namespace kocs

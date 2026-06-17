@@ -32,10 +32,8 @@ namespace kocs::io {
     public:
       HDF5_Writer(
         const std::string& path,
-        const unsigned int agent_count_,
         const Settings& settings)
-        : agent_count(agent_count_)
-        , write_xmf(settings.write_xmf)
+        : write_xmf(settings.write_xmf)
         , buffer_threshold(settings.buffer_treshold) {
         std::filesystem::path _path(path);
         std::filesystem::create_directories(_path.parent_path());
@@ -51,12 +49,6 @@ namespace kocs::io {
         finalize_xmf();
       }
 
-      unsigned int agent_count;
-
-      inline void set_agent_count(const unsigned int value) {
-        agent_count = value;
-      }
-
     private:
       const std::size_t buffer_threshold;
 
@@ -65,6 +57,8 @@ namespace kocs::io {
       std::unique_ptr<HighFive::File> h5_file;
       std::ofstream xmf_file;
       std::string xmf_buffer;
+
+      std::string xmf_static;
 
       bool write_xmf;
 
@@ -82,12 +76,12 @@ namespace kocs::io {
 
       template<typename T>
       void write_single(HighFive::Group& group, View<T>& view) {
-        if (view.extent(0) == 0)
+        if (view.get_active_count() == 0)
           return;
 
         view.sync_host();
 
-        auto sub_host = Kokkos::subview(view.view_host(), Kokkos::make_pair(0u, agent_count));
+        auto sub_host = Kokkos::subview(view.view_host(), Kokkos::make_pair(0u, view.get_active_count()));
         group.createDataSet(view.label(), sub_host);
       }
 
@@ -110,11 +104,13 @@ namespace kocs::io {
       }
 
       template<typename T>
-      void write_xmf_grid_start(const unsigned int step, const View<T>& first_view) {
+      void write_xmf_grid_start(const double time, const unsigned int step, const View<T>& first_view) {
         xmf_buffer += "\t\t\t<Grid Name=\"t";
         xmf_buffer += std::to_string(step);
-        xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
-        xmf_buffer += std::to_string(agent_count);
+        xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Time Value=\"";
+        xmf_buffer += std::to_string(time);
+        xmf_buffer += "\"/>\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
+        xmf_buffer += std::to_string(first_view.get_active_count());
         xmf_buffer += "\"/>\n\t\t\t\t<Geometry GeometryType=\"";
         
         if constexpr (dimensions == 1)
@@ -125,7 +121,7 @@ namespace kocs::io {
           xmf_buffer += "XYZ";
         
         xmf_buffer += "\">\n\t\t\t\t\t<DataItem Format=\"HDF\" Dimensions=\"";
-        xmf_buffer += std::to_string(agent_count);
+        xmf_buffer += std::to_string(first_view.get_active_count());
         xmf_buffer += " ";
         xmf_buffer += std::to_string(SimulationConfig::dimensions);
         xmf_buffer += "\">\n\t\t\t\t\t\t";
@@ -137,13 +133,8 @@ namespace kocs::io {
         xmf_buffer += "\n\t\t\t\t\t</DataItem>\n\t\t\t\t</Geometry>\n";
       }
 
-      template<typename Tuple, std::size_t... Is>
-      void write_xmf_grid_attributes_from_tuple(const unsigned int step, const Tuple& tpl, std::index_sequence<Is...>) {
-        (void)std::initializer_list<int>{ (Is == 0 ? 0 : (write_xmf_grid_attribute(step, std::get<Is>(tpl)), 0))... };
-      }
-
       template<typename T>
-      void write_xmf_grid_attribute(const unsigned int step, const View<T>& view) {
+      void write_xmf_grid_attribute(std::string& buffer, const std::string& group, const View<T>& view) {
         // TODO: optimize this
         if (view.extent(0) == 0)
           return;
@@ -158,8 +149,8 @@ namespace kocs::io {
         else if constexpr (has_get_dimensions<T>::value)
           dimension_map.push_back(T{}.get_dimensions());
 
-        // overwrite first dimension with agent_count
-        dimension_map[0] = agent_count;
+        // overwrite first dimension with views active count
+        dimension_map[0] = view.get_active_count();
 
         std::string dimensions = "";
         for (const auto& d : dimension_map) {
@@ -176,23 +167,24 @@ namespace kocs::io {
         else if (dimension_map.size() == 2 && dimension_map[1] == 9)
           attribute_type = "Tensor";
 
-        xmf_buffer += "\t\t\t\t<Attribute Name=\"";
-        xmf_buffer += view.label();
-        xmf_buffer += "\" AttributeType=\"";
-        xmf_buffer += attribute_type;
-        xmf_buffer += "\" Center=\"Node\">\n";
-        xmf_buffer += "\t\t\t\t\t<DataItem Format=\"HDF\" Dimensions=\"";
-        xmf_buffer += dimensions;
-        xmf_buffer += "\">\n\t\t\t\t\t\t";
-        xmf_buffer += filename;
-        xmf_buffer += ".h5:t";
-        xmf_buffer += std::to_string(step);
-        xmf_buffer += "/";
-        xmf_buffer += view.label();
-        xmf_buffer += "\n\t\t\t\t\t</DataItem>\n\t\t\t\t</Attribute>\n";
+        buffer += "\t\t\t\t<Attribute Name=\"";
+        buffer += view.label();
+        buffer += "\" AttributeType=\"";
+        buffer += attribute_type;
+        buffer += "\" Center=\"Node\">\n";
+        buffer += "\t\t\t\t\t<DataItem Format=\"HDF\" Dimensions=\"";
+        buffer += dimensions;
+        buffer += "\">\n\t\t\t\t\t\t";
+        buffer += filename;
+        buffer += ".h5:";
+        buffer += group;
+        buffer += "/";
+        buffer += view.label();
+        buffer += "\n\t\t\t\t\t</DataItem>\n\t\t\t\t</Attribute>\n";
       }
 
       void write_xmf_grid_end() {
+        xmf_buffer += xmf_static;
         xmf_buffer += "\t\t\t</Grid>\n";
 
         if (xmf_buffer.size() > buffer_threshold) {
@@ -203,19 +195,36 @@ namespace kocs::io {
 
     public:
       // always expects the position view to be passed first
-      template<typename... Ts>
-      void write(const unsigned int step, View<Ts>&... views) {
+      template<typename T0, typename... Ts>
+      void write(const double time, const unsigned int step, View<T0>& first_view, View<Ts>&... rest_views) {
         HighFive::Group group = h5_file->createGroup(std::string("t") + std::to_string(step));
-        (write_single(group, views), ...);
+        write_single(group, first_view);
+        (write_single(group, rest_views), ...);
+
+        h5_file->flush();
 
         if (write_xmf == false || xmf_file.is_open() == false)
           return;
 
-        auto all_tuple = std::tuple<const View<Ts>&...>(views...);
-
-        write_xmf_grid_start(step, std::get<0>(all_tuple));
-        write_xmf_grid_attributes_from_tuple(step, all_tuple, std::make_index_sequence<sizeof...(Ts)>{});
+        write_xmf_grid_start(time, step, first_view);
+        (write_xmf_grid_attribute(xmf_buffer, "t" + std::to_string(step), rest_views), ...);
         write_xmf_grid_end();
+      }
+
+      template<typename... Ts>
+      void write_static(View<Ts>&... static_views) {
+        if (xmf_static.empty() == false)
+          throw std::runtime_error("Static data has already been written. You can only write to static data once.");
+
+        HighFive::Group static_group = h5_file->createGroup("static");
+        (write_single(static_group, static_views), ...);
+
+        h5_file->flush();
+
+        if (write_xmf == false || xmf_file.is_open() == false)
+          return;
+
+        (write_xmf_grid_attribute(xmf_static, "static", static_views), ...);
       }
   };
 } // namespace kocs::io

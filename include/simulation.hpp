@@ -69,7 +69,7 @@ namespace kocs {
         , pair_finder(agent_count_, cutoff_distance, pair_finder_settings)
         , com_fixer()
         , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage, links))
-        , writer(output_path, agent_count_, writer_settings)
+        , writer(output_path, writer_settings)
         , current_step(0) { }
 
     Simulation(const Settings settings)
@@ -81,7 +81,7 @@ namespace kocs {
       , com_fixer()
       , links(settings.link_count != 0 ? View<Link>("links", settings.link_count) : View<Link>())
       , integrator(make_integrator(settings.agent_count, pair_finder, com_fixer, storage, links))
-      , writer(settings.output_path, settings.agent_count, settings.writer_settings)
+      , writer(settings.output_path, settings.writer_settings)
       , current_step(0) { }
 
     public:
@@ -186,7 +186,9 @@ namespace kocs {
         agent_count = value;
         integrator.set_agent_count(value);
         pair_finder.set_agent_count(value);
-        writer.set_agent_count(value);
+        std::apply([&](auto&... views) {
+          ((views.set_active_count(value)), ...);
+        }, get_views());
       }
 
       inline auto get_old_velocities_view_from_integrator() const {
@@ -424,16 +426,17 @@ namespace kocs {
         run_custom(links.extent(0), std::forward<Funcs>(functions)...);
       }
 
-      inline void write() {
+      inline void write(const double time) {
         std::apply([&](auto&&... args) {
-          writer.write(current_step++, static_cast<decltype(args)&&>(args)..., links);
+          writer.write(time, current_step++, static_cast<decltype(args)&&>(args)..., links);
         }, get_views());
       }
 
       template<typename... Views>
       inline void write(Views&&... additional_views) {
-        std::apply([&](auto&&... args) {
+        std::apply([&](const double time, auto&&... args) {
           writer.write(
+            time,
             current_step++,
             static_cast<decltype(args)&&>(args)...,
             std::forward<Views>(additional_views)...,
@@ -441,6 +444,11 @@ namespace kocs {
           );
         }, get_views());
       }
+
+      template<typename... Views>
+      inline void write_static(Views&&... static_views) {
+        writer.write_static(static_views...);
+      } 
   };
 } // namespace kocs
 
