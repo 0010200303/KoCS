@@ -104,13 +104,20 @@ namespace kocs::io {
       }
 
       template<typename T>
-      void write_xmf_grid_start(const double time, const unsigned int step, const View<T>& first_view) {
+      void write_xmf_grid_start(
+        const double time,
+        const unsigned int step,
+        const View<T>& first_view,
+        const bool has_links
+      ) {
         xmf_buffer += "\t\t\t<Grid Name=\"t";
         xmf_buffer += std::to_string(step);
         xmf_buffer += "\" GridType=\"Uniform\">\n\t\t\t\t<Time Value=\"";
         xmf_buffer += std::to_string(time);
-        xmf_buffer += "\"/>\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
-        xmf_buffer += std::to_string(first_view.get_active_count());
+        if (has_links == false) {
+          xmf_buffer += "\"/>\n\t\t\t\t<Topology TopologyType=\"Polyvertex\" NumberOfElements=\"";
+          xmf_buffer += std::to_string(first_view.get_active_count());
+        }
         xmf_buffer += "\"/>\n\t\t\t\t<Geometry GeometryType=\"";
         
         if constexpr (dimensions == 1)
@@ -134,7 +141,7 @@ namespace kocs::io {
       }
 
       template<typename T>
-      void write_xmf_grid_attribute(std::string& buffer, const std::string& group, const View<T>& view) {
+      void write_xmf_grid_item(std::string& buffer, const std::string& group, const View<T>& view) {
         // TODO: optimize this
         if (view.extent(0) == 0)
           return;
@@ -167,12 +174,23 @@ namespace kocs::io {
         else if (dimension_map.size() == 2 && dimension_map[1] == 9)
           attribute_type = "Tensor";
 
-        buffer += "\t\t\t\t<Attribute Name=\"";
-        buffer += view.label();
-        buffer += "\" AttributeType=\"";
-        buffer += attribute_type;
-        buffer += "\" Center=\"Node\">\n";
-        buffer += "\t\t\t\t\t<DataItem Format=\"HDF\" Dimensions=\"";
+        // line or attribute
+        if constexpr (std::is_same_v<T, Link> == true) {
+          buffer += "\t\t\t\t<Topology TopologyType=\"Polyline\" NumberOfElements=\"";
+          buffer += std::to_string(view.get_active_count());
+          buffer += "\">\n";
+          buffer += "\t\t\t\t\t<DataItem Format=\"HDF\" DataType=\"UInt32\"";
+        }
+        else {
+          buffer += "\t\t\t\t<Attribute Name=\"";
+          buffer += view.label();
+          buffer += "\" AttributeType=\"";
+          buffer += attribute_type;
+          buffer += "\" Center=\"Node\">\n";
+          buffer += "\t\t\t\t\t<DataItem Format=\"HDF\"";
+        }
+
+        buffer += " Dimensions=\"";
         buffer += dimensions;
         buffer += "\">\n\t\t\t\t\t\t";
         buffer += filename;
@@ -180,7 +198,13 @@ namespace kocs::io {
         buffer += group;
         buffer += "/";
         buffer += view.label();
-        buffer += "\n\t\t\t\t\t</DataItem>\n\t\t\t\t</Attribute>\n";
+        buffer += "\n\t\t\t\t\t</DataItem>\n";
+        
+        // line or attribute
+        if constexpr (std::is_same_v<T, Link> == true)
+          buffer += "\t\t\t\t</Topology>\n";
+        else
+          buffer += "\t\t\t\t</Attribute>\n";
       }
 
       void write_xmf_grid_end() {
@@ -206,8 +230,9 @@ namespace kocs::io {
         if (write_xmf == false || xmf_file.is_open() == false)
           return;
 
-        write_xmf_grid_start(time, step, first_view);
-        (write_xmf_grid_attribute(xmf_buffer, "t" + std::to_string(step), rest_views), ...);
+        constexpr bool has_links = (std::is_same_v<Ts, Link> || ...);
+        write_xmf_grid_start(time, step, first_view, has_links);
+        (write_xmf_grid_item(xmf_buffer, "t" + std::to_string(step), rest_views), ...);
         write_xmf_grid_end();
       }
 
@@ -224,7 +249,7 @@ namespace kocs::io {
         if (write_xmf == false || xmf_file.is_open() == false)
           return;
 
-        (write_xmf_grid_attribute(xmf_static, "static", static_views), ...);
+        (write_xmf_grid_item(xmf_static, "static", static_views), ...);
       }
   };
 } // namespace kocs::io

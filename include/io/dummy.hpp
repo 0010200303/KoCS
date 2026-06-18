@@ -12,16 +12,13 @@ namespace kocs::io {
     public:
       struct Settings { };
 
-      Dummy(const std::string& path, const unsigned int agent_count, const Settings& settings) { }
+      Dummy(const std::string& path, const Settings& settings) { }
 
-      template<typename... Views>
-      void write(const unsigned int step, const Views&... views) { }
+      template<typename T0, typename... Views>
+      void write(const double time, const unsigned int step, View<T0>& first_view, View<Ts>&... rest_views) { }
 
-      unsigned int agent_count;
-
-      inline void set_agent_count(const unsigned int value) {
-        agent_count = value;
-      }
+      template<typename... Ts>
+      void write_static(View<Ts>&... static_views) { }
   };
 } // namespace kocs::io
 
