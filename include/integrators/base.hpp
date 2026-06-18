@@ -138,16 +138,27 @@ namespace kocs::integrators {
           if (link.a == link.b)
             return;
 
-          // TODO: fix data race (accumulate locally (maybe reducer) then add back to original out_views)
           auto generator = random_pool.get_state();
           in_view_pack.apply([&](auto&... in_views) {
             out_view_pack.apply([&](auto&... out_views) {
-              force(link, generator, LinkForceFields{detail::LinkFieldRef{
-                in_views(link.a),
-                in_views(link.b),
-                out_views(link.a),
-                out_views(link.b)
-              }...});
+              auto accumulator_a = detail::make_accumulator_pack<Views...>(in_view_pack);
+              auto accumulator_b = detail::make_accumulator_pack<Views...>(in_view_pack);
+
+              accumulator_a.apply([&](auto&... delta_a) {
+                accumulator_b.apply([&](auto&... delta_b) {
+                  force(link, generator, LinkForceFields{detail::LinkFieldRef{
+                    in_views(link.a),
+                    in_views(link.b),
+                    delta_a,
+                    delta_b
+                  }...});
+
+                  ((
+                    Kokkos::atomic_add(&out_views(link.a), delta_a),
+                    Kokkos::atomic_add(&out_views(link.b), delta_b)
+                  ), ...);
+                });
+              });
             });
           });
           random_pool.free_state(generator);

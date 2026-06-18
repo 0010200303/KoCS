@@ -50,7 +50,7 @@ int main() {
 
     // probability testing to keep link
     if (get_type(link.a) == true && get_type(link.b) == true) {
-      if (rng.drand(0.0, 1.0) > 0.05)
+      if (rng.drand(0.0, 1.0) > 0.025)
         return;
     }
     else if (get_type(link.a) == false && get_type(link.b) == false) {
@@ -58,7 +58,7 @@ int main() {
         return;
     }
     else {
-      if (rng.drand(0.0, 1.0) > 0.125)
+      if (rng.drand(0.0, 1.0) > 0.25)
         return;
     }
 
@@ -69,7 +69,7 @@ int main() {
       return;
 
     distance_squared = positions(new_a).distance_to_squared(positions(new_b));
-    if (distance_squared > min_link_length_squared) {
+    if (distance_squared > min_link_length_squared && distance_squared < max_link_length_squared) {
       link.a = new_a;
       link.b = new_b;
     }
@@ -84,18 +84,10 @@ int main() {
     Vector displacement = ctx.position.b - ctx.position.a;
     Scalar distance = displacement.length();
 
-    // ctx.position.delta_a +=  link_strength * displacement / distance;
-    // ctx.position.delta_b += -link_strength * displacement / distance;
-  
-    Kokkos::atomic_add(&(ctx.position.delta_a.x()),  link_strength * displacement.x() / distance);
-    Kokkos::atomic_add(&(ctx.position.delta_a.y()),  link_strength * displacement.y() / distance);
-    Kokkos::atomic_add(&(ctx.position.delta_a.z()),  link_strength * displacement.z() / distance);
-    Kokkos::atomic_add(&(ctx.position.delta_b.x()), -link_strength * displacement.x() / distance);
-    Kokkos::atomic_add(&(ctx.position.delta_b.y()), -link_strength * displacement.y() / distance);
-    Kokkos::atomic_add(&(ctx.position.delta_b.z()), -link_strength * displacement.z() / distance);
+    ctx.position.delta_a +=  link_strength * displacement / distance;
+    ctx.position.delta_b += -link_strength * displacement / distance;
   );
 
-  sim.write(0.0);
   for (int i = 0; i < steps; ++i) {
     sim.run_links(update_protrusions());
     sim.take_step(dt, prot_forces(), clipped_cubic());
