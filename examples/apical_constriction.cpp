@@ -26,7 +26,7 @@ int main() {
     polarities(i) = Polarity(Kokkos::acos(1.0f), Kokkos::atan2(1.0f, 1.0f));
   );
   sim.init_regular_rectangle(0.8, 15, init_polarities());
-  sim.write();
+  sim.write(0.0);
 
   auto constriction_force = PAIRWISE_FORCE(
     ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.8f, 0.8f, 2.0f, 2.0f);
@@ -40,7 +40,7 @@ int main() {
   for (int i = 0; i < steps; ++i) {
     sim.take_step(dt, constriction_force);
     if (i % save_every_nth == 0)
-      sim.write();
+      sim.write(i * dt);
   }
 
   return 0;

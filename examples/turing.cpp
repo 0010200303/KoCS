@@ -44,7 +44,7 @@ int main() {
     v_view(i) = rng.drand(-0.1, 0.1);
   );
   sim.init_random_disk(0.5, init());
-  sim.write();
+  sim.write(0.0);
 
   auto meinhardt_equations = GENERIC_FORCE(
     ctx.u.delta += lambda * ((f_u * ctx.u.self * ctx.u.self) / (1.0f + f_v * ctx.v.self) - m_u * ctx.u.self + s_u);
@@ -71,7 +71,7 @@ int main() {
   for (int i = 0; i < steps; ++i) {
     sim.take_step(dt, meinhardt_equations(), epithelium_w_turing());
     if (i % save_every_nth == 0)
-      sim.write();
+      sim.write(i * dt);
   }
 
   return 0;

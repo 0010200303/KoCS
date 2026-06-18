@@ -85,7 +85,7 @@ int main() {
   );
   sim.init(find_epithelium());
 
-  sim.write(types, mesenchyme_neighbours, epithelium_neighbours);
+  sim.write(0.0, types, mesenchyme_neighbours, epithelium_neighbours);
   for (int i = 0; i < steps; ++i) {
     // ensure capacity is high enough to store all possible cells
     if (sim.get_agent_count() * 2 > sim.get_capacity())
@@ -100,6 +100,6 @@ int main() {
 
     sim.set_agent_count(counter);
 
-    sim.write(types, mesenchyme_neighbours, epithelium_neighbours);
+    sim.write(i * dt, types, mesenchyme_neighbours, epithelium_neighbours);
   }
 }

@@ -433,8 +433,8 @@ namespace kocs {
       }
 
       template<typename... Views>
-      inline void write(Views&&... additional_views) {
-        std::apply([&](const double time, auto&&... args) {
+      inline void write(const double time, Views&&... additional_views) {
+        std::apply([&](auto&&... args) {
           writer.write(
             time,
             current_step++,

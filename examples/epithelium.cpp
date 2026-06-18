@@ -25,7 +25,7 @@ int main() {
     polarities(i) = Polarity(positions(i));
   );
   sim.init_relaxed_sphere(0.8, init_polarities());
-  sim.write();
+  sim.write(0.0);
 
   // ReLU forces plus k*(n_i . r_ij/r)^2/2 for all r_ij <= r_max
   auto layer_force = PAIRWISE_FORCE(
@@ -38,7 +38,7 @@ int main() {
 
   for (int i = 0; i < steps; ++i) {
     sim.take_step(dt, layer_force());
-    sim.write();
+    sim.write(i * dt);
   }
 
   return 0;

@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
     grid_view(i) = 15 * normals_view(i);
   grid_view.auto_sync();
 
-  sim.write(cell_types_view);
+  sim.write(0.0, cell_types_view);
 
   // simulation loop
   acceleration::Grid<Vector> grid(grid_view);
@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
     cell_types_view.auto_sync();
     sim.set_agent_count(new_cell_count);
 
-    sim.write(cell_types_view);
+    sim.write(i * dt, cell_types_view);
   }
 
   return 0;

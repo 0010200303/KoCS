@@ -29,7 +29,7 @@ int main() {
   );
 
   sim.init_relaxed_cuboid(Vector{-1.5, -1.5, 0.0}, Vector{1.5, 1.5, 10.0}, 2000, initial_conditions());
-  sim.write();
+  sim.write(0.0);
 
   auto relu_w_migration = PAIRWISE_FORCE(
     ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f, 1.0f, 2.0f) +
@@ -38,7 +38,7 @@ int main() {
 
   for (int i = 1; i <= steps; ++i) {
     sim.take_step(dt, relu_w_migration());
-    sim.write();
+    sim.write(i * dt);
   }
 
   return 0;

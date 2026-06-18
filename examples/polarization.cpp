@@ -30,7 +30,7 @@ int main() {
   );
 
   sim.init_random_filled_sphere(1.5, initial_conditions());
-  sim.write();
+  sim.write(0.0);
 
   auto polarization = PAIRWISE_FORCE(
     Scalar F = 2.0 * (r_min - distance) * (r_max - distance) + Kokkos::pow(r_max - distance, 2);
@@ -42,7 +42,7 @@ int main() {
 
   for (int i = 1; i <= steps; ++i) {
     sim.take_step(dt, polarization());
-    sim.write();
+    sim.write(i * dt);
   }
 
   return 0;

@@ -27,7 +27,7 @@ int main() {
       gradient_view(i) = Scalar(1);
   );
   sim.init_regular_hexagon(0.75, gradient_init());
-  sim.write();
+  sim.write(0.0);
 
   auto diffusion = PAIRWISE_FORCE(
     if (i == 11)
@@ -37,7 +37,7 @@ int main() {
 
   for (int i = 1; i <= steps; ++i) {
     sim.take_step(dt, diffusion());
-    sim.write();
+    sim.write(i * dt);
   }
 
   return 0;

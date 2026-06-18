@@ -14,7 +14,7 @@ namespace kocs::io {
 
       Dummy(const std::string& path, const Settings& settings) { }
 
-      template<typename T0, typename... Views>
+      template<typename T0, typename... Ts>
       void write(const double time, const unsigned int step, View<T0>& first_view, View<Ts>&... rest_views) { }
 
       template<typename... Ts>

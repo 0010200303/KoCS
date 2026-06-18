@@ -28,7 +28,7 @@ int main() {
   sim.set_agent_count(n_cells);
   auto& positions = sim.get_view<FIELD(Vector, position)>();
   sim.init_random_filled_sphere(3.0f);
-  sim.write();
+  sim.write(0.0);
 
   auto relu_force = PAIRWISE_FORCE(
     ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f);
@@ -72,7 +72,7 @@ int main() {
     sim.set_agent_count(counter);
 
     if (i % save_every_nth == 0)
-      sim.write();
+      sim.write(i * dt);
   }
 
   return 0;

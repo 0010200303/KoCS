@@ -108,13 +108,13 @@ active migration in response to mechanical force F (interaction with neighbourin
   const int relaxation_steps = 2000;
   for (int i = 0; i <= relaxation_steps; ++i)
     sim.take_step(dt, pairwise_mechanical_interactions());
-  sim.write(types);
+  sim.write(0.0, types);
 
   for (int i = 0; i <= t_max; ++i) {
     for (int j = 0; j < steps_per_30_min; ++j) {
       sim.take_step(dt, self_interactions(), pairwise_interactions());
     }
-    sim.write(types);
+    sim.write(i * dt, types);
   }
 
   return 0;
