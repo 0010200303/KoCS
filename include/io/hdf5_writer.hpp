@@ -230,7 +230,7 @@ namespace kocs::io {
         if (write_xmf == false || xmf_file.is_open() == false)
           return;
 
-        constexpr bool has_links = (std::is_same_v<Ts, Link> || ...);
+        bool has_links = ((std::is_same_v<Ts, Link> && rest_views.get_active_count() != 0) || ...);
         write_xmf_grid_start(time, step, first_view, has_links);
         (write_xmf_grid_item(xmf_buffer, "t" + std::to_string(step), rest_views), ...);
         write_xmf_grid_end();
