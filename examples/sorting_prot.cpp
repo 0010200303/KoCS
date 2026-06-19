@@ -25,7 +25,7 @@ constexpr bool get_type(const unsigned int i) {
 int main() {
   Simulation<DefaultSimulationConfig>::Settings settings(n_cells, "./output/sorting_prot");
   settings.cutoff_distance = r_max;
-  settings.link_count = n_protrusions;
+  settings.link_active_count = n_protrusions;
 
   Simulation<DefaultSimulationConfig> sim(settings);
   auto& positions = sim.get_view<FIELD(Vector, position)>();

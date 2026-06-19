@@ -9,10 +9,10 @@
 #include "../types/view.hpp"
 
 namespace kocs::acceleration {
-  template<typename Vector>
+  template<typename Vector, typename PositionsViewType = View<Vector>>
   class Grid {
     EXTRACT_VECTOR(Vector)
-    using ViewType = View<Vector>;
+    using ViewType = PositionsViewType;
     using VectorI = VectorN<int, dimensions>;
     using BinOp = Kokkos::BinOp1D<Kokkos::View<int*>>;
     using BinSort = Kokkos::BinSort<Kokkos::View<int*>, BinOp>;
