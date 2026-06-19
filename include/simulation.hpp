@@ -250,8 +250,8 @@ namespace kocs {
 
     public:
       template<typename... InitFuncs>
-      inline void init_line(InitFuncs&&... init_functions) {
-        initializers::Line<SimulationConfig> initializer(get_positions_view());
+      inline void init_line(const Scalar distance, InitFuncs&&... init_functions) {
+        initializers::Line<SimulationConfig> initializer(get_positions_view(), distance);
         init(initializer, init_functions...);
       }
 

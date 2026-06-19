@@ -9,13 +9,16 @@ namespace kocs::initializers {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
     VectorView positions_view;
+    const Scalar distance;
 
     template<typename ViewType>
-    Line(ViewType positions) : positions_view(positions) { }
+    Line(ViewType positions, const Scalar distance_) 
+      : positions_view(positions)
+      , distance(distance_) { }
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i, Random& generator) const {
-      positions_view(i) = Vector(Scalar(i));
+      positions_view(i) = Vector(Scalar(i) * distance);
     }
   };
 } // namespace kocs::initalizers
