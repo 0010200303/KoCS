@@ -85,6 +85,24 @@ namespace kocs::detail {
       return first_value;
     }
 
+    template<std::size_t I>
+    KOKKOS_INLINE_FUNCTION
+    decltype(auto) get() {
+      if constexpr (I == 0)
+        return first_value;
+      else
+        return static_cast<base_type&>(*this).template get<I - 1>();
+    }
+
+    template<std::size_t I>
+    KOKKOS_INLINE_FUNCTION
+    decltype(auto) get() const {
+      if constexpr (I == 0)
+        return first_value;
+      else
+        return static_cast<const base_type&>(*this).template get<I - 1>();
+    }
+
     template<typename F>
     KOKKOS_INLINE_FUNCTION
     decltype(auto) apply(F&& f) {

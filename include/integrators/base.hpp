@@ -21,6 +21,7 @@ namespace kocs::integrators {
   struct Base {
     Base(
       unsigned int agent_count_,
+      unsigned int capacity,
       PairFinder& pair_finder_,
       ComFixer& com_fixer_,
       Kokkos::View<Link*> links_,
@@ -29,7 +30,7 @@ namespace kocs::integrators {
       , pair_finder(pair_finder_)
       , com_fixer(com_fixer_)
       , stage_pack(detail::ViewPack<Views...>(views...))
-      , old_velocities("integrator_base_old_velocities", agent_count_)
+      , old_velocities("integrator_base_old_velocities", capacity)
       , links(links_) { }
     
     using PositionsView = typename PairFinder::positions_view_type;
@@ -139,28 +140,22 @@ namespace kocs::integrators {
             return;
 
           auto generator = random_pool.get_state();
-          in_view_pack.apply([&](auto&... in_views) {
-            out_view_pack.apply([&](auto&... out_views) {
-              auto accumulator_a = detail::make_accumulator_pack<Views...>(in_view_pack);
-              auto accumulator_b = detail::make_accumulator_pack<Views...>(in_view_pack);
+          [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+            auto accumulator_a = detail::make_accumulator_pack<Views...>(in_view_pack);
+            auto accumulator_b = detail::make_accumulator_pack<Views...>(in_view_pack);
 
-              accumulator_a.apply([&](auto&... delta_a) {
-                accumulator_b.apply([&](auto&... delta_b) {
-                  force(link, generator, LinkForceFields{detail::LinkFieldRef{
-                    in_views(link.a),
-                    in_views(link.b),
-                    delta_a,
-                    delta_b
-                  }...});
-
-                  ((
-                    Kokkos::atomic_add(&out_views(link.a), delta_a),
-                    Kokkos::atomic_add(&out_views(link.b), delta_b)
-                  ), ...);
-                });
-              });
+            force(link, generator, LinkForceFields{
+              detail::LinkFieldRef{
+                in_view_pack.template get<Is>()(link.a),
+                in_view_pack.template get<Is>()(link.b),
+                accumulator_a.template get<Is>(),
+                accumulator_b.template get<Is>()
+              }...
             });
-          });
+
+            (Kokkos::atomic_add(&out_view_pack.template get<Is>()(link.a), accumulator_a.template get<Is>()), ...);
+            (Kokkos::atomic_add(&out_view_pack.template get<Is>()(link.b), accumulator_b.template get<Is>()), ...);
+          }(std::index_sequence_for<Views...>{});
           random_pool.free_state(generator);
         }
       );

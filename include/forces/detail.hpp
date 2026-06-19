@@ -81,29 +81,55 @@ namespace kocs::detail {
 
   template<typename... Slots>
   struct AccumulatorPack : Slots... {
-    KOKKOS_INLINE_FUNCTION
-    AccumulatorPack() = default;
+    public:
+      KOKKOS_INLINE_FUNCTION
+      AccumulatorPack() = default;
 
-    KOKKOS_INLINE_FUNCTION
-    AccumulatorPack(Slots... types) : Slots(types)... { }
+      KOKKOS_INLINE_FUNCTION
+      AccumulatorPack(Slots... types) : Slots(types)... { }
 
-    KOKKOS_INLINE_FUNCTION
-    AccumulatorPack& operator+=(const AccumulatorPack& other) {
-      ((static_cast<Slots&>(*this) += static_cast<const Slots&>(other)), ...);
-      return *this;
-    }
+      KOKKOS_INLINE_FUNCTION
+      AccumulatorPack& operator+=(const AccumulatorPack& other) {
+        ((static_cast<Slots&>(*this) += static_cast<const Slots&>(other)), ...);
+        return *this;
+      }
 
-    template<typename Func>
-    KOKKOS_INLINE_FUNCTION
-    decltype(auto) apply(Func&& func) {
-      return func(static_cast<Slots&>(*this).get()...);
-    }
+      template<typename Func>
+      KOKKOS_INLINE_FUNCTION
+      decltype(auto) apply(Func&& func) {
+        return func(static_cast<Slots&>(*this).get()...);
+      }
 
-    template<typename Func>
-    KOKKOS_INLINE_FUNCTION
-    decltype(auto) apply(Func&& func) const {
-      return func(static_cast<const Slots&>(*this).get()...);
-    }
+      template<typename Func>
+      KOKKOS_INLINE_FUNCTION
+      decltype(auto) apply(Func&& func) const {
+        return func(static_cast<const Slots&>(*this).get()...);
+      }
+
+      template<std::size_t I>
+      KOKKOS_INLINE_FUNCTION
+      decltype(auto) get() {
+        return get_slot_impl<I>(*this).get();
+      }
+
+      template<std::size_t I>
+      KOKKOS_INLINE_FUNCTION
+      decltype(auto) get() const {
+        return get_slot_impl<I>(*this).get();
+      }
+
+    private:
+      template<std::size_t I, typename T>
+      KOKKOS_INLINE_FUNCTION
+      static AccumulatorSlot<I, T>& get_slot_impl(AccumulatorSlot<I, T>& slot) {
+        return slot;
+      }
+
+      template<std::size_t I, typename T>
+      KOKKOS_INLINE_FUNCTION
+      static const AccumulatorSlot<I, T>& get_slot_impl(const AccumulatorSlot<I, T>& slot) {
+        return slot;
+      }
   };
 
   template<typename... Views, std::size_t... Is>

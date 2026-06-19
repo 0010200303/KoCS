@@ -44,7 +44,7 @@ int main() {
   );
 
   DeviceVar<int> counter = sim.get_agent_count();
-  auto proliferate = INIT_FUNC(
+  auto proliferate = UPDATE_FUNC(
     if (rng.drand(0.0, 1.0) > proliferation_rate)
       return;
 

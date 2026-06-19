@@ -16,7 +16,7 @@ namespace kocs::pair_finders {
     using positions_view_type = PositionsView;
     using Vector = VectorN<Scalar, dimensions>;
     using VectorI = VectorN<int, dimensions>;
-    using Grid = acceleration::Grid<Vector, PositionsView>;
+    using Grid = acceleration::Grid<Vector>;
 
     using BinOp = Kokkos::BinOp1D<View<int>>;
 

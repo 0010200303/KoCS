@@ -77,7 +77,7 @@ int main() {
 
   // find epithelium
   sim.take_step(dt, relu_w_epithelium());
-  auto find_epithelium = INIT_FUNC(
+  auto find_epithelium = UPDATE_FUNC(
     if (mesenchyme_neighbours(i) < 12 * 2) {  // *2 for 2nd order solver
       types(i) = CellType::Epithelium;
       polarities(i) = Polarity(positions(i));

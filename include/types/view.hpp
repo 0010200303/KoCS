@@ -15,10 +15,15 @@ namespace kocs {
       , device_modified_flag("DualView:device_modified_flag")
       , active_count(0) { }
 
-    View(const std::string& label, const unsigned int count)
-      : Kokkos::DualView<T*>(label, count)
+    View(const std::string& label, const unsigned int active_count_)
+      : Kokkos::DualView<T*>(label, active_count_)
       , device_modified_flag("DualView:device_modified_flag")
-      , active_count(count) { }
+      , active_count(active_count_) { }
+    
+    View(const std::string& label, const unsigned int active_count_, const unsigned int capacity)
+      : Kokkos::DualView<T*>(label, capacity)
+      , device_modified_flag("DualView:device_modified_flag")
+      , active_count(active_count_) { }
 
     Kokkos::View<bool> device_modified_flag;
 

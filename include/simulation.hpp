@@ -51,7 +51,8 @@ namespace kocs {
         Writer::Settings writer_settings = {};
 
         // settings for additional features
-        unsigned int link_count = 0;
+        unsigned int link_capacity = 0;
+        unsigned int link_active_count = 0;
       };
 
       Simulation(
@@ -68,21 +69,31 @@ namespace kocs {
         , random_pool(seed)
         , pair_finder(agent_count_, cutoff_distance, pair_finder_settings)
         , com_fixer()
-        , integrator(make_integrator(agent_count_, pair_finder, com_fixer, storage, links))
+        , integrator(make_integrator(agent_count_, agent_count_, pair_finder, com_fixer, storage, links))
         , writer(output_path, writer_settings)
         , current_step(0) { }
 
     Simulation(const Settings settings)
       : agent_count(settings.agent_count)
-      , capacity(settings.agent_count)
-      , storage((get_runtime_guard(), Storage(settings.agent_count)))
+      , capacity(settings.capacity)
+      , storage((get_runtime_guard(), Storage(settings.capacity)))
       , random_pool(settings.seed)
       , pair_finder(settings.agent_count, settings.cutoff_distance, settings.pair_finder_settings)
       , com_fixer()
-      , links(settings.link_count != 0 ? View<Link>("links", settings.link_count) : View<Link>())
-      , integrator(make_integrator(settings.agent_count, pair_finder, com_fixer, storage, links))
+      , links(settings.capacity != 0 ? View<Link>("links", settings.capacity) : View<Link>())
+      , integrator(make_integrator(
+          settings.agent_count,
+          settings.capacity,
+          pair_finder,
+          com_fixer,
+          storage,
+          links
+        ))
       , writer(settings.output_path, settings.writer_settings)
-      , current_step(0) { }
+      , current_step(0) 
+      {
+        links.set_active_count(settings.link_active_count);
+      }
 
     public:
       unsigned int capacity;
@@ -117,6 +128,7 @@ namespace kocs {
 
       static Integrator make_integrator(
         unsigned int agent_count_,
+        unsigned int capacity_,
         PairFinder& pair_finder_,
         ComFixer& com_fixer_,
         Storage& storage_,
@@ -126,10 +138,25 @@ namespace kocs {
           [&](auto&... views) {
             // Pass device-only views (Kokkos::View) to the integrator,
             // since its internal buffers never need host-device sync.
-            return Integrator(agent_count_, pair_finder_, com_fixer_, links_.view_device(), views.view_device()...);
+            return Integrator(
+              agent_count_,
+              capacity_,
+              pair_finder_,
+              com_fixer_,
+              links_.view_device(),
+              views.view_device()...
+            );
           },
           detail::ViewsFromStorage<Fields, Storage>::get(storage_)
         );
+      }
+
+      Integrator& get_integrator() const {
+        return integrator;
+      }
+
+      PairFinder& get_pair_finder() const {
+        return pair_finder;
       }
     
     public:

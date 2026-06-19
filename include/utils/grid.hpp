@@ -9,9 +9,10 @@
 #include "../types/view.hpp"
 
 namespace kocs::acceleration {
-  template<typename Vector, typename ViewType = View<Vector>>
+  template<typename Vector>
   class Grid {
     EXTRACT_VECTOR(Vector)
+    using ViewType = View<Vector>;
     using VectorI = VectorN<int, dimensions>;
     using BinOp = Kokkos::BinOp1D<Kokkos::View<int*>>;
     using BinSort = Kokkos::BinSort<Kokkos::View<int*>, BinOp>;
@@ -273,6 +274,11 @@ namespace kocs::acceleration {
           return false;
         }
       }
+
+      KOKKOS_INLINE_FUNCTION
+      int get_agent_count_for_bin(const int bin_index) const {
+        return get_bin_offsets()(bin_index + 1) - get_bin_offsets()(bin_index);
+      }
     
       void rebuild() {
         Kokkos::parallel_for(
@@ -316,6 +322,169 @@ namespace kocs::acceleration {
           }
         }
         return nearest_idx;
+      }
+
+      template<typename Random>
+      KOKKOS_INLINE_FUNCTION
+      int get_random_point_index_in_neighbourhood_bins(
+        const Vector& point,
+        const int radius_bins,
+        Random& rng
+      ) const {
+        VectorI center_coords = calc_bin_coords_from_point(point);
+        const int side = 2 * radius_bins + 1;
+        const int task_count = calc_task_count(side);
+
+        // count total agents in neighbouring bins
+        int total = 0;
+        for (int task_idx = 0; task_idx < task_count; ++task_idx) {
+          VectorI ni = center_coords + linear_index_to_offset(task_idx, side, radius_bins);
+          if (is_bin_outside_extents(ni))
+            continue;
+          
+          const int b = flatten_bin_index(ni);
+          total += get_agent_count_for_bin(b);
+        }
+
+        // uniformly pick random point
+        int target = rng.rand(0, total);
+        int seen = 0;
+        for (int task_idx = 0; task_idx < task_count; ++task_idx) {
+          VectorI ni = center_coords + linear_index_to_offset(task_idx, side, radius_bins);
+          if (is_bin_outside_extents(ni))
+            continue;
+          
+          const int b = flatten_bin_index(ni);
+          int count = get_agent_count_for_bin(b);
+          if (count == 0)
+            continue;
+          
+          if (target < seen + count) {
+            unsigned int offset = get_bin_offsets()(b) + target - seen;
+            return get_permute_vector()(offset);
+          }
+          seen += count;
+        }
+        return -1;
+      }
+
+      template<typename Random>
+      KOKKOS_INLINE_FUNCTION
+      int get_random_point_index_in_neighbourhood(
+        const Vector& point,
+        const Scalar search_radius,
+        Random& rng
+      ) const {
+        int radius_bins = Kokkos::max(1, static_cast<int>(Kokkos::ceil(search_radius / bin_size)));
+        VectorI center_coords = calc_bin_coords_from_point(point);
+        const int side = 2 * radius_bins + 1;
+        const int task_count = calc_task_count(side);
+        const Scalar search_radius_squared = search_radius * search_radius;
+
+        // count total agents in neighbouring bins
+        int total = 0;
+        for (int task_idx = 0; task_idx < task_count; ++task_idx) {
+          VectorI ni = center_coords + linear_index_to_offset(task_idx, side, radius_bins);
+          if (is_bin_outside_extents(ni))
+            continue;
+
+          const int b = flatten_bin_index(ni);
+          const unsigned int start = get_bin_offsets()(b);
+          const unsigned int end = get_bin_offsets()(b + 1);
+
+          for (unsigned int idx = start; idx < end; ++idx) {
+            const int j = static_cast<int>(get_permute_vector()(idx));
+            if (point.distance_to_squared(read_element(data_view, j)) <= search_radius_squared)
+              ++total;
+          }
+        }
+
+        if (total == 0)
+          return -1;
+
+        // uniformly pick random point
+        int target = static_cast<int>(rng.urand(total));
+        int seen = 0;
+        for (int task_idx = 0; task_idx < task_count; ++task_idx) {
+          VectorI ni = center_coords + linear_index_to_offset(task_idx, side, radius_bins);
+          if (is_bin_outside_extents(ni))
+            continue;
+
+          const int b = flatten_bin_index(ni);
+          const unsigned int start = get_bin_offsets()(b);
+          const unsigned int end = get_bin_offsets()(b + 1);
+
+          for (unsigned int idx = start; idx < end; ++idx) {
+            const int j = static_cast<int>(get_permute_vector()(idx));
+            if (point.distance_to_squared(read_element(data_view, j)) <= search_radius_squared) {
+              if (seen == target)
+                return j;
+              ++seen;
+            }
+          }
+        }
+
+        return -1;
+      }
+
+      template<typename Random, typename FilterFunc>
+      KOKKOS_INLINE_FUNCTION
+      int get_random_point_index_in_neighbourhood(
+        const Vector& point,
+        const Scalar search_radius,
+        Random& rng,
+        const FilterFunc& filter
+      ) const {
+        int radius_bins = Kokkos::max(1, static_cast<int>(Kokkos::ceil(search_radius / bin_size)));
+        VectorI center_coords = calc_bin_coords_from_point(point);
+        const int side = 2 * radius_bins + 1;
+        const int task_count = calc_task_count(side);
+        const Scalar search_radius_squared = search_radius * search_radius;
+
+        // count total agents in neighbouring bins
+        int total = 0;
+        for (int task_idx = 0; task_idx < task_count; ++task_idx) {
+          VectorI ni = center_coords + linear_index_to_offset(task_idx, side, radius_bins);
+          if (is_bin_outside_extents(ni))
+            continue;
+
+          const int b = flatten_bin_index(ni);
+          const unsigned int start = get_bin_offsets()(b);
+          const unsigned int end = get_bin_offsets()(b + 1);
+
+          for (unsigned int idx = start; idx < end; ++idx) {
+            const int j = static_cast<int>(get_permute_vector()(idx));
+            if (point.distance_to_squared(read_element(data_view, j)) <= search_radius_squared && filter(j) == true)
+              ++total;
+          }
+        }
+
+        if (total == 0)
+          return -1;
+
+        // uniformly pick random point
+        int target = static_cast<int>(rng.urand(total));
+        int seen = 0;
+        for (int task_idx = 0; task_idx < task_count; ++task_idx) {
+          VectorI ni = center_coords + linear_index_to_offset(task_idx, side, radius_bins);
+          if (is_bin_outside_extents(ni))
+            continue;
+
+          const int b = flatten_bin_index(ni);
+          const unsigned int start = get_bin_offsets()(b);
+          const unsigned int end = get_bin_offsets()(b + 1);
+
+          for (unsigned int idx = start; idx < end; ++idx) {
+            const int j = static_cast<int>(get_permute_vector()(idx));
+            if (point.distance_to_squared(read_element(data_view, j)) <= search_radius_squared && filter(j) == true) {
+              if (seen == target)
+                return j;
+              ++seen;
+            }
+          }
+        }
+
+        return -1;
       }
   };
 } // namespace kocs::acceleration

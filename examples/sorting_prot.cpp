@@ -88,7 +88,7 @@ int main() {
     ctx.position.delta_b += -link_strength * displacement / distance;
   );
 
-  for (int i = 0; i < steps; ++i) {
+  for (int i = 0; i < steps + 1; ++i) {
     sim.run_links(update_protrusions());
     sim.take_step(dt, prot_forces(), clipped_cubic());
     sim.write(i * dt);

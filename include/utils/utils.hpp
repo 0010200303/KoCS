@@ -167,6 +167,7 @@ namespace kocs {
   using Scalar = typename __SIMULATION_CONFIG__::Scalar; \
   static constexpr unsigned int dimensions = __SIMULATION_CONFIG__::dimensions; \
   using Vector = kocs::VectorN<Scalar, dimensions>; \
+  using VectorI = kocs::VectorN<int, dimensions>; \
   using VectorView = kocs::View<Vector>; \
   using Polarity = kocs::Polarity_<Scalar>; \
   using Plane = kocs::PlaneN<Scalar, dimensions>; \
