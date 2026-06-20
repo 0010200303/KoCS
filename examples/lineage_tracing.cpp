@@ -65,11 +65,11 @@ int main() {
     sim.take_step(dt, relaxation_force());
     sim.run(proliferate());
 
-    sim.set_agent_count(counter);
-    families.set_active_count(sim.get_agent_count());
-    generations.set_active_count(sim.get_agent_count());
+    sim.set_agent_count(counter, families, generations);
     links.set_active_count(link_counter);
 
     sim.write(i * dt, families, generations);
   }
+
+  return 0;
 }

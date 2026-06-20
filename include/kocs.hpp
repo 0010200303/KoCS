@@ -23,7 +23,8 @@
 #include "initializers/rectangle.hpp"
 #include "initializers/disk.hpp"
 
-#include "pair_finders/all_pairs.hpp"
+#include "pair_finders/naive_all_pairs.hpp"
+#include "pair_finders/binned_all_pairs.hpp"
 #include "pair_finders/naive_gabriel.hpp"
 #include "pair_finders/binned_gabriel.hpp"
 

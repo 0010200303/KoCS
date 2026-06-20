@@ -3,7 +3,6 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
-#include <Kokkos_Sort.hpp>
 #include <Kokkos_NumericTraits.hpp>
 
 #include "../integrators/detail.hpp"
@@ -17,8 +16,6 @@ namespace kocs::pair_finders {
     using Vector = VectorN<Scalar, dimensions>;
     using VectorI = VectorN<int, dimensions>;
     using Grid = acceleration::Grid<Vector, PositionsView>;
-
-    using BinOp = Kokkos::BinOp1D<View<int>>;
 
     struct Settings {
       Scalar gabriel_coefficient = Scalar(0.8);
@@ -39,10 +36,10 @@ namespace kocs::pair_finders {
       , max_bounds(settings.max_bounds)
       , bin_size(settings.bin_size_scale * cutoff_distance)
       , inv_bin_size(Scalar(1) / bin_size)
-
-      , gabriel_radius_factor(settings.gabriel_coefficient * settings.gabriel_coefficient * Scalar(0.25))
       , search_radius(static_cast<int>(Kokkos::ceil(cutoff_distance_ * inv_bin_size)))
-      , rebuild_every_n(settings.rebuild_every_n) { }
+      , rebuild_every_n(settings.rebuild_every_n)
+
+      , gabriel_radius_factor(settings.gabriel_coefficient * settings.gabriel_coefficient * Scalar(0.25)) { }
 
     unsigned int agent_count;
     const Scalar cutoff_distance;
@@ -90,10 +87,12 @@ namespace kocs::pair_finders {
         }
         step_count++;
       }
+
       const int side = 2 * search_radius + 1;
       const int task_count = grid.calc_task_count(side);
       const VectorI bin_extents = grid.get_bin_extents();
 
+      // TODO: try to optimize by using agent_count * task_count and thereby lowering nesting
       Kokkos::parallel_for(
         "binned_gabriel_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
@@ -104,8 +103,8 @@ namespace kocs::pair_finders {
 
           // setup data for accumulation
           auto total_delta_i = detail::make_accumulator_pack(out_view_pack);
-          Scalar total_drag_i = 0.0;
-          typename PositionsView::value_type total_velocity_i{0.0};
+          Scalar total_drag_i = Scalar(0);
+          typename PositionsView::value_type total_velocity_i{0};
 
           Kokkos::parallel_reduce(
             Kokkos::TeamThreadRange(team_member, task_count),
@@ -118,9 +117,6 @@ namespace kocs::pair_finders {
               const int b = grid.flatten_bin_index(ni);
               const unsigned int start = grid.get_bin_offsets()(b);
               const unsigned int end = grid.get_bin_offsets()(b + 1);
-
-
-
 
               Kokkos::parallel_for(
                 Kokkos::ThreadVectorRange(team_member, start, end),

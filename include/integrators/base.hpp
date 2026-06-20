@@ -6,7 +6,6 @@
 
 #include "detail.hpp"
 #include "../forces/detail.hpp"
-#include "../pair_finders/all_pairs.hpp"
 
 namespace kocs::integrators {
   template<

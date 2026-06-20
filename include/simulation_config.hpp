@@ -8,7 +8,7 @@
 #include "types/view.hpp"
 #include "integrators/detail.hpp"
 #include "integrators/heun.hpp"
-#include "pair_finders/all_pairs.hpp"
+#include "pair_finders/naive_all_pairs.hpp"
 #include "com_fixers/com_fixers.hpp"
 #include "io/hdf5_writer.hpp"
 

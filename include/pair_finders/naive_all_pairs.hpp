@@ -1,5 +1,5 @@
-#ifndef KOCS_PAIR_FINDERS_ALL_PAIRS_HPP
-#define KOCS_PAIR_FINDERS_ALL_PAIRS_HPP
+#ifndef KOCS_PAIR_FINDERS_NAIVE_ALL_PAIRS_HPP
+#define KOCS_PAIR_FINDERS_NAIVE_ALL_PAIRS_HPP
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
@@ -46,9 +46,10 @@ namespace kocs::pair_finders {
           const auto& input_positions = in_view_pack.first();
           const auto& position_i = input_positions(i);
 
+          // setup data for accumulation
           auto total_delta_i = detail::make_accumulator_pack(out_view_pack);
-          Scalar total_drag_i = 0.0;
-          typename PositionsView::value_type total_velocity_i{0.0};
+          Scalar total_drag_i = Scalar(0);
+          typename PositionsView::value_type total_velocity_i{0};
 
           Kokkos::parallel_reduce(
             Kokkos::TeamThreadRange(team_member, agent_count),
@@ -104,4 +105,4 @@ namespace kocs::pair_finders {
   };
 } // namespace kocs::pair_finders
 
-#endif // KOCS_PAIR_FINDERS_ALL_PAIRS_HPP
+#endif // KOCS_PAIR_FINDERS_NAIVE_ALL_PAIRS_HPP

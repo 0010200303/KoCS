@@ -218,6 +218,12 @@ namespace kocs {
         }, get_views());
       }
 
+      template<typename... AdditionalViews>
+      inline void set_agent_count(const unsigned int value, AdditionalViews&... additional_views) {
+        set_agent_count(value);
+        ((additional_views.set_active_count(value)), ...);
+      }
+
       inline auto get_old_velocities_view_from_integrator() const {
         return integrator.old_velocities;
       }
