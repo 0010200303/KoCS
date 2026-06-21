@@ -37,7 +37,7 @@ int main() {
     ctx.polarity.delta += bending_force.polarity * 0.6f;
   );
 
-  for (int i = 0; i < steps; ++i) {
+  for (int i = 1; i < steps + 1; ++i) {
     sim.take_step(dt, constriction_force);
     if (i % save_every_nth == 0)
       sim.write(i * dt);

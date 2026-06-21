@@ -87,14 +87,13 @@ namespace kocs::pair_finders {
       const int task_count = grid.calc_task_count(side);
       const VectorI bin_extents = grid.get_bin_extents();
 
-      // TODO: try to optimize by using agent_count * task_count and thereby lowering nesting
       Kokkos::parallel_for(
         "binned_all_pairs_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
         KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
           const int i = team_member.league_rank();
           const auto& position_i = input_positions(i);
-          VectorI bin_coords = grid.calc_bin_coords_from_point(position_i);
+          const VectorI bin_coords = grid.calc_bin_coords_from_point(position_i);
 
           // setup data for accumulation
           auto total_delta_i = detail::make_accumulator_pack(out_view_pack);

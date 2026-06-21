@@ -73,27 +73,27 @@ namespace kocs {
         , writer(output_path, writer_settings)
         , current_step(0) { }
 
-    Simulation(const Settings settings)
-      : agent_count(settings.agent_count)
-      , capacity(settings.capacity)
-      , storage((get_runtime_guard(), Storage(settings.capacity)))
-      , random_pool(settings.seed)
-      , pair_finder(settings.agent_count, settings.cutoff_distance, settings.pair_finder_settings)
-      , com_fixer()
-      , links(settings.capacity != 0 ? View<Link>("links", settings.capacity) : View<Link>())
-      , integrator(make_integrator(
-          settings.agent_count,
-          settings.capacity,
-          pair_finder,
-          com_fixer,
-          storage,
-          links
-        ))
-      , writer(settings.output_path, settings.writer_settings)
-      , current_step(0) 
-      {
-        links.set_active_count(settings.link_active_count);
-      }
+      Simulation(const Settings settings)
+        : agent_count(settings.agent_count)
+        , capacity(settings.capacity)
+        , storage((get_runtime_guard(), Storage(settings.capacity)))
+        , random_pool(settings.seed)
+        , pair_finder(settings.agent_count, settings.cutoff_distance, settings.pair_finder_settings)
+        , com_fixer()
+        , links(settings.capacity != 0 ? View<Link>("links", settings.capacity) : View<Link>())
+        , integrator(make_integrator(
+            settings.agent_count,
+            settings.capacity,
+            pair_finder,
+            com_fixer,
+            storage,
+            links
+          ))
+        , writer(settings.output_path, settings.writer_settings)
+        , current_step(0) 
+        {
+          links.set_active_count(settings.link_active_count);
+        }
 
     public:
       unsigned int capacity;
@@ -114,16 +114,6 @@ namespace kocs {
       static detail::RuntimeGuard& get_runtime_guard() {
         static detail::RuntimeGuard guard;
         return guard;
-      }
-
-      static PairFinder make_pair_finder(
-        unsigned int agent_count_,
-        Scalar cutoff_distance
-      ) {
-        return PairFinder(
-          agent_count_,
-          cutoff_distance
-        );
       }
 
       static Integrator make_integrator(

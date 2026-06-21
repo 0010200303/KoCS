@@ -9,7 +9,6 @@ struct SimulationConfig : public DefaultSimulationConfig {
     (Vector, position),
     (Polarity, polarity)
   )
-  CONFIG_COM_FIXER(com_fixers::NoComFixer)
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
