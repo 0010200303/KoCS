@@ -48,23 +48,30 @@ int main() {
   PairFinder::Settings pair_finder_settings;
   pair_finder_settings.min_bounds = Vector(-40.0, -40.0, -40.0);
   pair_finder_settings.max_bounds = Vector( 40.0,  40.0,  40.0);
-  pair_finder_settings.bin_size_scale = 2.0;
 
   Simulation<SimulationConfig>::Settings settings(n_cells, "./output/branching_lineage_tracing_longeer");
   settings.capacity = n_max;
   settings.cutoff_distance = r_max;
   settings.pair_finder_settings = pair_finder_settings;
+  settings.link_capacity = n_max;
 
   Simulation<SimulationConfig> sim(settings);
   auto& positions = sim.get_view<FIELD(Vector, position)>();
   auto& polarities = sim.get_view<FIELD(Polarity, polarity)>();
   auto& us = sim.get_view<FIELD(Scalar, u)>();
   auto& vs = sim.get_view<FIELD(Scalar, v)>();
+  auto& links = sim.get_links();
   View<int> types("types", n_cells, n_max);
   View<int> mesenchyme_neighbours("mesenchyme_neighbours", n_cells, n_max);
   View<int> epithelium_neighbours("epithelium_neighbours", n_cells, n_max);
+  View<int> families("families", n_cells, n_max);
+  View<int> generations("generations", n_cells, n_max);
+  View<Scalar> spawn_times("spawn_times", n_cells, n_max);
 
   auto count_neighbours = PAIRWISE_FORCE(
+    if (is_full_step == false)
+      return;
+
     if (types(j) == CellType::Mesenchyme)
       Kokkos::atomic_add(&mesenchyme_neighbours(i), 1);
     else
@@ -74,15 +81,17 @@ int main() {
   sim.take_step(0.0, count_neighbours());
 
   auto init = INIT_FUNC(
-    if (mesenchyme_neighbours(i) >= 20)
+    families(i) = i;
+    generations(i) = 0;
+    spawn_times(i) = 0.0f;
+
+    if (mesenchyme_neighbours(i) >= 10)
       return;
     
     types(i) = CellType::Epithelium;
     polarities(i) = Polarity(positions(i));
     us(i) = rng.drand(-0.1, 0.1);
     vs(i) = rng.drand(-0.1, 0.1);
-
-    // TODO: cell lineage tracing
   );
   sim.init(init());
 
@@ -90,14 +99,14 @@ int main() {
     if (types(i) != CellType::Epithelium)
       return;
 
-    ctx.u.delta += lambda * ((f_u * ctx.u.self * ctx.u.self) / (1.0f + f_v * ctx.v.self) - m_u * ctx.u.self + s_u);
-    ctx.v.delta += lambda * (g_u * ctx.u.self * ctx.u.self - m_v * ctx.v.self);
+    Scalar u_delta = lambda * ((f_u * ctx.u.self * ctx.u.self) / (1.0f + f_v * ctx.v.self) - m_u * ctx.u.self + s_u);
+    Scalar v_delta = lambda * (g_u * ctx.u.self * ctx.u.self - m_v * ctx.v.self);;
 
     // prevent negative values
-    if (-ctx.u.delta > ctx.u.self)
-      ctx.u.delta = 0.0;
-    if (-ctx.v.delta > ctx.v.self)
-      ctx.v.delta = 0.0;
+    if (-u_delta <= ctx.u.self)
+      ctx.u.delta += u_delta;
+    if (-v_delta <= ctx.v.self)
+      ctx.v.delta += v_delta;
   );
 
   auto epithelium_w_turing = PAIRWISE_FORCE(
@@ -111,14 +120,14 @@ int main() {
 
     // diffusion
     if (type_i == CellType::Epithelium && type_j == CellType::Epithelium) {
-      ctx.u.delta -= D_u * (ctx.u.self - ctx.u.other);
-      ctx.v.delta -= D_v * (ctx.v.self - ctx.v.other);
+      Scalar u_delta = -D_u * (ctx.u.self - ctx.u.other);
+      Scalar v_delta = -D_v * (ctx.v.self - ctx.v.other);
 
       // prevent negative values
-      if (-ctx.u.delta > ctx.u.self)
-        ctx.u.delta = 0.0;
-      if (-ctx.v.delta > ctx.v.self)
-        ctx.v.delta = 0.0;
+      if (-u_delta <= ctx.u.self)
+        ctx.u.delta += u_delta;
+      if (-v_delta <= ctx.v.self)
+        ctx.v.delta += v_delta;
 
       auto bending_force = ctx.polarity.self.bending_force(displacement, ctx.polarity.other, distance);
       ctx.position.delta += bending_force.vector * 0.2;
@@ -129,27 +138,35 @@ int main() {
       ctx.v.delta -= D_v * (ctx.v.self - ctx.v.other);
     }
 
+    if (is_full_step == false)
+      return;
+
     if (types(j) == CellType::Mesenchyme)
       Kokkos::atomic_add(&mesenchyme_neighbours(i), 1);
     else
       Kokkos::atomic_add(&epithelium_neighbours(i), 1);
   );
 
-  DeviceVar<int> counter = sim.get_agent_count();
-  // DeviceVar<int> link_counter = links.get_active_count();
+  DeviceVar<int> counter("counter", sim.get_agent_count());
+  DeviceVar<int> link_counter = links.get_active_count();
+  DeviceVar<Scalar> current_time = 0.0f;
   auto proliferate = UPDATE_FUNC(
+    // dividing new cells is problematic
+    if (i >= counter * (1.0 - epithelium_proliferation_rate))
+      return;
+
     int type_i = types(i);
     if (type_i == CellType::Mesenchyme) {
       if (vs(i) < proliferation_threshold || rng.drand(1.0) > mesenchyme_proliferation_rate)
         return;
     }
     else {
-      if (mesenchyme_neighbours(i) <= 0 || epithelium_neighbours(i) > 10 || rng.drand(1.0) > epithelium_proliferation_rate)
+      if (mesenchyme_neighbours(i) < 1 || epithelium_neighbours(i) > 5 || rng.drand(1.0) > epithelium_proliferation_rate)
         return;
     }
 
     int n = Kokkos::atomic_fetch_add(counter.data(), 1);
-    // int link_n = Kokkos::atomic_fetch_add(link_counter.data(), 1);
+    int link_n = Kokkos::atomic_fetch_add(link_counter.data(), 1);
 
     Polarity temp_polarity = Polarity(
       Kokkos::acos(2.0 * rng.drand(0.0, 1.0) - 1),
@@ -163,22 +180,28 @@ int main() {
     vs(i) *= 0.5;
     us(n) = us(i);
     vs(n) = vs(i);
+
+    families(n) = families(i);
+    generations(n) = generations(i) + 1;
+    spawn_times(n) = current_time;
+    links(link_n) = Link(i, n);
   );
 
   for (int i = 0; i < steps + 1; ++i) {
     sim.run(proliferate());
-    sim.set_agent_count(counter, types, mesenchyme_neighbours, epithelium_neighbours);
-
+    sim.set_agent_count(counter, types, mesenchyme_neighbours, epithelium_neighbours,
+      families, generations, spawn_times);
 
     mesenchyme_neighbours.deep_copy(0);
     epithelium_neighbours.deep_copy(0);
 
     sim.take_step(dt, meinhardt_equations(), epithelium_w_turing());
 
-    if (i % save_every_nth == 0)
-      sim.write(i * dt, types);
-    if (i % save_every_nth == 0)
-      std::cout << i << ": " << sim.get_agent_count() << std::endl;
+    if (i % save_every_nth == 0) {
+      sim.write(i * dt, types, families, generations, spawn_times);
+      std::cout << "step " << i << ": " << sim.get_agent_count() << " agents" << std::endl;
+    }
+    current_time = i * dt;
   }
 
   return 0;

@@ -131,11 +131,11 @@ namespace kocs {
 #define UPDATE_FUNC_IMPL kocs::detail::update_func | KOKKOS_LAMBDA
 #define LINK_FORCE_IMPL kocs::detail::link_force | KOKKOS_LAMBDA
 
-#define GENERIC_FORCE_PARAMETERS const unsigned int i, Random& rng, const GenericForceFields& ctx
-#define PAIRWISE_FORCE_PARAMETERS const unsigned int i, const unsigned int j, const Vector& displacement, \
-  const Scalar distance, Random& rng, Scalar& drag, const PairwiseForceFields& ctx
+#define GENERIC_FORCE_PARAMETERS const bool is_full_step, const unsigned int i, Random& rng, const GenericForceFields& ctx
+#define PAIRWISE_FORCE_PARAMETERS const bool is_full_step, const unsigned int i, const unsigned int j, \
+  const Vector& displacement, const Scalar distance, Random& rng, Scalar& drag, const PairwiseForceFields& ctx
 #define UPDATE_FUNC_PARAMETERS const unsigned int i, Random& rng
-#define LINK_FORCE_PARAMETERS const Link& link, Random& rng, const LinkForceFields& ctx
+#define LINK_FORCE_PARAMETERS const bool is_full_step, const Link& link, Random& rng, const LinkForceFields& ctx
 
 #define GENERIC_FORCE(...) [&]() { return GENERIC_FORCE_IMPL(GENERIC_FORCE_PARAMETERS) { __VA_ARGS__ }; }
 #define PAIRWISE_FORCE(...) [&]() { return PAIRWISE_FORCE_IMPL(PAIRWISE_FORCE_PARAMETERS) { __VA_ARGS__ }; }

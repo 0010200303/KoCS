@@ -79,7 +79,12 @@ namespace kocs::integrators {
           auto generator = random_pool.get_state();
           in_view_pack.apply([&](auto&... in_views) {
             out_view_pack.apply([&](auto&... out_views) {
-              force(i, generator, GenericForceFields{detail::GenericFieldRef{in_views(i), out_views(i)}...});
+              force(
+                is_full_step,
+                i,
+                generator,
+                GenericForceFields{detail::GenericFieldRef{in_views(i), out_views(i)}...}
+              );
             });
           });
           random_pool.free_state(generator);
@@ -115,7 +120,7 @@ namespace kocs::integrators {
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
           auto generator = random_pool.get_state();
-          function(i, generator);
+          function(is_full_step, i, generator);
           random_pool.free_state(generator);
         }
       );
@@ -143,7 +148,7 @@ namespace kocs::integrators {
             auto accumulator_a = detail::make_accumulator_pack<Views...>(in_view_pack);
             auto accumulator_b = detail::make_accumulator_pack<Views...>(in_view_pack);
 
-            force(link, generator, LinkForceFields{
+            force(is_full_step, link, generator, LinkForceFields{
               detail::LinkFieldRef{
                 in_view_pack.template get<Is>()(link.a),
                 in_view_pack.template get<Is>()(link.b),

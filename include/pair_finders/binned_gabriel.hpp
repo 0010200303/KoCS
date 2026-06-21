@@ -216,7 +216,7 @@ namespace kocs::pair_finders {
                   in_view_pack.apply([&](auto&... views) {
                     local_delta.apply([&](auto&... deltas) {
                       force(
-                        i, j, displacement, distance, generator, pairwise_drag,
+                        is_full_step, i, j, displacement, distance, generator, pairwise_drag,
                         ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
                       );
                     });

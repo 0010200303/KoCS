@@ -456,7 +456,7 @@ namespace kocs {
 
       template<typename... Funcs>
       inline void run_links(Funcs&&... functions) {
-        run_custom(links.extent(0), std::forward<Funcs>(functions)...);
+        run_custom(links.get_active_count(), std::forward<Funcs>(functions)...);
       }
 
       inline void write(const double time) {
