@@ -80,7 +80,7 @@ namespace kocs {
         , random_pool(settings.seed)
         , pair_finder(settings.agent_count, settings.cutoff_distance, settings.pair_finder_settings)
         , com_fixer()
-        , links(settings.capacity != 0 ? View<Link>("links", settings.capacity) : View<Link>())
+        , links(settings.link_capacity != 0 ? View<Link>("links", settings.link_capacity) : View<Link>())
         , integrator(make_integrator(
             settings.agent_count,
             settings.capacity,

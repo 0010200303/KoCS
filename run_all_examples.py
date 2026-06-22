@@ -2,7 +2,7 @@
 Run all examples from the examples/ directory using kocs.sh
 
 Usage:
-    python run_all_examples.py [BACKEND]
+    python run_all_examples.py [BACKEND] [START]
 """
 
 import subprocess
@@ -18,19 +18,28 @@ def main():
         print(f"Unknown backend '{backend}'. Choose from: {', '.join(BACKENDS)}", file=sys.stderr)
         sys.exit(1)
 
+    start_from = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+
     examples = sorted(Path(SCRIPT_DIR / "examples").rglob("*.cpp"))
 
     if not examples:
         print("No examples found.", file=sys.stderr)
         sys.exit(1)
+    
+    if start_from < 1 or start_from > len(examples):
+        print(f"Start number must be between 1 and {len(examples)}.", file=sys.stderr)
+        sys.exit(1)
 
     print(f"Backend: {backend}")
     print(f"Examples: {len(examples)}")
+    print(f"Starting from: {start_from}")
 
-    for ex in examples:
+    for i, ex in enumerate(examples, start=1):
+        if i < start_from:
+            continue
         rel = ex.relative_to(SCRIPT_DIR / "examples")
         cmd = [str(SCRIPT_DIR / "kocs.sh"), str(ex), "-B", backend, "-e"]
-        print(f"\n--- {rel} ---")
+        print(f"\n[{i}/{len(examples)}] --- {rel} ---")
         result = subprocess.run(cmd, cwd=SCRIPT_DIR)
         if result.returncode != 0:
             print(f"FAILED: {rel}")

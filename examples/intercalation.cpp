@@ -23,6 +23,7 @@ const Scalar link_strength = 0.2;
 int main() {
   Simulation<SimulationConfig>::Settings settings(n_cells, "./output/intercalation");
   settings.cutoff_distance = r_max;
+  settings.link_capacity = n_cells * protrusions_per_cell;
   settings.link_active_count = n_cells * protrusions_per_cell;
 
   Simulation<SimulationConfig> sim(settings);
