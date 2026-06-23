@@ -4,7 +4,6 @@ author = '0010200303'
 
 extensions = [
   'breathe',
-  'sphinxcontrib.video'
 ]
 
 breathe_projects = {
