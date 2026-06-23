@@ -15,3 +15,6 @@ docs at: https://0010200303.github.io/KoCS/
 - add custom integrator example
 - add custom pair finder example
 - (add optimizations per PairFinder x Integrator pair where possible, disable per compiler flag)
+
+# known issues
+- older hdf5 versions cause small a memory leak when using the HDF5_writer on CPU (very observable when running branching on CPU)
