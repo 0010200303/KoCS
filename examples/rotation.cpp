@@ -4,6 +4,7 @@
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
+  CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
   CONFIG_PAIR_FINDER(pair_finders::BinnedGabriel)
   CONFIG_FIELDS(
     (Vector, position),
@@ -110,7 +111,7 @@ active migration in response to mechanical force F (interaction with neighbourin
     sim.take_step(dt, pairwise_mechanical_interactions());
   sim.write(0.0, types);
 
-  for (int i = 0; i <= t_max; ++i) {
+  for (int i = 1; i <= t_max + 1; ++i) {
     for (int j = 0; j < steps_per_30_min; ++j) {
       sim.take_step(dt, self_interactions(), pairwise_interactions());
     }

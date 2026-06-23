@@ -31,7 +31,6 @@ int main() {
     polarities_b(i) = Polarity(Kokkos::acos(0.0f), Kokkos::atan2(0.0f, 1.0f));
   );
   sim.init_random_filled_sphere(3.0f, init_polarities());
-  sim.write(0.0);
 
   auto force_a = PAIRWISE_FORCE(
     ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.8f, 0.8f, 1.0f, 1.5f);
@@ -58,7 +57,7 @@ int main() {
     if (i % save_every_nth == 0)
       sim.write(i * dt);
   }
-  for (int i = 0; i < steps / 2; ++i) {
+  for (int i = steps / 2; i < steps + 1; ++i) {
     sim.take_step(dt, force_b());
     if (i % save_every_nth == 0)
       sim.write(i * dt);

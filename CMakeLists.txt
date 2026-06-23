@@ -181,6 +181,7 @@ function(add_KoCS_simulation target_name source_file)
   target_compile_options(${target_name} PRIVATE
     $<$<CONFIG:Debug>:-O0;-g3;-ggdb>
     $<$<CONFIG:Release>:-O3>
+    $<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-march=native;-mtune=native>
   )
 
   if(CMAKE_CUDA_COMPILER)

@@ -66,7 +66,7 @@ int main() {
     positions(n) = positions(i) + mean_distance / 4 * temp_polarity.to_vector3();
   );
 
-  for (int i = 0; i < steps; ++i) {
+  for (int i = 1; i < steps + 1; ++i) {
     sim.take_step(dt, relu_force(), repulsion_from_wall());
     sim.init(proliferate());
     sim.set_agent_count(counter);

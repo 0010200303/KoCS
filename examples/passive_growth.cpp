@@ -11,7 +11,6 @@ enum CellType {
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
-  CONFIG_COM_FIXER(com_fixers::NoComFixer)
   CONFIG_FIELDS(
     (Vector, position),
     (Polarity, polarity)
@@ -86,7 +85,7 @@ int main() {
   sim.init(find_epithelium());
 
   sim.write(0.0, types, mesenchyme_neighbours, epithelium_neighbours);
-  for (int i = 0; i < steps; ++i) {
+  for (int i = 1; i < steps + 1; ++i) {
     // ensure capacity is high enough to store all possible cells
     if (sim.get_agent_count() * 2 > sim.get_capacity())
       sim.set_capacity(sim.get_agent_count() * 4, types, mesenchyme_neighbours, epithelium_neighbours);

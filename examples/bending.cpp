@@ -13,7 +13,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_cells = 91;
-const int steps = 500;
+const int steps = 2000;
 const double dt = 0.1;
 const Scalar r_max = 1.0;
 const Scalar pi_6 = Kokkos::numbers::pi_v<Scalar> / 6;
@@ -41,7 +41,6 @@ int main() {
     polarities(i).theta() = phi;
   );
   sim.init_regular_hexagon(0.75, wrap_hexagon());
-  sim.write(0.0);
 
   // ReLU forces plus k*(n_i . r_ij/r)^2/2 for all r_ij <= r_max
   auto layer_force = PAIRWISE_FORCE(
@@ -52,7 +51,7 @@ int main() {
     ctx.polarity.delta += bending_force.polarity * 0.5f;
   );
 
-  for (int i = 0; i < steps; ++i) {
+  for (int i = 0; i < steps + 1; ++i) {
     sim.take_step(dt, layer_force());
     sim.write(i * dt);
   }

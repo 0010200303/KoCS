@@ -1,5 +1,5 @@
 // example translated from https://github.com/germannp/yalla/blob/main/examples/polarization.cu
-// Simulate randomly migrating cell
+// Simulate tissue polarization
 
 #include "../include/kocs.hpp"
 

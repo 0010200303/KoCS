@@ -6,19 +6,9 @@ This project is based on **Kokkos**. Explore the `Kokkos docs <https://kokkos.or
 Website Content
 ---------------
 
-Examples
---------
-
-Apical Constriction:
-^^^^^^^^^^^^^^^^^^^
-.. video:: _static/apical_constriction.webm
-   :autoplay:
-   :loop:
-   :muted:
-   :width: 300
-
 .. toctree::
    :maxdepth: 2
 
+   examples/index
    getting-started/index
    programming-guide/index
