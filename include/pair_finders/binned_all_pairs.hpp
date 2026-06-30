@@ -37,7 +37,7 @@ namespace kocs::pair_finders {
       , inv_bin_size(Scalar(1) / bin_size)
       , search_radius(static_cast<int>(Kokkos::ceil(cutoff_distance_ * inv_bin_size)))
       , rebuild_every_n(settings.rebuild_every_n) { }
-    
+
     unsigned int agent_count;
     const Scalar cutoff_distance;
     const Scalar cutoff_distance_squared;
@@ -85,83 +85,99 @@ namespace kocs::pair_finders {
 
       const int side = 2 * search_radius + 1;
       const int task_count = grid.calc_task_count(side);
-      const VectorI bin_extents = grid.get_bin_extents();
+
+      const auto local_permute = grid.get_permute_vector();
+      const auto local_offsets = grid.get_bin_offsets();
+      const auto local_bin_extents = grid.get_bin_extents();
+      const auto local_min = min_bounds;
+      const int local_search_radius = search_radius;
+      const Scalar local_inv_bin = inv_bin_size;
+      const Scalar local_cutoff_squared = cutoff_distance_squared;
 
       Kokkos::parallel_for(
         "binned_all_pairs_apply_force",
-        Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),
-        KOKKOS_CLASS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team_member) {
-          const int i = team_member.league_rank();
+        agent_count,
+        KOKKOS_CLASS_LAMBDA(const int i) {
           const auto& position_i = input_positions(i);
-          const VectorI bin_coords = grid.calc_bin_coords_from_point(position_i);
+
+          VectorI bin_coords;
+          for (int d = 0; d < dimensions; ++d) {
+            bin_coords[d] = Kokkos::max(0, Kokkos::min(
+              static_cast<int>((position_i[d] - local_min[d]) * local_inv_bin),
+              local_bin_extents[d] - 1
+            ));
+          }
 
           // setup data for accumulation
           auto total_delta_i = detail::make_accumulator_pack(out_view_pack);
           Scalar total_drag_i = Scalar(0);
           typename PositionsView::value_type total_velocity_i{0};
 
-          Kokkos::parallel_reduce(
-            Kokkos::TeamThreadRange(team_member, task_count),
-            [&](const int task_idx, auto& local_delta, auto& local_drag, auto& local_velocity) {
-              const VectorI ni = bin_coords + grid.linear_index_to_offset(task_idx, side, search_radius);
-              if (grid.is_bin_outside_extents(ni) == true)
-                return;
-              
-              const int b = grid.flatten_bin_index(ni);
-              const unsigned int start = grid.get_bin_offsets()(b);
-              const unsigned int end = grid.get_bin_offsets()(b + 1);
+          // walk neighbour bins
+          for (int t = 0; t < task_count; ++t) {
+            int temp = t;
+            VectorI neighbour_bin;
+            for (int d = 0; d < dimensions; ++d) {
+              neighbour_bin[d] = bin_coords[d] + (temp % side) - local_search_radius;
+              temp /= side;
+            }
 
-              Kokkos::parallel_for(
-                Kokkos::ThreadVectorRange(team_member, start, end),
-                [&](const int idx) {
-                  const int j = static_cast<int>(grid.get_permute_vector()(idx));
-                  if (j == i)
-                    return;
-                  
-                  const auto& position_j = input_positions(j);
-                  const auto displacement = position_i - position_j;
-                  const auto distance_squared = displacement.length_squared();
-                  if (distance_squared >= cutoff_distance_squared)
-                    return;
-                  
-                  const auto distance = Kokkos::sqrt(distance_squared);
+            bool out = false;
+            for (int d = 0; d < dimensions && !out; ++d)
+              out = (neighbour_bin[d] < 0 || neighbour_bin[d] >= local_bin_extents[d]);
+            if (out)
+              continue;
 
-                  Scalar pairwise_drag = Scalar(0);
+            int bi = neighbour_bin[0];
+            {
+              int stride = 1;
+              for (int d = 1; d < dimensions; ++d) {
+                stride *= local_bin_extents[d - 1];
+                bi += neighbour_bin[d] * stride;
+              }
+            }
 
-                  auto generator = random_pool.get_state();
-                  in_view_pack.apply([&](auto&... views) {
-                    local_delta.apply([&](auto&... deltas) {
-                      force(
-                        is_full_step, i, j, displacement, distance, generator, pairwise_drag,
-                        ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
-                      );
-                    });
-                  });
-                  random_pool.free_state(generator);
+            const unsigned int start = local_offsets(bi);
+            const unsigned int end = local_offsets(bi + 1);
+            for (unsigned int idx = start; idx < end; ++idx) {
+              const int j = static_cast<int>(local_permute(idx));
+              if (j == i)
+                continue;
 
-                  local_drag += pairwise_drag;
-                  local_velocity += pairwise_drag * old_velocities(j);
-                }
-              );
-            },
-            Kokkos::Sum<decltype(total_delta_i)>(total_delta_i),
-            Kokkos::Sum<Scalar>(total_drag_i),
-            Kokkos::Sum<typename PositionsView::value_type>(total_velocity_i)
-          );
+              const auto& position_j = input_positions(j);
+              const auto displacement = position_i - position_j;
+              const auto distance_squared = displacement.length_squared();
+              if (distance_squared >= local_cutoff_squared)
+                continue;
 
-          Kokkos::single(
-            Kokkos::PerTeam(team_member),
-            [&]() {
-              out_view_pack.apply([&](auto&... views) {
-                total_delta_i.apply([&](auto&... values) {
-                  ((views(i) += values), ...);
+              const auto distance = Kokkos::sqrt(distance_squared);
+
+              Scalar pairwise_drag = Scalar(0);
+
+              auto generator = random_pool.get_state();
+              in_view_pack.apply([&](auto&... views) {
+                total_delta_i.apply([&](auto&... deltas) {
+                  force(
+                    is_full_step, i, j, displacement, distance, generator, pairwise_drag,
+                    ForceFields{detail::PairwiseFieldRef{views(i), views(j), deltas}...}
+                  );
                 });
               });
+              random_pool.free_state(generator);
 
-              out_view_pack.first()(i) += total_velocity_i /
-                Kokkos::fmax(total_drag_i, Kokkos::Experimental::epsilon_v<Scalar>);
+              total_drag_i += pairwise_drag;
+              total_velocity_i += pairwise_drag * old_velocities(j);
             }
-          );
+          }
+
+          // commit deltas
+          out_view_pack.apply([&](auto&... views) {
+            total_delta_i.apply([&](auto&... values) {
+              ((views(i) += values), ...);
+            });
+          });
+
+          out_view_pack.first()(i) += total_velocity_i / Kokkos::fmax(total_drag_i, Kokkos::Experimental::epsilon_v<Scalar>);
         }
       );
     }
