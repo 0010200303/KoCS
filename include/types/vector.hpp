@@ -285,6 +285,18 @@ namespace kocs {
       return normal / Kokkos::sqrt(normal.dot(normal));
     }
 
+    KOKKOS_INLINE_FUNCTION
+    constexpr VectorN perpendicular_cw() const {
+      static_assert(dimensions == 2, "perpendicular is only defined for 2D vectors");
+      return Vector(data[1], -data[0]);
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    constexpr VectorN perpendicular_ccw() const {
+      static_assert(dimensions == 2, "perpendicular is only defined for 2D vectors");
+      return Vector(-data[1], data[0]);
+    }
+
     // unary operations
     KOKKOS_INLINE_FUNCTION
     constexpr VectorN operator+() const {
