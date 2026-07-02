@@ -113,33 +113,51 @@ def main() -> None:
 
     cmake_cache_file = build_dir / "CMakeCache.txt"
     config_hash_file = build_dir / ".cmake_configure_hash"
+    user_main_hash_file = build_dir / ".cmake_user_main_hash"
 
-    # Compute hash of inputs that affect cmake configuration
-    hasher = hashlib.sha256()
-    for input_path in [project_root / "CMakeLists.txt", Path(user_main)]:
-        try:
-            hasher.update(input_path.read_bytes())
-        except FileNotFoundError:
-            pass
+    # Compute config-level hash (CMakeLists.txt + cmake options; NOT user source)
+    config_hasher = hashlib.sha256()
+    try:
+        config_hasher.update((project_root / "CMakeLists.txt").read_bytes())
+    except FileNotFoundError:
+        pass
     for opt in cmake_opts:
-        hasher.update(opt.encode())
+        config_hasher.update(opt.encode())
     if generator:
-        hasher.update(generator.encode())
-    new_hash = hasher.hexdigest()
+        config_hasher.update(generator.encode())
+    new_config_hash = config_hasher.hexdigest()
+
+    # Compute user-source hash separately
+    user_hasher = hashlib.sha256()
+    try:
+        user_hasher.update(Path(user_main).read_bytes())
+    except FileNotFoundError:
+        pass
+    new_user_hash = user_hasher.hexdigest()
 
     needs_reconfigure = False
+    needs_reconfigure_deep = False
     if not cmake_cache_file.exists():
         needs_reconfigure = True
+        needs_reconfigure_deep = True
     else:
-        old_hash = ""
+        old_config_hash = ""
         if config_hash_file.exists():
-            old_hash = config_hash_file.read_text().strip()
-        if new_hash != old_hash:
+            old_config_hash = config_hash_file.read_text().strip()
+        if new_config_hash != old_config_hash:
+            needs_reconfigure = True
+            needs_reconfigure_deep = True
+
+        old_user_hash = ""
+        if user_main_hash_file.exists():
+            old_user_hash = user_main_hash_file.read_text().strip()
+        if new_user_hash != old_user_hash:
             needs_reconfigure = True
 
     cmake = _find_cmake()
 
-    if needs_reconfigure:
+    if needs_reconfigure_deep:
+        # CMakeLists.txt or options changed — need a clean slate
         if cmake_cache_file.exists():
             _remove_cmake_cache(cmake_cache_file)
 
@@ -149,7 +167,18 @@ def main() -> None:
         cmake_cmd.extend(cmake_opts)
         print(f"Configuring: {' '.join(cmake_cmd)}")
         subprocess.check_call(cmake_cmd)
-        config_hash_file.write_text(new_hash)
+        config_hash_file.write_text(new_config_hash)
+        user_main_hash_file.write_text(new_user_hash)
+    elif needs_reconfigure:
+        # Only user source changed — reconfigure without clearing cache
+        # so Kokkos and other dependencies are not rebuilt
+        cmake_cmd = [cmake, "-S", str(project_root), "-B", str(build_dir)]
+        if generator:
+            cmake_cmd.extend(["-G", generator])
+        cmake_cmd.extend(cmake_opts)
+        print(f"Reconfiguring (user source changed): {' '.join(cmake_cmd)}")
+        subprocess.check_call(cmake_cmd)
+        user_main_hash_file.write_text(new_user_hash)
 
     # Build
     print(f"Building target '{target_name}' in {build_dir}")
