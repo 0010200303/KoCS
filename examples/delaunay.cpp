@@ -1,3 +1,5 @@
+// visualize delauney triangulation using links
+
 #include "include/kocs.hpp"
 
 using namespace kocs;
@@ -5,9 +7,6 @@ struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_PAIR_FINDER(pair_finders::NaiveDelaunay)
   CONFIG_INTEGRATOR(integrators::Euler)
   CONFIG_DIMENSIONS(2)
-  CONFIG_FIELDS(
-    (Vector, position)
-  )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -16,7 +15,7 @@ const double dt = 1.0;
 const Scalar r_max = 1.0f;
 
 int main() {
-  Simulation<SimulationConfig>::Settings settings(n_cells, "./output/main");
+  Simulation<SimulationConfig>::Settings settings(n_cells, "./output/delaunay");
   settings.cutoff_distance = r_max;
   settings.link_capacity = n_cells * n_cells;
 
