@@ -27,11 +27,8 @@ namespace kocs::initializers {
       const Scalar row_height = distance_nb * Scalar(0.5) * Kokkos::sqrt(Scalar(3.0));
       const Scalar row_offset = (row % 2 != 0) ? (distance_nb / Scalar(2.0)) : Scalar(0.0);
 
-      positions_view(i) = Vector(
-        row_offset + Scalar(col) * distance_nb,
-        Scalar(row) * row_height,
-        Scalar(0.0)
-      );
+      positions_view(i)[0] = row_offset + Scalar(col) * distance_nb;
+      positions_view(i)[1] = Scalar(row) * row_height;
     }
   };
 } // namespace kocs::initializers

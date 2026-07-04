@@ -22,9 +22,8 @@ namespace kocs::initializers {
       const Scalar r  = r_max * Kokkos::sqrt(static_cast<Scalar>(generator.drand()));
       const Scalar phi = static_cast<Scalar>(generator.drand()) * Scalar(2.0) * Kokkos::numbers::pi_v<Scalar>;
 
-      positions_view(i)[0] = Scalar(0.0);
-      positions_view(i)[1] = r * Kokkos::sin(phi);
-      positions_view(i)[2] = r * Kokkos::cos(phi);
+      positions_view(i)[0] = r * Kokkos::sin(phi);
+      positions_view(i)[1] = r * Kokkos::cos(phi);
     }
   };
 } // namespace kocs::initializers
