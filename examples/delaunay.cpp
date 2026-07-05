@@ -28,7 +28,7 @@ int main() {
 
   DeviceVar<int> link_counter = links.get_active_count();
   auto generate_links = PAIRWISE_FORCE(
-    int link_n = Kokkos::atomic_add_fetch(link_counter.data(), 1);
+    int link_n = Kokkos::atomic_fetch_add(link_counter.data(), 1);
     links(link_n) = Link(i, j);
   );
 

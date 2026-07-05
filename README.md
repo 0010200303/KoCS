@@ -11,7 +11,9 @@ docs at: https://0010200303.github.io/KoCS/
 
 # TODO
 - rework some syntax (FIELDS, custom View definitions)
+- implement Bowyer-Watson for delaunay pair finder
 - implement approximate gabriel pair finder (maybe use cones approach)
+- implement symmetric pair finders where possible
 
 # known issues
 - older hdf5 versions cause small a memory leak when using the HDF5_writer on CPU (very observable when running branching on CPU)
