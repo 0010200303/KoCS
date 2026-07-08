@@ -1,5 +1,5 @@
 // benchmark using a simple pairwise force to test the 
-// raw performance of various gabriel pair finders
+// raw performance of various all pairs pair finders
 // for matching checksums use a serial backend
 
 #include <chrono>
@@ -13,19 +13,19 @@
 #include <fcntl.h>
 
 #include "../../include/kocs.hpp"
-#include "naive_gabriel_parallel_reduce.hpp"
-#include "naive_gabriel_parallel_reduce_double.hpp"
-#include "naive_gabriel_parallel_reduce_symmetric.hpp"
-#include "naive_gabriel_for.hpp"
-#include "naive_gabriel_for_double.hpp"
-#include "naive_gabriel_for_symmetric.hpp"
-#include "naive_gabriel_spread.hpp"
-#include "binned_gabriel_reduce_for.hpp"
-#include "binned_gabriel_reduce_for_double.hpp"
-#include "binned_gabriel_reduce_for_symmetric.hpp"
-#include "binned_gabriel_reduce_parallel.hpp"
-#include "binned_gabriel_reduce_parallel_double.hpp"
-#include "binned_gabriel_reduce_parallel_symmetric.hpp"
+#include "naive_all_pairs_parallel_reduce.hpp"
+#include "naive_all_pairs_parallel_reduce_double.hpp"
+#include "naive_all_pairs_parallel_reduce_symmetric.hpp"
+#include "naive_all_pairs_for.hpp"
+#include "naive_all_pairs_for_double.hpp"
+#include "naive_all_pairs_for_symmetric.hpp"
+#include "naive_all_pairs_spread.hpp"
+#include "binned_all_pairs_reduce_for.hpp"
+#include "binned_all_pairs_reduce_for_double.hpp"
+#include "binned_all_pairs_reduce_for_symmetric.hpp"
+#include "binned_all_pairs_reduce_parallel.hpp"
+#include "binned_all_pairs_reduce_parallel_double.hpp"
+#include "binned_all_pairs_reduce_parallel_symmetric.hpp"
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
@@ -35,19 +35,19 @@ struct SimulationConfig : public DefaultSimulationConfig {
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 #define BENCHMARK_VARIANTS(M)                                                   \
-  M(NaiveParallelReduce,                  NaiveGabrielParallelReduce)           \
-  M(NaiveFor,                             NaiveGabrielFor)                      \
-  M(NaiveSpread,                          NaiveGabrielSpread)                   \
-  M(NaiveForDouble,                       NaiveGabrielForDouble)                \
-  M(NaiveParallelReduceDouble,            NaiveGabrielParallelReduceDouble)     \
-  M(NaiveForSymmetric,                    NaiveGabrielForSymmetric)             \
-  M(NaiveParallelReduceSymmetric,         NaiveGabrielParallelReduceSymmetric)  \
-  M(BinnedGabrielReduceFor,               BinnedGabrielReduceFor)               \
-  M(BinnedGabrielReduceForDouble,         BinnedGabrielReduceForDouble)         \
-  M(BinnedGabrielReduceForSymmetric,      BinnedGabrielReduceForSymmetric)      \
-  M(BinnedGabrielReduceParallel,          BinnedGabrielReduceParallel)          \
-  M(BinnedGabrielReduceParallelDouble,    BinnedGabrielReduceParallelDouble)    \
-  M(BinnedGabrielReduceParallelSymmetric, BinnedGabrielReduceParallelSymmetric)
+  M(NaiveParallelReduce,                  NaiveAllPairsParallelReduce)           \
+  M(NaiveFor,                             NaiveAllPairsFor)                      \
+  M(NaiveSpread,                          NaiveAllPairsSpread)                   \
+  M(NaiveForDouble,                       NaiveAllPairsForDouble)                \
+  M(NaiveParallelReduceDouble,            NaiveAllPairsParallelReduceDouble)     \
+  M(NaiveForSymmetric,                    NaiveAllPairsForSymmetric)             \
+  M(NaiveParallelReduceSymmetric,         NaiveAllPairsParallelReduceSymmetric)  \
+  M(BinnedReduceFor,                      BinnedAllPairsReduceFor)               \
+  M(BinnedReduceForDouble,                BinnedAllPairsReduceForDouble)         \
+  M(BinnedReduceForSymmetric,             BinnedAllPairsReduceForSymmetric)      \
+  M(BinnedReduceParallel,                 BinnedAllPairsReduceParallel)          \
+  M(BinnedReduceParallelDouble,           BinnedAllPairsReduceParallelDouble)    \
+  M(BinnedReduceParallelSymmetric,        BinnedAllPairsReduceParallelSymmetric)
 
 #define DEFINE_CONFIG(EnumName, PairFinder)                                     \
   struct EnumName##Config : public SimulationConfig {                           \
