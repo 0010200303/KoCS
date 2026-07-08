@@ -59,7 +59,7 @@ BENCHMARK_VARIANTS(DEFINE_CONFIG)
 static constexpr int CHILD_TIMEOUT_S = 120;
 
 static bool run_benchmark_child(
-  int n_agents, int n_steps, int n_reps, float dt,
+  int n_agents, int n_steps, int n_reps,
   const char* bench_name
 ) {
   std::string exe = []() {
@@ -72,12 +72,10 @@ static bool run_benchmark_child(
   std::string agents_s = std::to_string(n_agents);
   std::string steps_s  = std::to_string(n_steps);
   std::string reps_s   = std::to_string(n_reps);
-  char dt_buf[64];
-  std::snprintf(dt_buf, sizeof(dt_buf), "%.10f", static_cast<double>(dt));
 
   const char* argv[] = {
     exe.c_str(), "--child-bench", bench_name,
-    agents_s.c_str(), steps_s.c_str(), reps_s.c_str(), dt_buf, nullptr
+    agents_s.c_str(), steps_s.c_str(), reps_s.c_str(), nullptr
   };
 
   int pipefd[2];
@@ -153,7 +151,7 @@ inline const char* benchmark_name(BenchmarkType b) {
 
 template<typename Config, typename Force>
 static double run_one_benchmark(
-  Force kernel, int n_agents, int n_steps, float dt, double& checksum_out
+  Force kernel, int n_agents, int n_steps, double& checksum_out
 ) {
   auto checksum_fn = [&](const auto& positions) {
     auto host_pos = Kokkos::create_mirror_view_and_copy(
@@ -173,7 +171,7 @@ static double run_one_benchmark(
   Kokkos::fence();
   Kokkos::Timer timer;
   for (int s = 0; s < n_steps; ++s)
-    sim.take_step(dt, kernel);
+    sim.take_step(0.0f, kernel);
   Kokkos::fence();
 
   double t = timer.seconds();
@@ -184,12 +182,12 @@ static double run_one_benchmark(
 template<typename Force>
 static double dispatch_benchmark(
   BenchmarkType bench, Force kernel,
-  int n_agents, int n_steps, float dt, double& checksum
+  int n_agents, int n_steps, double& checksum
 ) {
   switch (bench) {
     #define DISPATCH_CASE(EnumName, _) \
       case BenchmarkType::EnumName: \
-        return run_one_benchmark<EnumName##Config>(kernel, n_agents, n_steps, dt, checksum);
+        return run_one_benchmark<EnumName##Config>(kernel, n_agents, n_steps, checksum);
     BENCHMARK_VARIANTS(DISPATCH_CASE)
     #undef DISPATCH_CASE
   }
@@ -197,15 +195,14 @@ static double dispatch_benchmark(
 }
 
 static int child_main(int argc, char** argv) {
-  // argv: --child-bench <name> <agents> <steps> <reps> <dt>
-  if (argc < 7)
+  // argv: --child-bench <name> <agents> <steps> <reps>
+  if (argc < 6)
     return 1;
 
   const char* bench_name = argv[2];
   int  n_agents          = std::atoi(argv[3]);
   int  n_steps           = std::atoi(argv[4]);
   int  n_reps            = std::atoi(argv[5]);
-  float dt               = static_cast<float>(std::atof(argv[6]));
 
   auto find_type = [&]() -> BenchmarkType {
     for (int b = 0; b < static_cast<int>(BenchmarkType::ENUM_COUNT); ++b) {
@@ -229,7 +226,7 @@ static int child_main(int argc, char** argv) {
     int completed = 0;
 
     for (int i = 0; i < n_reps; ++i) {
-      double t = dispatch_benchmark(bench, kernel, n_agents, n_steps, dt, checksum);
+      double t = dispatch_benchmark(bench, kernel, n_agents, n_steps, checksum);
       if (t < 0.0) break;
       total_time += t;
       ++completed;
@@ -240,7 +237,6 @@ static int child_main(int argc, char** argv) {
       double tps_ms = (avg / n_steps) * 1e3;
       std::cout << bench_name << "," << n_agents << ","
                 << n_steps << "," << completed << ","
-                << std::setprecision(10) << dt << ","
                 << std::setprecision(10) << tps_ms << ","
                 << std::setprecision(10) << checksum << "\n";
     }
@@ -255,9 +251,8 @@ int main(int argc, char** argv) {
 
   const int steps = 100;
   const int repetitions = 10;
-  const float dt = 0.1f;
 
-  std::cout << "benchmark,agents,steps,repetitions,dt,time_per_step_ms,checksum\n";
+  std::cout << "benchmark,agents,steps,repetitions,time_per_step_ms,checksum\n";
 
   constexpr int max_agents = 67108864;
   constexpr int start_agents = 32;
@@ -280,7 +275,7 @@ int main(int argc, char** argv) {
         continue;
 
       any_active = true;
-      if (!run_benchmark_child(n_agents, steps, repetitions, dt, bench_names[b]))
+      if (!run_benchmark_child(n_agents, steps, repetitions, bench_names[b]))
         active[b] = false;
     }
     if (!any_active)
