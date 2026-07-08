@@ -253,12 +253,8 @@ int main(int argc, char** argv) {
 
   std::cout << "benchmark,agents,steps,repetitions,time_per_step_ms,checksum\n";
 
-  // constexpr int max_agents = 67108864;
-  // constexpr int start_agents = 32;
-
-  constexpr int max_agents = 16384;
-  constexpr int start_agents = 16384;
-
+  constexpr int max_agents = 67108864;
+  constexpr int start_agents = 32;
   constexpr double scale_factor = 2.0;
 
   constexpr const char* bench_names[] = {
