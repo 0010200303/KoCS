@@ -56,7 +56,7 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 BENCHMARK_VARIANTS(DEFINE_CONFIG)
 #undef DEFINE_CONFIG
 
-static constexpr int CHILD_TIMEOUT_S = 120;
+static constexpr int CHILD_TIMEOUT_S = 20;
 
 static bool run_benchmark_child(
   int n_agents, int n_steps, int n_reps,
@@ -164,8 +164,7 @@ static double run_one_benchmark(
 
   const Scalar r_max = 1.0f;
   Simulation<Config> sim(n_agents, "", r_max);
-  const Scalar sphere_radius = 16.0 * Kokkos::pow(n_agents / 64.0, 1.0 / 3.0);
-  sim.init_random_filled_sphere(sphere_radius);
+  sim.init_random_filled_sphere(16.0f);
   auto& positions = sim.template get_view<FIELD(Vector, position)>();
 
   Kokkos::fence();
@@ -254,8 +253,12 @@ int main(int argc, char** argv) {
 
   std::cout << "benchmark,agents,steps,repetitions,time_per_step_ms,checksum\n";
 
-  constexpr int max_agents = 67108864;
-  constexpr int start_agents = 32;
+  // constexpr int max_agents = 67108864;
+  // constexpr int start_agents = 32;
+
+  constexpr int max_agents = 16384;
+  constexpr int start_agents = 16384;
+
   constexpr double scale_factor = 2.0;
 
   constexpr const char* bench_names[] = {

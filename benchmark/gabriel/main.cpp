@@ -164,8 +164,7 @@ static double run_one_benchmark(
 
   const Scalar r_max = 1.0f;
   Simulation<Config> sim(n_agents, "", r_max);
-  const Scalar sphere_radius = 16.0 * Kokkos::pow(n_agents / 64.0, 1.0 / 3.0);
-  sim.init_random_filled_sphere(sphere_radius);
+  sim.init_random_filled_sphere(16.0f);
   auto& positions = sim.template get_view<FIELD(Vector, position)>();
 
   Kokkos::fence();
