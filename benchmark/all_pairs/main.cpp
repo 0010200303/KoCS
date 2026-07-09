@@ -56,7 +56,7 @@ EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 BENCHMARK_VARIANTS(DEFINE_CONFIG)
 #undef DEFINE_CONFIG
 
-static constexpr int CHILD_TIMEOUT_S = 20;
+static constexpr int CHILD_TIMEOUT_S = 120;
 
 static bool run_benchmark_child(
   int n_agents, int n_steps, int n_reps,
