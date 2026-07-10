@@ -1,12 +1,15 @@
 // visualize delauney triangulation using links
 
-#include "include/kocs.hpp"
+#include "../include/kocs.hpp"
 
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_PAIR_FINDER(pair_finders::NaiveDelaunay)
   CONFIG_INTEGRATOR(integrators::Euler)
   CONFIG_DIMENSIONS(2)
+  CONFIG_FIELDS(
+    (Vector, position)
+  )
 };
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -25,7 +28,7 @@ int main() {
 
   DeviceVar<int> link_counter = links.get_active_count();
   auto generate_links = PAIRWISE_FORCE(
-    int link_n = Kokkos::atomic_add_fetch(link_counter.data(), 1);
+    int link_n = Kokkos::atomic_fetch_add(link_counter.data(), 1);
     links(link_n) = Link(i, j);
   );
 
