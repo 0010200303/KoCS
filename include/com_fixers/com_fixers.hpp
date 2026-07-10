@@ -4,6 +4,10 @@
 #include <Kokkos_Core.hpp>
 
 namespace kocs::com_fixers {
+
+  /**
+   * No-op centre-of-mass fixer. Does not correct drift.
+   */
   template<typename SimulationConfig>
   struct NoComFixer {
     template<typename DeltaView>
@@ -13,6 +17,10 @@ namespace kocs::com_fixers {
     }
   };
 
+  /**
+   * Subtracts the mean displacement from all agents, keeping the centre of
+   * mass stationary. This prevents the entire cell cluster from drifting.
+   */
   template<typename SimulationConfig>
   struct GlobalComFixer {
     template<typename DeltaView>

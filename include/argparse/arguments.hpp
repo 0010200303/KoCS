@@ -11,6 +11,15 @@
 #include <argparse/argparse.hpp>
 
 namespace kocs {
+
+  /**
+   * @brief Maps C++ types to argparse scan characters for type-safe parsing.
+   *
+   * - `'g'` - float/double
+   * - `'i'` - integer types
+   * - `'u'` - unsigned integer types
+   * - `'_'` - string (no scan needed)
+   */
   template<typename T>
   struct shape_for {
     static_assert(!sizeof(T), "No default scan char for this type");
@@ -91,6 +100,20 @@ namespace kocs {
 
     Arguments(const std::string& name) : parser(name) { }
 
+    /**
+     * @brief Add an optional argument with explicit scan shape.
+     *
+     * @tparam Shape  The argparse scan character.
+     * @tparam T      The stored type.
+     * @tparam U      Default value type.
+     * @tparam V      Choice types.
+     * @param short_name    e.g. `"-n"`
+     * @param long_name     e.g. `"--ncells"`
+     * @param storage       Variable to store the parsed value into.
+     * @param default_value Default if the argument is not provided.
+     * @param help          Help text.
+     * @param choices       Optional list of valid values.
+     */
     template<char Shape, typename T, typename U = T, typename... V>
     Arguments& add_argument(
       const std::string& short_name,
@@ -111,6 +134,10 @@ namespace kocs {
       return *this;
     }
 
+    /**
+     * @brief Add an optional argument (shape auto-detected from type).
+     * @copydetails add_argument
+     */
     template<typename T, typename U = T, typename... V>
     Arguments& add_argument(
       const std::string& short_name,
@@ -136,8 +163,12 @@ namespace kocs {
       return *this;
     }
     
-
-
+    /**
+     * @brief Add a required argument with explicit scan shape.
+     * @tparam Shape  The argparse scan character.
+     * @tparam T      The stored type.
+     * @tparam V      Choice types.
+     */
     template<char Shape, typename T, typename... V>
     Arguments& add_required_argument(
       const std::string& short_name,
@@ -157,6 +188,10 @@ namespace kocs {
       return *this;
     }
 
+    /**
+     * @brief Add a required argument (shape auto-detected from type).
+     * @copydetails add_required_argument
+     */
     template<typename T, typename... V>
     Arguments& add_required_argument(
       const std::string& short_name,
@@ -181,8 +216,11 @@ namespace kocs {
       return *this;
     }
 
-
-
+    /**
+     * @brief Add a boolean flag (e.g. `-v` / `--verbose`).
+     *
+     * If the flag is present, @p storage is set to `true`; otherwise `false`.
+     */
     Arguments& add_flag(
       const std::string& short_name,
       const std::string& long_name,
@@ -198,8 +236,12 @@ namespace kocs {
       return *this;
     }
 
-
-
+    /**
+     * @brief Parse command-line arguments.
+     *
+     * On success returns `true`. On failure prints the error and help text
+     * to stderr and returns `false`.
+     */
     bool parse(int argc, char* argv[]) {
       try {
         parser.parse_args(argc, argv);

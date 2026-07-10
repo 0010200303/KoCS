@@ -6,18 +6,30 @@
 #include "../utils/utils.hpp"
 
 namespace kocs::initializers {
+
+  /**
+   * @brief Place agents on a regular hexagonal lattice (2D).
+   *
+   * Agents are arranged in concentric hexagonal rings around a central agent.
+   */
   template<typename SimulationConfig>
   struct RegularHexagon {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
     VectorView positions_view;
+    /// Distance between neighbouring agents.
     Scalar distance_nb;
 
+    /**
+     * @param positions              View to fill with positions.
+     * @param distance_to_neighbour  Spacing between adjacent agents.
+     */
     template<typename ViewType>
     RegularHexagon(ViewType positions, Scalar distance_to_neighbour)
       : positions_view(positions)
       , distance_nb(distance_to_neighbour) { }
 
+    /// @brief Compute the hexagonal lattice position for agent @p i.
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Random& generator) const {
       if (i == 0)

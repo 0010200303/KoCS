@@ -5,7 +5,7 @@
 using namespace kocs;
 struct SimulationConfig : public DefaultSimulationConfig {
   CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
-  CONFIG_PAIR_FINDER(pair_finders::BinnedGabriel)
+  CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
   CONFIG_FIELDS(
     (Vector, position),
     (Vector, velocity),
@@ -46,9 +46,7 @@ active migration in response to mechanical force F (interaction with neighbourin
     return 1;
   
   if (output_path.empty() == true)
-    output_path = "./output/out_" + std::to_string(n_cells) + "_cells_c1_" + std::to_string(const_1) +
-      "_c2_" + std::to_string(const_2) + "_D_" + std::to_string(D) + 
-      "_walkers_" + std::to_string(walker_probability) + "_seed_" + std::to_string(seed);
+    output_path = "./output/rotation_test";
 
   const float sqrt_stochastic = Kokkos::sqrt(D) * Kokkos::sqrt(dt);
 
@@ -90,6 +88,12 @@ active migration in response to mechanical force F (interaction with neighbourin
 
     // direction dependent drift
     ctx.position.delta += ctx.velocity.self * types(i);
+
+    // bool prev_type = types(i);
+    // bool new_type = rng.frand(1.0) < walker_probability;
+    // types(i) = new_type;
+    // if (prev_type == true && new_type == false)
+      // velocities_view(i) *= 0.6;
   );
 
   auto pairwise_interactions = PAIRWISE_FORCE(

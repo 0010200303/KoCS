@@ -5,11 +5,24 @@
 #include <utility>
 
 namespace kocs::detail {
+
+  // --- Force-type tags used for tag dispatch ---
+
+  /// @brief Tag for per-agent (generic) force functors.
   struct GenericForceTag { };
+  /// @brief Tag for pairwise interaction force functors.
   struct PairwiseForceTag { };
+  /// @brief Tag for update functions (side effects, no force output).
   struct UpdateFuncTag { };
+  /// @brief Tag for link force functors.
   struct LinkForceTag { };
 
+  /**
+   * @brief Wraps a force lambda together with its tag type.
+   *
+   * Created by the `operator|` mechanism used in the force definition macros
+   * (e.g. `GENERIC_FORCE_IMPL`, `PAIRWISE_FORCE_IMPL`).
+   */
   template<typename Tag, typename Force>
   struct TaggedForce {
     Force force;
@@ -26,6 +39,9 @@ namespace kocs::detail {
     }
   };
 
+  /**
+   * @brief Tagger that enables the `force | tag` and `tag | force` syntax.
+   */
   template<typename Tag>
   struct ForceTagger {
     template<typename Force>
@@ -39,13 +55,22 @@ namespace kocs::detail {
     }
   };
 
+  /// @name Force tag instances (used by the force macros).
+  ///@{
   constexpr ForceTagger<GenericForceTag> generic_force{};
   constexpr ForceTagger<PairwiseForceTag> pairwise_force{};
   constexpr ForceTagger<UpdateFuncTag> update_func{};
   constexpr ForceTagger<LinkForceTag> link_force{};
+  ///@}
 
 
 
+  /**
+   * @brief A single slot in an AccumulatorPack, identified by a compile-time index.
+   *
+   * Used inside link-force evaluation to accumulate force contributions before
+   * applying them atomically to the output views.
+   */
   template<std::size_t Index, typename T>
   struct AccumulatorSlot {
     T value{};
@@ -79,6 +104,12 @@ namespace kocs::detail {
     }
   };
 
+  /**
+   * @brief A pack of AccumulatorSlots, one per simulation field view.
+   *
+   * Inherits from each slot so slots are laid out optimally.
+   * Supports per-field access via `get<I>()`, fold `+=`, and `apply(f)`.
+   */
   template<typename... Slots>
   struct AccumulatorPack : Slots... {
     public:
@@ -132,6 +163,7 @@ namespace kocs::detail {
       }
   };
 
+  /// @brief Helper to create an AccumulatorPack matching the types in a ViewPack.
   template<typename... Views, std::size_t... Is>
   KOKKOS_INLINE_FUNCTION
   static auto make_accumulator_pack_impl(std::index_sequence<Is...>) {
@@ -140,6 +172,7 @@ namespace kocs::detail {
     );
   }
 
+  /// @copydoc make_accumulator_pack_impl
   template<typename... Views>
   KOKKOS_INLINE_FUNCTION
   static auto make_accumulator_pack(const ViewPack<Views...>& pack) {
@@ -148,29 +181,47 @@ namespace kocs::detail {
 
 
 
+  /**
+   * @brief Field references passed to a generic (per-agent) force functor.
+   *
+   * Provides `self` (the current value) and `delta` (write delta).
+   */
   template<typename T>
   struct GenericFieldRef {
-    const T& self;
-    T& delta;
+    const T& self;   ///< Current value of the field for this agent.
+    T& delta;        ///< Delta that the force can write to.
   };
 
+  /**
+   * @brief Field references passed to a pairwise force functor.
+   *
+   * Provides `self` and `other` (the two interacting agents), plus `delta`
+   * for writing the force delta.
+   */
   template<typename T>
   struct PairwiseFieldRef {
-    const T& self;
-    const T& other;
-    T& delta;
+    const T& self;   ///< Current value for agent i.
+    const T& other;  ///< Current value for agent j.
+    T& delta;        ///< Delta to write.
   };
 
+  /**
+   * @brief Field references passed to a link force functor.
+   *
+   * Provides both endpoint values (`a` and `b`) and separate delta slots
+   * (`delta_a`, `delta_b`) so each endpoint can receive its own contribution.
+   */
   template<typename T>
   struct LinkFieldRef {
-    const T& a;
-    const T& b;
-    T& delta_a;
-    T& delta_b;
+    const T& a;      ///< Current value for the first endpoint.
+    const T& b;      ///< Current value for the second endpoint.
+    T& delta_a;      ///< Delta for endpoint a.
+    T& delta_b;      ///< Delta for endpoint b.
   };
 } // namespace kocs::detail
 
 namespace Kokkos {
+  /// @brief Reduction identity for AccumulatorSlot (zero-initialised).
   template<typename T>
   struct reduction_identity<kocs::detail::AccumulatorSlot<0, T>> {
     KOKKOS_INLINE_FUNCTION
@@ -179,6 +230,7 @@ namespace Kokkos {
     }
   };
 
+  /// @brief Reduction identity for AccumulatorPack (all slots zero-initialised).
   template<typename... Slots>
   struct reduction_identity<kocs::detail::AccumulatorPack<Slots...>> {
     KOKKOS_INLINE_FUNCTION

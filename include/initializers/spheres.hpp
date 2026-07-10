@@ -7,17 +7,27 @@
 #include "relax_force.hpp"
 
 namespace kocs::initializers {
+
+  /**
+   * Random positions on the surface of a sphere (min 3D).
+   */
   template<typename SimulationConfig>
   struct RandomHollowSphere {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
-    static_assert(dimensions == 3, "RandomHollowSphere requires 3-dimensional vectors");
+    static_assert(dimensions >= 3, "RandomHollowSphere requires 3-dimensional vectors");
 
+    /// Radius of the sphere.
     Scalar radius;
     VectorView positions_view;
 
+    /**
+     * @param positions View to fill with positions.
+     * @param radius_   Radius of the sphere.
+     */
     RandomHollowSphere(VectorView positions, Scalar radius_)
       : positions_view(positions), radius(radius_) { }
 
+    /// @brief Sample a random point on the sphere surface for agent @p i.
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i, Random& generator) const {
       const Scalar u = static_cast<Scalar>(generator.drand());
@@ -33,17 +43,26 @@ namespace kocs::initializers {
     }
   };
 
+  /**
+   * Random positions inside a solid sphere (min 3D).
+   */
   template<typename SimulationConfig>
   struct RandomFilledSphere {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
-    static_assert(dimensions == 3, "RandomFilledSphere requires 3-dimensional vectors");
+    static_assert(dimensions >= 3, "RandomFilledSphere requires 3-dimensional vectors");
 
+    /// Radius of the sphere.
     Scalar radius;
     VectorView positions_view;
 
+    /**
+     * @param positions View to fill with positions.
+     * @param radius_   Radius of the sphere.
+     */
     RandomFilledSphere(VectorView positions, Scalar radius_)
       : positions_view(positions), radius(radius_) { }
 
+    /// @brief Sample a random point inside the sphere for agent @p i.
     KOKKOS_INLINE_FUNCTION
     void operator() (const unsigned int i, Random& generator) const {
       const Scalar rt = static_cast<Scalar>(generator.drand());
@@ -62,12 +81,21 @@ namespace kocs::initializers {
     }
   };
 
+  /**
+   * RandomFilledSphere followed by relaxation to spread agents apart.
+   */
   template<typename SimulationConfig>
   struct RelaxedSphere : public RandomFilledSphere<SimulationConfig> {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
+    /// Number of relaxation steps.
     unsigned int steps;
 
+    /**
+     * @param positions          View to fill with positions.
+     * @param initial_radius     Radius of the sphere for random placement.
+     * @param relaxation_steps   How many relaxation steps to run (default: 2000).
+     */
     template<typename ViewType>
     RelaxedSphere(
       ViewType positions,
@@ -76,6 +104,7 @@ namespace kocs::initializers {
     ) : RandomFilledSphere<SimulationConfig>(positions, initial_radius)
       , steps(relaxation_steps) { }
     
+    /// @brief Run the relaxation simulation to spread agents evenly.
     template<typename Simulation>
     void relax(Simulation& simulation) {
       for (int i = 0; i < steps; ++i)

@@ -6,7 +6,19 @@
 #include <highfive/H5DataType.hpp>
 
 namespace HighFive::details {
-  // specialize inspector so HighFive supports Kokkos::View
+
+  /**
+   * @brief HighFive inspector that enables reading/writing Kokkos::View
+   *        objects directly from/to HDF5 datasets.
+   *
+   * This specialization tells the HighFive library how to handle
+   * Kokkos::View types so that HDF5_Reader and HDF5_Writer can use 
+   * `dataset.read(view)` and `group.createDataSet(label, view)`
+   * without extra copies.
+   *
+   * @note Only Kokkos::Views whose memory is accessible from the host
+   *       space are supported (enforced by a static_assert).
+   */
   template <typename DataType, typename... Properties>
   struct inspector<Kokkos::View<DataType, Properties...>> {
     using type = Kokkos::View<DataType, Properties...>;
@@ -24,12 +36,19 @@ namespace HighFive::details {
     static constexpr bool is_trivially_nestable = inspector<value_type>::is_trivially_nestable;
     static constexpr bool is_trivially_copyable = inspector<value_type>::is_trivially_copyable;
 
+    /// @brief Compute the total rank, including inner dimensions.
     static size_t getRank(const type& value) {
       if (value.size() == 0)
         return type::rank + inspector<value_type>::ndim;
       return type::rank + inspector<value_type>::getRank(value.data()[0]);
     }
 
+    /**
+     * @brief Return the extent of each dimension, flattening nested views.
+     *
+     * For a `Kokkos::View<Kokkos::View<float*>*>` with shape [N][M],
+     * this returns `{N, M}`.
+     */
     static std::vector<size_t> getDimensions(const type& value) {
       std::vector<size_t> result;
       for (size_t i = 0; i < type::rank; ++i)
@@ -46,18 +65,24 @@ namespace HighFive::details {
       return result;
     }
 
-    static void prepare(type& value, const std::vector<size_t>& next_dims) {
-      // views must be pre-allocated by user
-    }
+    /// @brief No-op; views must be pre-allocated by the user.
+    static void prepare(type& value, const std::vector<size_t>& next_dims) { }
 
+    /// @brief Return a pointer to the underlying HDF5-compatible data.
     static hdf5_type* data(type& value) {
       return inspector<value_type>::data(value.data()[0]);
     }
 
+    /// @copydoc data(type&)
     static const hdf5_type* data(const type& value) {
       return inspector<value_type>::data(value.data()[0]);
     }
 
+    /**
+     * @brief Flatten a nested Kokkos::View into a contiguous HDF5 buffer.
+     *
+     * Recursively serializes all elements, handling nested views.
+     */
     static void serialize(const type& val, const std::vector<size_t>& m_dims, hdf5_type* m) {
       auto* ptr = val.data();
       std::vector<size_t> next_dims(m_dims.begin() + type::rank, m_dims.end());
@@ -70,6 +95,11 @@ namespace HighFive::details {
         inspector<value_type>::serialize(ptr[i], next_dims, m + i * next_size);
     }
 
+    /**
+     * @brief Reconstruct a nested Kokkos::View from a contiguous HDF5 buffer.
+     *
+     * Inverse of serialize().
+     */
     static void unserialize(type& val, const std::vector<size_t>& m_dims, const hdf5_type* m) {
       auto* ptr = val.data();
       std::vector<size_t> next_dims(m_dims.begin() + type::rank, m_dims.end());

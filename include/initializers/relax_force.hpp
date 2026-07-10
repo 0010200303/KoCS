@@ -5,11 +5,21 @@
 #include "../utils/utils.hpp"
 
 namespace kocs::details {
-template<typename SimulationConfig>
+
+  /**
+   * @brief Internal repulsive force used during initialisation relaxation.
+   *
+   * Applies a piecewise-linear repulsion to push overlapping agents apart so
+   * that the initial configuration is closer to a uniform distribution.
+   * This is not intended for use by the user.
+   */
+  template<typename SimulationConfig>
   struct RelaxForce {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
+    /// Minimum force scaling factor.
     Scalar min;
+    /// Maximum force scaling factor.
     Scalar max;
 
     KOKKOS_INLINE_FUNCTION
@@ -20,6 +30,6 @@ template<typename SimulationConfig>
       ctx.position.delta += forces::PiecewiseLinear(displacement, distance, min, max, Scalar(2), Scalar(1));
     }
   };
-} // namespace kocs.:initializers
+} // namespace kocs::details
 
 #endif // KOCS_INITIALIZERS_RELAX_FORCE_HPP

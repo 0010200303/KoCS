@@ -3,6 +3,7 @@
 docs at: https://0010200303.github.io/KoCS/
 
 # Requirements
+- CMake and compiler with support for C++20
 - HDF5 (libhdf5-dev)
 
 ## optional

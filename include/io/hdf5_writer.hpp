@@ -19,17 +19,50 @@
 #include "view.hpp"
 
 namespace kocs::io {
+
+  /**
+   * @brief Writes simulation data to HDF5 files with optional XDMF metadata.
+   *
+   * This class is the main output interface for simulation data in the KoCS
+   * framework. It takes one or more View objects (containing positions,
+   * forces, cell properties, etc.) at each time step and writes them to an
+   * HDF5 file. Optionally, it also generates an XDMF file that can be opened
+   * directly in visualization tools such as ParaView.
+   *
+   * @tparam SimulationConfig A configuration struct that defines simulation
+   *         parameters (dimensions, scalar, data types, etc.). Use the same config
+   *         type as your simulation.
+   */
   template<typename SimulationConfig>
   class HDF5_Writer {
     EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
     public:
+      /**
+       * @brief Configuration options for the HDF5 writer.
+       */
       struct Settings {
+        /** Whether to generate a companion .xmf file. */
         bool write_xmf = true;
+
+        /**
+         * Buffer size in bytes before flushing XDMF output to disk.
+         * Larger values reduce file I/O at the cost of memory usage.
+         */
         std::size_t buffer_treshold = 65536;
       };
 
     public:
+      /**
+       * @brief Opens an HDF5 file and optionally prepares an XDMF XML file.
+       *
+       * The output path is used as a base name: if you pass `"out/sim"`,
+       * the class creates `out/sim.h5` (and `out/sim.xmf` if enabled).
+       * Any missing parent directories are created automatically.
+       *
+       * @param path      File path **without** extension.
+       * @param settings  Configuration settings for the writer.
+       */
       HDF5_Writer(
         const std::string& path,
         const Settings& settings)
@@ -45,6 +78,9 @@ namespace kocs::io {
           init_xmf(path);
       }
 
+      /**
+       * @brief Flushes any remaining XDMF data and closes the files.
+       */
       ~HDF5_Writer() {
         finalize_xmf();
       }
@@ -62,6 +98,7 @@ namespace kocs::io {
 
       bool write_xmf;
 
+      // SFINAE helpers to detect compile-time dimensions on types
       template<typename T, typename = void>
       struct has_static_dimensions : std::false_type { };
 
@@ -74,6 +111,12 @@ namespace kocs::io {
       template<typename T>
       struct has_get_dimensions<T, std::void_t<decltype(std::declval<const T&>().get_dimensions())>> : std::true_type { };
 
+      /**
+       * @brief Write a single View into an HDF5 group.
+       *
+       * Only the active entries (up to `get_active_count()`) are written,
+       * so partially filled views produce compact files.
+       */
       template<typename T>
       void write_single(HighFive::Group& group, View<T>& view) {
         if (view.get_active_count() == 0)
@@ -85,6 +128,9 @@ namespace kocs::io {
         group.createDataSet(view.label(), sub_host);
       }
 
+      /**
+       * @brief Start the XDMF XML document and open the temporal grid.
+       */
       void init_xmf(const std::string& path) {
         xmf_file.open(path + ".xmf", std::ios::out | std::ios::trunc);
         if (xmf_file.is_open() == false)
@@ -94,6 +140,9 @@ namespace kocs::io {
 \t\t<Grid Name=\"Agents\" GridType=\"Collection\" CollectionType=\"Temporal\">\n";
       }
 
+      /**
+       * @brief Close the XDMF XML document and flush to disk.
+       */
       void finalize_xmf() {
         if (xmf_file.is_open() == false)
           return;
@@ -103,6 +152,13 @@ namespace kocs::io {
         xmf_file.close();
       }
 
+      /**
+       * @brief Write the <Grid> header and <Geometry> block for one time step.
+       *
+       * The first View passed to write() is treated as the position data
+       * and becomes the XDMF geometry. The geometry type (X, XY, or XYZ)
+       * is chosen based on the simulation's dimension setting.
+       */
       template<typename T>
       void write_xmf_grid_start(
         const double time,
@@ -140,6 +196,13 @@ namespace kocs::io {
         xmf_buffer += "\n\t\t\t\t\t</DataItem>\n\t\t\t\t</Geometry>\n";
       }
 
+      /**
+       * @brief Append an XDMF <Attribute> (or <Topology> for links) for one View.
+       *
+       * The attribute type (Scalar / Vector / Tensor / Matrix) is inferred
+       * automatically from the View's dimensions. Link views produce a
+       * polyline topology instead of an attribute.
+       */
       template<typename T>
       void write_xmf_grid_item(std::string& buffer, const std::string& group, const View<T>& view) {
         // TODO: optimize this
@@ -207,6 +270,12 @@ namespace kocs::io {
           buffer += "\t\t\t\t</Attribute>\n";
       }
 
+      /**
+       * @brief Close the current <Grid> block in XDMF.
+       *
+       * Also appends the static data chunk and flushes the buffer to disk
+       * if it exceeds the configured threshold.
+       */
       void write_xmf_grid_end() {
         xmf_buffer += xmf_static;
         xmf_buffer += "\t\t\t</Grid>\n";
@@ -218,7 +287,22 @@ namespace kocs::io {
       }
 
     public:
-      // always expects the position view to be passed first
+      /**
+       * @brief Write one time step of simulation data.
+       *
+       * All provided Views are stored in an HDF5 group named `t<step>`
+       * and (if XDMF is enabled) listed as attributes of a new grid entry.
+       *
+       * @note The **first** View must contain position coordinates – it
+       *       becomes the geometry in the XDMF file. Any Link views among
+       *       the remaining arguments are rendered as polyline topology
+       *       instead of regular attributes.
+       *
+       * @param time        The simulation time for this step.
+       * @param step        The step index (used for naming the output group).
+       * @param first_view  The position View (becomes XDMF geometry).
+       * @param rest_views  Additional property Views (forces, velocities, links, ...).
+       */
       template<typename T0, typename... Ts>
       void write(const double time, const unsigned int step, View<T0>& first_view, View<Ts>&... rest_views) {
         HighFive::Group group = h5_file->createGroup(std::string("t") + std::to_string(step));
@@ -236,6 +320,18 @@ namespace kocs::io {
         write_xmf_grid_end();
       }
 
+      /**
+       * @brief Write data that does not change over time (e.g. a fixed cell type).
+       *
+       * Static data is stored once in a `"static"` HDF5 group and is
+       * included in every XDMF time step so that visualisation tools
+       * can display it alongside the time-varying data.
+       *
+       * @note This method may only be called **once**. Calling it a
+       *       second time throws a `std::runtime_error`.
+       *
+       * @param static_views One or more Views containing static data.
+       */
       template<typename... Ts>
       void write_static(View<Ts>&... static_views) {
         if (xmf_static.empty() == false)

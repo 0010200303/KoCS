@@ -9,6 +9,23 @@
 #include "../types/view.hpp"
 
 namespace kocs::acceleration {
+
+  /**
+   * @brief A uniform spatial grid (binning) for accelerating spatial queries.
+   *
+   * The Grid subdivides the simulation domain into a regular lattice of bins
+   * and assigns every agent to a bin based on its position. It uses
+   * Kokkos::BinSort to produce a permutation vector that groups agents by bin,
+   * enabling fast neighbourhood queries without checking all pairs.
+   *
+   * Typical uses include:
+   * - Finding the nearest agent to a given point.
+   * - Picking a random agent within a given radius (uniformly distributed).
+   * - Accelerating pairwise force evaluations (used internally by binned pair finders).
+   *
+   * @tparam Vector              The agent position vector type.
+   * @tparam PositionsViewType   The Kokkos view type holding positions.
+   */
   template<typename Vector, typename PositionsViewType = View<Vector>>
   class Grid {
     EXTRACT_VECTOR(Vector)
@@ -17,6 +34,12 @@ namespace kocs::acceleration {
     using BinOp = Kokkos::BinOp1D<Kokkos::View<int*>>;
     using BinSort = Kokkos::BinSort<Kokkos::View<int*>, BinOp>;
 
+    /**
+     * @brief Estimate a suitable bin size so that each bin contains roughly
+     *        @p agents_per_bin_ agents on average.
+     *
+     * @return Uniform bin edge length (same in all dimensions).
+     */
     static Scalar get_bin_size(
       const Vector& min_bounds_,
       const Vector& max_bounds_,
@@ -36,6 +59,15 @@ namespace kocs::acceleration {
     }
 
     public:
+      /**
+       * @brief Construct a grid with explicit bounds and bin size.
+       *
+       * @param data_view_   View containing agent positions.
+       * @param agent_count_ Number of active agents.
+       * @param min_bounds_  Minimum coordinate in each dimension.
+       * @param max_bounds_  Maximum coordinate in each dimension.
+       * @param bin_size_    Edge length of each (square/cubic) bin.
+       */
       Grid(
         const ViewType& data_view_,
         const unsigned int agent_count_,
@@ -52,6 +84,12 @@ namespace kocs::acceleration {
         , particle_bins(std::string("Grid") + std::to_string(dimensions) + "_particle_bins", agent_count_)
         , sorter(particle_bins, 0, agent_count_, BinOp{bin_count, 0, bin_count}) { }
       
+      /**
+       * @brief Construct a grid with a Bounds struct and auto-computed bin size.
+       *
+       * The bin size is chosen so that each bin contains roughly
+       * @p agents_per_bin_ agents.
+       */
       Grid(
         const ViewType& data_view_,
         const unsigned int agent_count_,
@@ -64,6 +102,11 @@ namespace kocs::acceleration {
           bounds.max,
           get_bin_size(bounds.min, bounds.max, agent_count_, agents_per_bin_)) { }
 
+      /**
+       * @brief Construct a grid from a view, computing bounds automatically.
+       *
+       * @copydetails Grid(const ViewType&, unsigned int, const utils::Bounds<Vector>&, unsigned int)
+       */
       Grid(
         const ViewType& data_view_,
         const unsigned int agent_count_,
@@ -74,64 +117,86 @@ namespace kocs::acceleration {
           utils::get_bounds<Vector, ViewType>(data_view_),
           agents_per_bin_) { }
 
+      /**
+       * @brief Construct a grid from a full view (agent count = view extent).
+       */
       Grid(
         const ViewType& data_view_,
         const unsigned int agents_per_bin_ = 1
       ) : Grid(data_view_, data_view_.extent(0), agents_per_bin_) { }
 
+      /// @brief Default constructor (empty grid, zero bins).
       Grid() : sorter(particle_bins, 0, 0, BinOp{0, 0, 0}) {}
 
     public:
+      /// The view containing agent positions.
       ViewType data_view;
+      /// Number of active agents.
       unsigned int agent_count = 0;
 
+      /// Lower bound of the grid domain.
       Vector min_bounds;
+      /// Upper bound of the grid domain.
       Vector max_bounds;
+      /// Edge length of one bin.
       Scalar bin_size = 0.0;
 
+      /// Number of bins along each axis.
       VectorI bin_extents;
+      /// Total number of bins (product of all extents).
       int bin_count = 0;
 
+      /// Per-agent bin index (used by the sorter).
       Kokkos::View<int*> particle_bins;
+      /// Kokkos BinSort that groups agents by bin index.
       BinSort sorter;
 
     public:
+      /// @brief The permutation vector that maps sorted to original indices.
       KOKKOS_INLINE_FUNCTION
       BinSort::offset_type get_permute_vector() const {
         return sorter.get_permute_vector();
       }
 
+      /// @brief Bin offset array: bin @p i contains indices
+      ///        `[offsets[i], offsets[i+1])` in the sorted order.
       KOKKOS_INLINE_FUNCTION
       BinSort::offset_type get_bin_offsets() const {
         return sorter.get_bin_offsets();
       }
 
+      /// @brief Lower bound of the grid domain.
       KOKKOS_INLINE_FUNCTION
       Vector get_min_bounds() const {
         return min_bounds;
       }
 
+      /// @brief Upper bound of the grid domain.
       KOKKOS_INLINE_FUNCTION
       Vector get_max_bounds() const {
         return max_bounds;
       }
 
+      /// @brief Edge length of one bin.
       KOKKOS_INLINE_FUNCTION
       Scalar get_bin_size() const {
         return bin_size;
       }
 
+      /// @brief Number of bins along each axis.
       KOKKOS_INLINE_FUNCTION
       VectorI get_bin_extents() const {
         return bin_extents;
       }
 
+      /// @brief Total number of bins.
       KOKKOS_INLINE_FUNCTION
       int get_bin_count() const {
         return bin_count;
       }
 
     public:
+      /// @brief Compute the number of bins along each axis from bounds and bin size.
       KOKKOS_INLINE_FUNCTION
       constexpr VectorI calc_bin_extents() {
         VectorI result;
@@ -140,6 +205,7 @@ namespace kocs::acceleration {
         return result;
       }
 
+      /// @brief Compute total bin count from the extents.
       KOKKOS_INLINE_FUNCTION
       constexpr int calc_bin_count() {
         int result = 1;
@@ -148,6 +214,11 @@ namespace kocs::acceleration {
         return result;
       }
 
+      /**
+       * @brief Compute the integer bin coordinates for a point.
+       *
+       * The result is clamped to `[0, bin_extents[d] - 1]`.
+       */
       KOKKOS_INLINE_FUNCTION
       VectorI calc_bin_coords_from_point(const Vector& point) const {
         VectorI result;
@@ -158,6 +229,9 @@ namespace kocs::acceleration {
         return result;
       }
 
+      /**
+       * @brief Convert multi-dimensional bin coordinates to a flat 1D index.
+       */
       KOKKOS_INLINE_FUNCTION
       int flatten_bin_index(const VectorI& coords) const {
         if constexpr (dimensions == 1) {
@@ -184,11 +258,19 @@ namespace kocs::acceleration {
         }
       }
 
+      /**
+       * @brief Compute the flat bin index for a point in a single call.
+       */
       KOKKOS_INLINE_FUNCTION
       int calc_bin_index_from_point(const Vector& point) const {
         return flatten_bin_index(calc_bin_coords_from_point(point));
       }
 
+      /**
+       * @brief Number of neighbour-offset combinations for a cube of side @p side.
+       *
+       * For example, in 2D with side=3 this returns 9 (a 3×3 neighbourhood).
+       */
       KOKKOS_INLINE_FUNCTION
       int calc_task_count(const int side) const {
         if constexpr (dimensions == 1) {
@@ -211,6 +293,17 @@ namespace kocs::acceleration {
         }
       }
 
+      /**
+       * @brief Convert a linear task index (neighbourhood walk) into a bin offset.
+       *
+       * Used together with `calc_task_count()` to iterate over all bins in a
+       * neighbourhood cube around a centre bin.
+       *
+       * @param task_idx    Linear index into the neighbourhood (0 ... task_count - 1).
+       * @param side        Side length of the neighbourhood cube (2 * radius_bins + 1).
+       * @param radius_bins Neighbourhood radius in number of bins.
+       * @return An offset vector that can be added to centre bin coordinates.
+       */
       KOKKOS_INLINE_FUNCTION
       VectorI linear_index_to_offset(const int task_idx, const int side, const int radius_bins) const {
         VectorI result;
@@ -246,6 +339,10 @@ namespace kocs::acceleration {
         return result;
       }
 
+      /**
+       * @brief Check whether a bin lies outside the grid extents.
+       * @return `true` if the bin is out of bounds.
+       */
       KOKKOS_INLINE_FUNCTION
       bool is_bin_outside_extents(const VectorI& bin) const {
         if constexpr (dimensions == 1) {
@@ -275,11 +372,20 @@ namespace kocs::acceleration {
         }
       }
 
+      /**
+       * @brief Number of agents in a given bin (using the offset array).
+       */
       KOKKOS_INLINE_FUNCTION
       int get_agent_count_for_bin(const int bin_index) const {
         return get_bin_offsets()(bin_index + 1) - get_bin_offsets()(bin_index);
       }
     
+      /**
+       * @brief Rebuild the grid (after agents have moved).
+       *
+       * Recomputes each agent's bin index and re-sorts the permutation vector.
+       * Call this whenever positions change significantly.
+       */
       void rebuild() {
         Kokkos::parallel_for(
           std::string("Grid") + std::to_string(dimensions) + "rebuild",
@@ -294,6 +400,16 @@ namespace kocs::acceleration {
         sorter.create_permute_vector();
       }
 
+      /**
+       * @brief Find the index of the agent nearest to a given point.
+       *
+       * Only searches bins within a sector of side `2 * search_radius + 1` centred
+       * on the query point's bin.
+       *
+       * @param point         Query position.
+       * @param search_radius Neighbourhood radius in bins (default: 1).
+       * @return Index of the nearest agent, or -1 if none found.
+       */
       KOKKOS_INLINE_FUNCTION
       int get_nearest_point_index(const Vector& point, const int search_radius = 1) const {
         VectorI center_coords = calc_bin_coords_from_point(point);
@@ -324,6 +440,16 @@ namespace kocs::acceleration {
         return nearest_idx;
       }
 
+      /**
+       * @brief Pick a random agent index uniformly from all bins neighbouring
+       *        a point (without distance filtering).
+       *
+       * @tparam Random     Kokkos random generator type.
+       * @param point       Query position.
+       * @param radius_bins Neighbourhood radius in bins.
+       * @param rng         Random number generator.
+       * @return Index of the chosen agent, or -1 if none found.
+       */
       template<typename Random>
       KOKKOS_INLINE_FUNCTION
       int get_random_point_index_in_neighbourhood_bins(
@@ -368,6 +494,16 @@ namespace kocs::acceleration {
         return -1;
       }
 
+      /**
+       * @brief Pick a random agent uniformly from a circular/spherical
+       *        neighbourhood around a point.
+       *
+       * @tparam Random       Kokkos random generator type.
+       * @param point         Query position.
+       * @param search_radius Physical search radius (same units as positions).
+       * @param rng           Random number generator.
+       * @return Index of the chosen agent, or -1 if none found.
+       */
       template<typename Random>
       KOKKOS_INLINE_FUNCTION
       int get_random_point_index_in_neighbourhood(
@@ -427,6 +563,19 @@ namespace kocs::acceleration {
         return -1;
       }
 
+      /**
+       * @brief Pick a random agent from a neighbourhood, filtered by a
+       *        user-provided filter.
+       *
+       * @tparam Random       Kokkos random generator type.
+       * @tparam FilterFunc   Callable `bool(int index)`.
+       * @param point         Query position.
+       * @param search_radius Physical search radius.
+       * @param rng           Random number generator.
+       * @param filter        Only agents for which `filter(index)` returns true
+       *                      are eligible.
+       * @return Index of the chosen agent, or -1 if none found.
+       */
       template<typename Random, typename FilterFunc>
       KOKKOS_INLINE_FUNCTION
       int get_random_point_index_in_neighbourhood(

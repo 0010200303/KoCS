@@ -10,14 +10,28 @@
 #include "relax_force.hpp"
 
 namespace kocs::initializers {
+
+  /**
+   * @brief Place agents at uniformly random positions inside a cuboid.
+   *
+   * Each agent gets a position uniformly sampled from the box
+   * @f$ [\text{min}, \text{max}] @f$.
+   */
   template<typename SimulationConfig>
   struct RandomCuboid {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
     VectorView positions_view;
+    /// Lower corner of the cuboid.
     Vector min;
+    /// The extent (width, height, depth) of the cuboid.
     Vector cuboid_dimensions;
 
+    /**
+     * @param positions View to fill with positions.
+     * @param minimum   Lower corner of the cuboid.
+     * @param maximum   Upper corner of the cuboid.
+     */
     template<typename ViewType>
     RandomCuboid(
       ViewType positions,
@@ -27,6 +41,7 @@ namespace kocs::initializers {
       , min(minimum)
       , cuboid_dimensions(maximum - minimum) { }
 
+    /// @brief Sample a random position inside the cuboid for agent @p i.
     KOKKOS_INLINE_FUNCTION
     void operator()(const unsigned int i, Random& generator) const {
       for (int j = 0; j < dimensions; ++j)
@@ -34,12 +49,25 @@ namespace kocs::initializers {
     }
   };
 
+  /**
+   * @brief Like RandomCuboid, followed by a relaxation step to reduce overlaps.
+   *
+   * After placing agents randomly, runs several time steps with a repulsive
+   * force to spread them out into a more uniform distribution.
+   */
   template<typename SimulationConfig>
   struct RelaxedCuboid : public RandomCuboid<SimulationConfig> {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
     
+    /// Number of relaxation steps.
     unsigned int steps;
 
+    /**
+     * @param positions          View to fill with positions.
+     * @param minimum            Lower corner of the cuboid.
+     * @param maximum            Upper corner of the cuboid.
+     * @param relaxation_steps   How many relaxation steps to run (default: 2000).
+     */
     template<typename ViewType>
     RelaxedCuboid(
       ViewType positions,
@@ -49,6 +77,7 @@ namespace kocs::initializers {
     ) : RandomCuboid<SimulationConfig>(positions, minimum, maximum)
       , steps(relaxation_steps) { }
 
+    /// @brief Run the relaxation simulation to spread agents evenly.
     template<typename Simulation>
     void relax(Simulation& simulation) {
       for (int i = 0; i < steps; ++i)
