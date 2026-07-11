@@ -11,13 +11,11 @@
 #include "../include/kocs.hpp"
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_PAIR_FINDER(pair_finders::NaiveDelaunay)
+  CONFIG_SCALAR(float)
   CONFIG_DIMENSIONS(2)
-  CONFIG_FIELDS(
-    (Vector, position)
-  )
-};
+);
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_cells = 100;
@@ -47,7 +45,7 @@ int main() {
   sim.write(0.0);
 
   auto sheet_forces = PAIRWISE_FORCE(
-    ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.5f, 0.7f);
+    ctx.position.delta += forces::PiecewiseLinear(displacement, distance, Scalar(0.5), Scalar(0.7));
   );
 
   for (int i = 1; i <= steps; ++i) {

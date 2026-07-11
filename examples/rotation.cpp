@@ -3,7 +3,7 @@
 #include "../include/kocs.hpp"
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
   CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
   CONFIG_FIELDS(
@@ -11,7 +11,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
     (Vector, velocity),
     (Polarity, polarity)
   )
-};
+);
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main(int argc, char* argv[]) {

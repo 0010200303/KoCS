@@ -212,10 +212,9 @@ namespace kocs {
 #define CONFIG_SCALAR(__SCALAR__) \
   using Scalar = __SCALAR__;
 
-/// @brief Set the number of spatial dimensions and define the Vector type.
+/// @brief Set the number of spatial dimensions.
 #define CONFIG_DIMENSIONS(__DIMENSIONS__) \
-  static constexpr int dimensions = __DIMENSIONS__; \
-  using Vector = kocs::VectorN<Scalar, dimensions>;
+  static constexpr int dimensions = __DIMENSIONS__;
 
 /// @brief Set the Kokkos random number pool type.
 #define CONFIG_RANDOM_POOL(__RANDOM_POOL__) \
@@ -274,64 +273,75 @@ namespace kocs {
 
 #define FIELD_FORCE_MEMBER(TYPE, NAME) FieldRefT<TYPE> NAME
 
+// --- Field type resolution helpers (deferred evaluation) ---
+// Maps a type name token like `Vector` to its template form.
+#define KOCS_FIELD_TYPE(T, S, D) CAT(KOCS_FIELD_, T)(S, D)
+#define KOCS_FIELD_Vector(S, D) kocs::VectorN<S, D>
+#define KOCS_FIELD_Polarity(S, D) kocs::Polarity_<S>
+#define KOCS_FIELD_Scalar(S, D) S
+
+#define KOCS_FIELD_TPL(T, N) kocs::detail::Field<KOCS_FIELD_TYPE(T, __KOCS_SCALAR__, __KOCS_DIMENSIONS__), #N>
+#define KOCS_FORCE_FIELD_MEMBER_TPL(T, N) FieldRefT<KOCS_FIELD_TYPE(T, __KOCS_SCALAR__, __KOCS_DIMENSIONS__)> N
+
 /**
- * @brief Define the simulation fields and generate the ForceFields struct.
+ * @brief Record field pairs for deferred type resolution.
  *
- * Each argument is a `(Type, Name)` pair, e.g.:
+ * This macro stores the field type/name pairs in a `_kocs_fields` template
+ * that is parameterized on (Scalar, dimensions).  The template is resolved
+ * later by `RESOLVE_KOCS_CONFIG()` - which must be called **last**, after
+ * all overrides - to produce the final `Vector`, `Polarity`, `VectorView`,
+ * `Fields`, and `ForceFields` using whatever `Scalar` and `dimensions`
+ * are then in scope.
+ *
  * @code
- *   CONFIG_FIELDS(
- *     (Vector, position),
- *     (Vector, velocity)
- *   )
+ *   struct MyConfig : DefaultSimulationConfig {
+ *     CONFIG_SCALAR(double)
+ *     CONFIG_DIMENSIONS(2)
+ *     CONFIG_FIELDS(
+ *       (Vector, position),
+ *       (Polarity, polarity)
+ *     )
+ *     RESOLVE_KOCS_CONFIG()
+ *   };
  * @endcode
- *
- * This creates:
- * - A `Fields` typelist for the simulation's data layout.
- * - A `ForceFields<FieldRefT>` template that generates the field reference
- *   struct used inside force functors.
  */
 #define CONFIG_FIELDS(...) \
-  using Fields = kocs::detail::FieldList<FOR_EACH_PAIR(FIELD, __VA_ARGS__)>; \
-  template<template<typename> typename FieldRefT = kocs::detail::GenericFieldRef> \
-  struct ForceFields { \
-    FIELDS_ITERATE(FIELD_FORCE_MEMBER, __VA_ARGS__) \
+  template<typename __KOCS_SCALAR__, int __KOCS_DIMENSIONS__> \
+  struct __KOCS_FIELDS_STRUCT__ { \
+    using Vector = kocs::VectorN<__KOCS_SCALAR__, __KOCS_DIMENSIONS__>; \
+    using Polarity = kocs::Polarity_<__KOCS_SCALAR__>; \
+    using VectorView = kocs::View<Vector>; \
+    using Fields = kocs::detail::FieldList<FOR_EACH_PAIR(KOCS_FIELD_TPL, __VA_ARGS__)>; \
+    template<template<typename> typename FieldRefT = kocs::detail::GenericFieldRef> \
+    struct ForceFields { \
+      FIELDS_ITERATE(KOCS_FORCE_FIELD_MEMBER_TPL, __VA_ARGS__) \
+    }; \
   };
 
-  /**
-   * @brief A ready-to-use default configuration.
-   *
-   * Uses:
-   * - Scalar: `float`
-   * - Dimensions: 3
-   * - Fields: `position` only
-   * - Random pool: `Kokkos::Random_XorShift64_Pool`
-   * - Pair finder: `NaiveAllPairs`
-   * - COM fixer: `NoComFixer` (no drift correction)
-   * - Integrator: `Heun`
-   * - Writer: `HDF5_Writer`
-   *
-   * Users can inherit from this and override individual macros:
-   * @code
-   *   struct MyConfig : public DefaultSimulationConfig {
-   *     CONFIG_INTEGRATOR(integrators::Euler)
-   *     CONFIG_DIMENSIONS(2)
-   *     CONFIG_FIELDS(
-   *       (Vector, position),
-   *       (Vector, velocity)
-   *     )
-   *   };
-   * @endcode
-   */
+/**
+ * @brief Resolve the deferred field config using the current Scalar/dimensions.
+ *
+ * Must be placed **last** in the config struct (after all overrides and
+ * after `CONFIG_FIELDS`).  Defines `Vector`, `Polarity`, `VectorView`,
+ * `Fields`, and `ForceFields` by instantiating `_kocs_fields` with the
+ * final `Scalar` and `dimensions`.
+ */
+#define RESOLVE_KOCS_CONFIG() \
+  using __KOCS_RESOLVED__ = __KOCS_FIELDS_STRUCT__<Scalar, dimensions>; \
+  using Vector = __KOCS_RESOLVED__::Vector; \
+  using Polarity = __KOCS_RESOLVED__::Polarity; \
+  using VectorView = __KOCS_RESOLVED__::VectorView; \
+  using Fields = __KOCS_RESOLVED__::Fields; \
+  template<template<typename> typename FieldRefT = kocs::detail::GenericFieldRef> \
+  using ForceFields = __KOCS_RESOLVED__::template ForceFields<FieldRefT>;
+
   struct DefaultSimulationConfig {
-    CONFIG_SCALAR(float)
     CONFIG_DIMENSIONS(3)
-
-    using VectorView = kocs::View<Vector>;
-    using Polarity = kocs::Polarity_<Scalar>;
-
+    CONFIG_SCALAR(float)
     CONFIG_FIELDS(
       (Vector, position)
     )
+    RESOLVE_KOCS_CONFIG()
 
     CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
     CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)
@@ -340,6 +350,25 @@ namespace kocs {
 
     CONFIG_WRITER(kocs::io::HDF5_Writer)
   };
+
+/**
+ * @brief Create a simulation config struct in one go.
+ *
+ * @code
+ *   CREATE_SIMULATION_CONFIG(MyConfig,
+ *     CONFIG_PAIR_FINDER(pair_finders::NaiveDelaunay)
+ *     CONFIG_SCALAR(double)
+ *     CONFIG_DIMENSIONS(2)
+ *     CONFIG_FIELDS((Vector, position), (Polarity, polarity))
+ *   );
+ * @endcode
+ */
+#define CREATE_SIMULATION_CONFIG(__NAME__, ...) \
+  struct __NAME__ : public kocs::DefaultSimulationConfig { \
+    __VA_ARGS__ \
+    RESOLVE_KOCS_CONFIG() \
+  };
+
 } // namespace kocs
 
 #endif // KOCS_SIMULATION_CONFIG
