@@ -52,8 +52,8 @@ namespace kocs::pair_finders {
           const auto position_i = input_positions(i);
 
           auto total_delta_i = detail::make_accumulator_pack(out_view_pack);
-          Scalar total_drag_i = 0.0;
-          typename PositionsView::value_type total_velocity_i{0.0};
+          Scalar total_drag_i = Scalar(0);
+          typename PositionsView::value_type total_velocity_i{Scalar(0)};
 
           Kokkos::parallel_reduce(
             Kokkos::TeamThreadRange(team_member, agent_count),

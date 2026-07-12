@@ -11,7 +11,7 @@ CREATE_SIMULATION_CONFIG(SimulationConfig,
     (Vector, velocity),
     (Polarity, polarity)
   )
-);
+)
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 int main(int argc, char* argv[]) {

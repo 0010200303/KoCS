@@ -15,7 +15,7 @@ namespace kocs::pair_finders {
 
     struct Settings { };
 
-    static_assert(dimensions >= 2, "NaiveDelaunay requires at least 2 dimensions");
+    static_assert(dimensions >= 2 && dimensions <= 3, "NaiveDelaunay requires 2 or 3 dimensions");
 
     NaiveDelaunay(
       unsigned int agent_count_,

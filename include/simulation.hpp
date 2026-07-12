@@ -177,6 +177,9 @@ namespace kocs {
       /// Step counter (incremented on each write).
       unsigned int current_step;
 
+      /// last time steps delta time.
+      double last_dt;
+
       /// @brief Access the singleton RuntimeGuard (ensures Kokkos is initialized).
       static detail::RuntimeGuard& get_runtime_guard() {
         static detail::RuntimeGuard guard;
@@ -541,6 +544,7 @@ namespace kocs {
         std::apply([&](auto&&... args) {
           take_step_impl(dt, static_cast<decltype(args)&&>(args)...);
         }, fused_forces);
+        last_dt = dt;
       }
 
       /**
@@ -599,7 +603,7 @@ namespace kocs {
       }
 
       /**
-       * @brief Write the current state plus additional custom views.
+       * @brief Write the current state plus additional custom views to disk.
        *
        * Increments the internal step counter.
        * 
@@ -617,6 +621,29 @@ namespace kocs {
             links
           );
         }, get_views());
+      }
+
+      /**
+       * @brief Write the current simulation state to disk.
+       *
+       * Uses the internally tracked time (`last_dt * current_step`).
+       * Increments the internal step counter.
+       */
+      inline void write() {
+        write(last_dt * current_step);
+      }
+
+      /**
+       * @brief Write the current simulation state plus additional custom views to disk.
+       *
+       * Uses the internally tracked time (`last_dt * current_step`).
+       * Increments the internal step counter.
+       * 
+       * @param additional_views  Extra views to include in the output.
+       */
+      template<typename... Views>
+      inline void write(Views&&... additional_views) {
+        write(last_dt * current_step, std::forward<Views>(additional_views)...);
       }
 
       /**
