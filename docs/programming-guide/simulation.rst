@@ -1,50 +1,59 @@
 The Simulation
 ==============
 
-The ``Simulation`` class is the central component of the framework. It coordinates agent data management,
-nieghbour discovery, integration and output generation within a unified interface. In practice, nearly all high-level workflows are driven through ``Simulation``.
+The ``Simulation`` class is the central component of the framework. It coordinates agent data management, neighbourhood discovery, integration and output generation within a unified interface. In practice, nearly all high-level workflows are driven through ``Simulation``.
 
 Internally, the class manages the configured PairFinder, the selected integration scheme, the selected writer, com fixing and all registered simulation fields. While these components can also be used independently, ``Simulation`` provides the primary abstraction for building and running complete simulations.
 
 Instantiating
 -------------
 
-A ``Simulation`` is parameterized through a ``SimulationConfig`` type, which defines the core behaviour and underlying implementation details of the simulation. This includes the ``Scalar`` datatype, neighbourhood discovery, integration backend and additional compiletime configuration options.
+A ``Simulation`` is parameterized through a ``SimulationConfig`` type, which defines the core behaviour and underlying implementation details of the simulation. This includes the ``Scalar`` datatype, number of dimensions, neighbourhood discovery, integration backend and additional compiletime configuration options.
 
-For convenience, KoCS provides a ``DefaultSimulationConfig`` that can either be used directly or extented to override specific settings:
+For convenience, KoCS provides a simple ``CREATE_SIMULATION_CONFIG``` macro that can be used to configure the simulation as needed: 
 
 .. code-block:: cpp
 
-  struct MySimulationConfig : public DefaultSimulationConfig {
+  CREATE_SIMULATION_CONFIG(MySimulationConfig,
     CONFIG_SCALAR(double)
     CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
-  };
+  );
 
 Additional details about configuration options are available in :doc:`simulation-config`.
 
-Constructing a ``Simulation`` additionally requires several runtime parameters:
+Constructing a ``Simulation`` additionally requires several runtime parameters, which are collected in a ``Simulation::Settings`` struct:
 
-- ``agent_count`` — Total number of agents
-- ``output_path`` — Base path and filename for generated output files
-- ``cutoff_distance`` (default: 1000000) — Maximum interaction distance used for pairwise evaluations
-- ``seed`` (default: 2807) — Seed used for all random number generation
+- ``agent_count`` - Total number of agents (**required**)
+- ``output_path`` - Base path and filename for generated output files (**required**)
+- ``capacity`` (default: ``agent_count``) - Allocated capacity, can be larger than agent count
+- ``cutoff_distance`` (default: 1'000'000) - Maximum interaction distance used for pairwise evaluations
+- ``seed`` (default: 2807) - Seed used for all random number generation
+- ``pair_finder_settings`` - Configuration for the pair finder
+- ``writer_settings`` - Configuration for the output writer
+- ``link_capacity`` (default: 0) - Allocate space for links between agents; ``0`` means no links
+- ``link_active_count`` (default: 0) - Initial number of active links (must be ``<= link_capacity``)
 
 .. attention::
 
   Determinism is not guaranteed across different hardware architectures or compiler implementations, even when using the same seed.
 
-Once the configuration and runtime parameters are chosen, a new ``Simulation`` instance can be created directly:
+Once the configuration and runtime parameters are chosen, a new ``Simulation`` instance can be created using the ``Settings`` struct:
 
 .. code-block:: cpp
 
-  Simulation<MySimulationConfig> sim(agent_count, "./my/path/my_file");
+  Simulation<MySimulationConfig> sim({
+    .agent_count = 1024,
+    .output_path = "./my/path/my_file",
+    .cutoff_distance = 5.0,
+    .seed = 42
+  });
 
 .. attention::
   
   Do **not** include a file extension in ``output_path``. Output files are automatically generated as ``.h5`` and ``.xmf`` files. 
 
-Initializing
-------------
+Initialization
+--------------
 
 ``Simulation`` provides multiple built-in initialization routines for generating initial agent configurations, including random spheres, cuboids, hexagons and other common geometries.
 Initialization routines can be invoked directly on the simulation instance:
@@ -78,19 +87,20 @@ A simulation step is advanced through the ``take_step`` function by supplying th
 
 .. note::
 
-  Supplying all forces in a single ``take_step`` call is recommended, as it allows the framework to apply internal optimizations and scheduling strategies more efficiently. 
+  Supplying all forces in a single ``take_step`` call is recommended, as it allows the framework to apply internal optimizations.
 
 Writing
 -------
 
-Simulation output can be written through the ``write`` function. The framework automatically handles data conversion, file generation and timestep bookkeeping internally.
+Simulation output is written through the ``write`` function. When called without arguments, the framework automatically handles data conversion, file generation and timestep bookkeeping. You can also supply a custom time or pass additional data views to include in the output:
 
 .. code-block:: cpp
 
   sim.write();
+  sim.write(dt * i, custom_view);
 
-Addtionally non integrated fields, such as static masses or agent types can also be included in the out by passing their ``Views`` to ``write``:
+Static fields that are not updated by the integrator - such as masses or agent types - can be written once using ``write_static``. This should be called before the first ``write()`` call:
 
 .. code-block:: cpp
 
-  sim.write(masses, types);
+  sim.write_static(masses, types);

@@ -4,38 +4,27 @@ Simulation Config
 The behaviour and internal implementation details of a ``Simulation`` are defined through a ``SimulationConfig``.
 This configuration type determines the ``Scalar`` datatype, dimensionality, fields registered for integration, integration scheme, neighbour search method, output writer and several additional core components used throughout the framework.
 
-KoCS provides a ``DefaultSimulationConfig`` that defines a complete setup suitable as a base for most simulations:
+KoCS provides the ``CREATE_SIMULATION_CONFIG`` macro for defining simulation configurations concisely:
 
 .. code-block:: cpp
 
-  struct DefaultSimulationConfig {
+  CREATE_SIMULATION_CONFIG(MySimulationConfig,
     CONFIG_SCALAR(float)
     CONFIG_DIMENSIONS(3)
-
-    using Vector = kocs::VectorN<Scalar, dimensions>;
-    using VectorView = Kokkos::View<Vector*>;
-    using Polarity = kocs::Polarity_<Scalar>;
-
+    CONFIG_PAIR_FINDER(pair_finders::NaiveAllPairs)
+    CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
+    CONFIG_INTEGRATOR(integrators::Heun)
+    CONFIG_WRITER(writers::HDF5_Writer)
     CONFIG_FIELDS(
       FIELD(Vector, positions)
-    ) 
+    )
+  );
 
-    CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
-    CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)
-    CONFIG_COM_FIXER(kocs::com_fixers::GlobalComFixer)
-    CONFIG_INTEGRATOR(kocs::integrators::Heun)
-
-    CONFIG_WRITER(kocs::writers::HDF5_Writer)
-  };
-
-A custom configuration can easily be created by inheriting from ``DefaultSimulationConfig`` and overriding individual components as needed:
+A default configuration with sensible defaults is also available by using just a name:
 
 .. code-block:: cpp
 
-  struct MySimulationConfig : public DefaultSimulationConfig {
-    CONFIG_SCALAR(double)
-    CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
-  };
+  CREATE_SIMULATION_CONFIG(MySimulationConfig);
 
 Extracting Configured Types
 ---------------------------
@@ -45,10 +34,10 @@ Placing the macro directly after a configuration definition exposes commonly use
 
 .. code-block:: cpp
 
-  struct MySimulationConfig : public DefaultSimulationConfig {
+  CREATE_SIMULATION_CONFIG(MySimulationConfig,
     CONFIG_SCALAR(double)
     CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
-  };
+  );
   EXTRACT_TYPES_FROM_SIMULATION_CONFIG(MySimulationConfig)
 
 Configuration Components
@@ -57,7 +46,7 @@ Configuration Components
 Scalar Type
 ^^^^^^^^^^^
 
-The scalar type defines the underlying floating point precision used throughout the simulation. But experimentally also supports every other datatype.
+The scalar type defines the underlying floating point precision used throughout the simulation. But experimentally also accepts every other datatype.
 
 .. code-block:: cpp
 
@@ -77,13 +66,13 @@ The dimensionality determines the size of all vector based types within the simu
 Integration Fields
 ^^^^^^^^^^^^^^^^^^
 
-Simulation fields define the data stored for each agent that needs to be integrated. Fields are declared through ``CONFIG_FIELDS`` using the ``FIELD`` macro.
+Simulation fields define the data stored for each agent that needs to be integrated. Fields are declared through ``CONFIG_FIELDS``.
 
 .. code-block:: cpp
 
   CONFIG_FIELDS(
-    FIELD(Vector, positions),
-    FIELD(Polarity, polarities)
+    (Vector, positions),
+    (Polarity, polarities)
   )
 
 Each field defines both a type and an associated storage name (also used for output). Additional fields can be added to store custom simulation state such as custom velocities or gradients.
@@ -114,11 +103,38 @@ Evaluates every possible agent pair and filters interactions using the configure
 NaiveGabriel
 """"""""""""
 
-Constructs neighborhoods using a Gabriel graph based approach. This can significantly reduce the number of evaluated interactions compared to exhaustive pairwise evaluation.
+Constructs neighborhoods using a Gabriel graph based approach, reducing the number of evaluated interactions compared to exhaustive pairwise evaluation. A ``gabriel_coefficient`` setting (default ``0.8``) controls the strictness of the Gabriel criterion - lower values produce sparser neighbourhoods.
 
 .. code-block:: cpp
 
   CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
+
+NaiveDelaunay
+"""""""""""""
+
+Constructs neighborhoods based on a Delaunay triangulation. This requires at least 2 dimensions and is generally more selective than the Gabriel graph, yielding the sparsest neighbourhoods among the naive pair finders but also is the least performant.
+
+.. code-block:: cpp
+
+  CONFIG_PAIR_FINDER(pair_finders::NaiveDelaunay)
+
+BinnedAllPairs
+""""""""""""""
+
+An acceleration structure that bins agents into a uniform spatial grid, then only evaluates pairs within neighbouring bins. This reduces the complexity from quadratic to approximately linear for homogeneous distributions. Provides configurable ``min_bounds``, ``max_bounds``, ``bin_size_scale``, and ``rebuild_every_n`` settings.
+
+.. code-block:: cpp
+
+  CONFIG_PAIR_FINDER(pair_finders::BinnedAllPairs)
+
+BinnedGabriel
+"""""""""""""
+
+Combines a binned spatial grid with the Gabriel graph criterion for maximum reduction in pairwise evaluations. This is the most performant option for large systems with a homogeneous distribution, especially when a lower ``gabriel_coefficient`` is acceptable.
+
+.. code-block:: cpp
+
+  CONFIG_PAIR_FINDER(pair_finders::BinnedGabriel)
 
 Integrator
 ^^^^^^^^^^

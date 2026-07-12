@@ -1,21 +1,28 @@
 Forces
 ======
 
-Forces define how agents evolve over time and form the core of all simulation behaviour in KoCS. They are responsible for updating simulation fields, applying pairwise inteactions, introducing stochasticity and implementing custom dynamics.
+Forces define how agents evolve over time and form the core of all simulation behaviour in KoCS. They are responsible for updating simulation fields, applying pairwise interactions, introducing stochasticity and implementing custom dynamics.
 
-KoCS distinguishes between two categories of forces:
+KoCS distinguishes between four force categories, each with its own macro and kernel dispatch:
 
-- Generic forces — Operate independently on individual agents
-- Pairwise forces — Operate on inteacting neighbouring agents
+- ``GENERIC_FORCE`` - Operates independently on individual agents
+- ``PAIRWISE_FORCE`` - Operates on every interacting neighbour pair from the ``PairFinder``
+- ``UPDATE_FUNC`` - Operates on individual agents for side effects (link creation/destruction, proliferation)
+- ``LINK_FORCE`` - Operates on explicitly managed connections (links) between agents
 
-Both force types are implements as Kokkos compatible lambda / functor kernels and are executed internally by the simulations integrator.
+All force types are implemented as Kokkos-compatible lambda / functor kernels and are executed internally by the simulation's integrator.
+
+.. image:: ../_static/swimlane.svg
+   :width: 100%
+   :align: center
+   :alt: KoCS force execution swimlane diagram
 
 Custom Forces
 -------------
 
-Custom forces are defined through the ``GENERIC_FORCE`` and ``PAIRWISE_FORCE`` macros. These macros automatically generate the functions signatures and expose simulation fields through lightweight reference wrappers.
+Custom forces are defined through the ``GENERIC_FORCE``, ``PAIRWISE_FORCE``, ``LINK_FORCE``, and ``UPDATE_FUNC`` macros. These macros automatically generate the function signatures, tag them and expose all simulation fields through a ``ctx`` reference wrapper.
 
-All field updates inside a force must be written to the corresponding delta member rather than directly modying the underlying field values. The framework accumulates these deltas internally before integration.
+All field updates inside a force must be written to the corresponding ``delta`` member rather than directly modifying the underlying field values. The framework accumulates these deltas internally before integration.
 
 .. attention::
   
@@ -24,59 +31,56 @@ All field updates inside a force must be written to the corresponding delta memb
 Generic Force
 ^^^^^^^^^^^^^
 
-``GENERIC_FORCE`` is used for agent self interactions taht do not depend on neighbouring agents. Typical examples include stochastic motion, polarity alignment and internal state updates.
+``GENERIC_FORCE`` is used for agent self interactions that do not depend on neighbouring agents. Typical examples include stochastic motion, polarity alignment and internal state updates.
 
-All simulation fields must be passed explicitly through ``GENERIC_REF`` declarations.
+All simulation fields are automatically available through the ``ctx`` object:
 
 .. code-block:: cpp
 
+  // random motion
   auto generic_force = GENERIC_FORCE(
-    GENERIC_REF(Vector, position),
-    GENERIC_REF(Polarity, polarity)
-  ) {
-    position.delta += Vector(rng.normal(0, 1.0), rng.normal(0, 1.0), rng.normal(0, 1.0));
-  };
+    ctx.position.delta += Vector(rng.normal(0, 1.0), rng.normal(0, 1.0), rng.normal(0, 1.0));
+  );
 
-Each ``GENERIC_REF`` exposes a lightweight field wrapper with the following members:
+Each field of the ``ctx`` object exposes a lightweight field wrapper with the following members for all fields defined in the simulation config:
 
-- self — Read-only access to the current value of the field for agent ``i``
-- delta — Accumulated change written by the force
+- self - Read-only access to the current value of the field for agent ``i``
+- delta - Accumulated change written by the force
 
 Additional variables automatically available inside the force include:
 
-- ``int i`` — Read-only current agent index
-- ``Random rng`` — Random number generator
+- ``is_full_step`` - Read-only flag for multistage integrators
+- ``int i`` - Read-only current agent index
+- ``Random rng`` - Random number generator
 
 PAIRWISE_FORCE
 ^^^^^^^^^^^^^^
 
-``PAIRWISE_FORCE`` is used for interactions between neighbouring agents. These forces are evaluated for every inteacing pair produced by the configured ``PairFinder``.
+``PAIRWISE_FORCE`` is used for interactions between neighbouring agents. These forces are evaluated for every interacting pair produced by the configured ``PairFinder``.
 
-All simulation fields must be passed explicitly through ``PAIRWISE_REF`` declarations:
+All simulation fields are automatically available through the ``ctx`` object:
 
 .. code-block:: cpp
 
   auto pairwise_force = PAIRWISE_FORCE(
-    PAIRWISE_REF(Vector, position),
-    PAIRWISE_REF(Polarity, polarity)
-  ) {
-    position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f);
-  };
+    ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f);
+    ctx.polarity.delta += bending_contribution;
+  );
 
-Each ``PAIRWISE_REF`` exposes a lightweight field wrapper with the following members:
+Each field of the ``ctx`` object exposes a lightweight wrapper with the following members for all fields defined in the simulation config:
 
-self — Read-only access to the field value of agent ``i``
-other — Read-only access to the field value of neighbouring agent ``j``
-delta — Accumulated change written by the interaction force
+- ``self`` - Read-only access to the field value of agent ``i``
+- ``other`` - Read-only access to the field value of neighbouring agent ``j``
+- ``delta`` - Accumulated change written by the interaction force
 
 Additional variables automatically available inside the force include:
 
-- ``int i`` — Read-only current agent index
-- ``int j`` — Read-only neighbouring agent index
-- ``Vector displacement`` — Relative displacement vector from j to i
-- ``Scalar distance`` — Distance between agents i and j
-- ``Random rng`` — Random number generator
-- ``Scalar drag`` — Pairwise drag contribution for the current interaction
+- ``unsigned int i`` - Read-only current agent index
+- ``unsigned int j`` - Read-only neighbouring agent index
+- ``Vector displacement`` - Read-only relative displacement vector from j to i
+- ``Scalar distance`` - Read-only distance between agents i and j
+- ``Random rng`` - Random number generator
+- ``Scalar drag`` - Pairwise drag contribution for the current interaction
 
 The drag parameter can be modified to introduce drag-weighted velocity coupling.
 
@@ -86,19 +90,19 @@ The drag parameter can be modified to introduce drag-weighted velocity coupling.
 
 .. attention::
 
-  ``PAIRWISE_FORCE`` does not evaluate self inteactions. Interactions where i == j are never generated by the framework. You have to use a ``GENERIC_FORCE`` for this instead.
+  ``PAIRWISE_FORCE`` does not evaluate self interactions. Interactions where ``i == j`` are never generated by the framework. Use a ``GENERIC_FORCE`` instead.
 
 INIT_FUNC
 ^^^^^^^^^
 
-``INIT_FUNC`` us used durint initialization and provides a convenient mechanism for assigning additional agent state.
+``INIT_FUNC`` is used during initialization and provides a convenient mechanism for assigning additional agent state.
 
-Unlike runtime forces, initialization functions do not require field declarations through ``GENERIC_REF`` or ``PAIRWISE_REF``. Instead, fields are accessed directly through simulation views.
+Unlike runtime forces, initialization functions do not use the ``ctx`` wrapper. Instead, fields are accessed directly through simulation views obtained from the simulation instance.
 
 .. code-block:: cpp
 
-  auto& positions_view = sim.get_view<FIELD(Vector, positions)>();
-  auto& polarities_view = sim.get_view<FIELD(Polarity, polarities)>();
+  auto& positions_view = sim.get_view<FIELD(Vector, position)>();
+  auto& polarities_view = sim.get_view<FIELD(Polarity, polaritie)>();
 
   auto init_func = INIT_FUNC() {
     polarities_view(i) = Polarity(positions_view(i));
@@ -106,18 +110,123 @@ Unlike runtime forces, initialization functions do not require field declaration
 
 The following variables are available inside an ``INIT_FUNC``:
 
-- ``int i`` — Read-only current agent index
-- ``Random rng`` — Random number generator
+- ``unsigned int i`` - Read-only current agent index
+- ``Random rng`` - Random number generator
+
+Link Force
+^^^^^^^^^^
+
+``LINK_FORCE`` is used for interactions between two connected agents, where a link has been explicitly created and stored separately from the pair-finder. Unlike ``PAIRWISE_FORCE`` which operates on every neighbour pair discovered by the ``PairFinder``, ``LINK_FORCE`` only runs over the explicit link list - making it suitable for specialised persistent connections such as protrusions.
+
+Each link stores the indices of its two endpoint agents. Inside the force kernel, both endpoints are accessible and can receive independent contributions.
+
+All simulation fields are automatically available through the ``ctx`` object with endpoint-specific members:
+
+.. code-block:: cpp
+
+  auto link_force = LINK_FORCE(
+    Vector displacement = ctx.position.b - ctx.position.a;
+    Scalar distance = displacement.length();
+
+    ctx.position.delta_a +=  link_strength * displacement / distance;
+    ctx.position.delta_b += -link_strength * displacement / distance;
+  );
+
+Each field exposes a lightweight wrapper with the following members:
+
+- ``a`` - Read-only access to the field value of endpoint agent ``a``
+- ``b`` - Read-only access to the field value of endpoint agent ``b``
+- ``delta_a`` - Accumulated change for endpoint ``a``
+- ``delta_b`` - Accumulated change for endpoint ``b``
+
+Additional variables automatically available inside the force include:
+
+- ``bool is_full_step`` - ``true`` only once over all integration stages (useful for avoiding double-counting)
+- ``Link link`` - The link connecting agents ``a`` and ``b``
+- ``Random rng`` - Random number generator
+
+Links must be managed separately. You can use the convenience function ``sim.run_links(func)`` to update the link list before the integration step:
+
+.. code-block:: cpp
+
+  sim.run_links(update_protrusions());
+  sim.take_step(dt, link_force(), pairwise_force());
+
+.. attention::
+
+  ``LINK_FORCE`` does not evaluate self-interactions. Links where ``a == b`` are skipped automatically.
+
+UPDATE_FUNC
+^^^^^^^^^^^
+
+``UPDATE_FUNC`` is used for **side-effect operations** - actions that modify the simulation structure rather than accumulating forces. Typical use cases include creating and destroying links and agent proliferation.
+
+Unlike ``GENERIC_FORCE`` and ``PAIRWISE_FORCE``, an ``UPDATE_FUNC`` does **not** receive field references through the ``ctx`` wrapper. Instead, it accesses simulation data directly through views obtained from the simulation instance. This allows it to make arbitrary changes to the simulation.
+
+.. code-block:: cpp
+
+  auto& positions = sim.get_view<FIELD(Vector, position)>();
+  auto& links = sim.get_links();
+
+  auto update_protrusions = UPDATE_FUNC(
+    Link& link = links(i);
+
+    // destroy links that have drifted too far
+    Scalar distance = positions(link.a).distance_to(positions(link.b));
+    if (distance < min_link_length || distance > max_link_length) {
+      link.a = 0;
+      link.b = 0;
+    }
+
+    // create new links
+    unsigned int new_a = (i + 0.5) / protrusions_per_cell;
+    unsigned int new_b = rng.urand(agent_count - 1);
+    if (new_a == new_b) return;
+
+    Vector displacement = positions(new_a) - positions(new_b);
+    distance = displacement.length();
+    if (distance > min_link_length && distance < max_link_length) {
+      link.a = new_a;
+      link.b = new_b;
+    }
+  };
+
+  sim.run_links(update_protrusions);
+
+The following variables are available inside an ``UPDATE_FUNC``:
+
+- ``unsigned int i`` - Read-only current link index
+- ``Random rng`` - Random number generator
+
+For operations like agent proliferation, the UPDATE_FUNC allocates new agents atomically. Use a ``DeviceVar<int>`` counter together with ``Kokkos::atomic_fetch_add`` to claim indices, then update ``sim.set_agent_count()`` afterwards:
+
+.. code-block:: cpp
+
+  DeviceVar<int> counter = sim.get_agent_count();
+  auto proliferate = UPDATE_FUNC(
+    // proliferation condition
+    if (rng.drand(0.0, 1.0) > rate)
+      return;
+
+    int new_cell = Kokkos::atomic_fetch_add(counter.data(), 1);
+
+    positions(new_cell) = positions(i) + Vector(rng.normal(0, 0.1));
+    types(new_cell) = types(i);
+  );
+
+  sim.take_step(dt, cell_interaction());
+  sim.run(proliferate());
+  sim.set_agent_count(counter);
 
 Predefined Forces
 -----------------
 
-KoCS includes a collection of predefined commonly used forces used in center based multicellular simulation. All predefined force implementations are available under the kocs::forces namespace.
+KoCS includes a collection of predefined commonly used forces used in center based multicellular simulations. All predefined force implementations are available under the kocs::forces namespace.
 
 Each predefined force is provided in two flavours:
 
-- ``<ForceName>Potential`` — Returns a ``Scalar`` interaction magnitude or potential
-- ``<ForceName>`` — Returns a ``Vector`` force using displacement normalization internally
+- ``<ForceName>Potential`` - Returns a ``Scalar`` interaction magnitude or potential
+- ``<ForceName>`` - Returns a ``Vector`` force using displacement normalization internally
 
 The vector force variants are effectively shorthand for:
 
@@ -130,7 +239,7 @@ where :math:`\mathbf{r}_{ij}` is the displacement vector, :math:`d_{ij}` is the 
 Spring
 ^^^^^^
 
-A linear spring inteaction centered around the homeostatic equilibrium distance. Adhesive and repulsive behaviour are determined by the deviation from the homeostatic radius.
+A linear spring interaction centered around the homeostatic equilibrium distance. Adhesive and repulsive behaviour are determined by the deviation from the homeostatic radius.
 
 Potential formulation:
 
@@ -140,9 +249,9 @@ Potential formulation:
 
 where:
 
-- :math:`d_{ij}` — Distance between agents :math:`i` and :math:`j`
-- :math:`r_c` — Homeostatic radius
-- :math:`\alpha` — Interaction scaling factor
+- :math:`d_{ij}` - Distance between agents :math:`i` and :math:`j`
+- :math:`r_c` - Homeostatic radius
+- :math:`\alpha` - Interaction scaling factor
 
 Piecewise Linear
 ^^^^^^^^^^^^^^^^
@@ -157,11 +266,11 @@ Potential formulation:
 
 where:
 
-- :math:`d_{ij}` — Distance between agents :math:`i` and :math:`j`
-- :math:`r_{rep}` — Repulsion radius
-- :math:`r_{adh}` — Adhesion radius
-- :math:`\alpha_{rep}` — Repulsion scaling factor
-- :math:`\alpha_{adh}` — Adhesion scaling factor
+- :math:`d_{ij}` - Distance between agents :math:`i` and :math:`j`
+- :math:`r_{rep}` - Repulsion radius
+- :math:`r_{adh}` - Adhesion radius
+- :math:`\alpha_{rep}` - Repulsion scaling factor
+- :math:`\alpha_{adh}` - Adhesion scaling factor
 
 Piecewiese Quadratic
 ^^^^^^^^^^^^^^^^^^^^
@@ -180,12 +289,12 @@ Potential formulation:
 
 where:
 
-- :math:`d_{ij}` — Distance between agents :math:`i` and :math:`j`
-- :math:`r_c` — Homeostatic radius
-- :math:`r_{rep}` — Repulsion radius
-- :math:`r_{adh}` — Adhesion radius
-- :math:`\alpha_{rep}` — Repulsion scaling factor
-- :math:`\alpha_{adh}` — Adhesion scaling factor
+- :math:`d_{ij}` - Distance between agents :math:`i` and :math:`j`
+- :math:`r_c` - Homeostatic radius
+- :math:`r_{rep}` - Repulsion radius
+- :math:`r_{adh}` - Adhesion radius
+- :math:`\alpha_{rep}` - Repulsion scaling factor
+- :math:`\alpha_{adh}` - Adhesion scaling factor
 
 Cubic
 ^^^^^
@@ -200,10 +309,10 @@ Potential formulation:
 
 where:
 
-- :math:`d_{ij}` — Distance between agents :math:`i` and :math:`j`
-- :math:`r_c` — Homeostatic radius
-- :math:`r_\delta` — Cutoff distance
-- :math:`\alpha` — Interaction scaling factor
+- :math:`d_{ij}` - Distance between agents :math:`i` and :math:`j`
+- :math:`r_c` - Homeostatic radius
+- :math:`r_\delta` - Cutoff distance
+- :math:`\alpha` - Interaction scaling factor
 
 Morse
 ^^^^^
@@ -218,12 +327,12 @@ Potential formulation:
 
 where:
 
-- :math:`d_{ij}` — Distance between agents :math:`i` and :math:`j`
-- :math:`r_{rep}` — Repulsion radius
-- :math:`r_{adh}` — Adhesion radius
-- :math:`\alpha_{rep}` — Repulsion decay coefficient
-- :math:`\alpha_{adh}` — Adhesion decay coefficient
-- :math:`\alpha` — Global interaction scaling factor
+- :math:`d_{ij}` - Distance between agents :math:`i` and :math:`j`
+- :math:`r_{rep}` - Repulsion radius
+- :math:`r_{adh}` - Adhesion radius
+- :math:`\alpha_{rep}` - Repulsion decay coefficient
+- :math:`\alpha_{adh}` - Adhesion decay coefficient
+- :math:`\alpha` - Global interaction scaling factor
 
 Lennard-Jones
 ^^^^^^^^^^^^^
@@ -247,9 +356,9 @@ Potential formulation:
 
 where:
 
-- :math:`d_{ij}` — Distance between agents :math:`i` and :math:`j`
-- :math:`r_c` — Length scale parameter
-- :math:`\epsilon` — Interaction strength parameter
+- :math:`d_{ij}` - Distance between agents :math:`i` and :math:`j`
+- :math:`r_c` - Length scale parameter
+- :math:`\epsilon` - Interaction strength parameter
 
 Hertz Contact
 ^^^^^^^^^^^^^
@@ -266,11 +375,11 @@ Potential formulation:
 
 where:
 
-- :math:`\delta_{ij} = \max(r_c - r_{ij}, 0)` — Overlap between two agents :math:`i` and :math:`j`
-- :math:`d_{ij}` — Distance between agents :math:`i` and :math:`j`
-- :math:`r_c` — Homeostatic contact radius
-- :math:`E_i, E_j` — Young's moduli of the interacting agents
-- :math:`\nu_i, \nu_j` — Poisson ratios of the interacting agents
-- :math:`R_i, R_j` — Effective radii of the interacting agents
-- :math:`E^*` — Composite Young's modulus
-- :math:`R^*` — Effective contact radius
+- :math:`\delta_{ij} = \max(r_c - r_{ij}, 0)` - Overlap between two agents :math:`i` and :math:`j`
+- :math:`d_{ij}` - Distance between agents :math:`i` and :math:`j`
+- :math:`r_c` - Homeostatic contact radius
+- :math:`E_i, E_j` - Young's moduli of the interacting agents
+- :math:`\nu_i, \nu_j` - Poisson ratios of the interacting agents
+- :math:`R_i, R_j` - Effective radii of the interacting agents
+- :math:`E^*` - Composite Young's modulus
+- :math:`R^*` - Effective contact radius
