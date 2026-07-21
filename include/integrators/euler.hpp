@@ -61,7 +61,7 @@ namespace kocs::integrators {
           this->stage_pack[0].zip_apply([&](auto& current, const auto& delta) {
             current(i) += delta(i) * dt;
 
-            // clear views (faster than new deep_copy call)
+            // clear delta buffers (faster than new deep_copy call)
             delta(i) = std::remove_cv_t<std::remove_reference_t<decltype(delta(i))>>{};
           }, this->stage_pack[1]);
         }

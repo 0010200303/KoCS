@@ -26,7 +26,7 @@ namespace kocs::details {
     RelaxForce(Scalar min_ = 0.8, Scalar max_ = 0.8) : min(min_), max(max_) { }
 
     // TODO: this should not be using hard coded names (ctx.position)
-    PAIRWISE_FORCE_OP() {
+    PAIRWISE_FORCE_OP {
       ctx.position.delta += forces::PiecewiseLinear(displacement, distance, min, max, Scalar(2), Scalar(1));
     }
   };

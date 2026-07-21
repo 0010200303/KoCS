@@ -44,7 +44,7 @@ namespace kocs::initializers {
     /// @brief Sample a random position inside the cuboid for agent @p i.
     INIT_OP {
       for (int j = 0; j < dimensions; ++j)
-        positions_view(i)[j] = min[j] + cuboid_dimensions[j] * generator.drand(0.0, 1.0);
+        positions_view(i)[j] = min[j] + generator.drand(0.0, cuboid_dimensions[j]);
     }
   };
 

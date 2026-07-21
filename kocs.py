@@ -107,21 +107,33 @@ def main() -> None:
         f"-DKOCS_USER_TARGET={target_name}",
         f"-DKokkos_BACKEND={backend}",
     ]
+
+    # Config hash — excludes KOCS_USER_MAIN so that switching examples
+    # (user source) does NOT wipe the CMake cache and force a rebuild of
+    # all dependencies (Kokkos, HighFive, etc.).  The user-source hash
+    # below catches source changes and triggers a shallow reconfigure only.
+    config_hash_opts = [
+        f"-DKOCS_USER_TARGET={target_name}",
+        f"-DKokkos_BACKEND={backend}",
+    ]
     if do_debug:
         cmake_opts.append("-DCMAKE_BUILD_TYPE=Debug")
+        config_hash_opts.append("-DCMAKE_BUILD_TYPE=Debug")
         print("Building in DEBUG mode with Kokkos bounds checking enabled")
 
     cmake_cache_file = build_dir / "CMakeCache.txt"
     config_hash_file = build_dir / ".cmake_configure_hash"
     user_main_hash_file = build_dir / ".cmake_user_main_hash"
 
-    # Compute config-level hash (CMakeLists.txt + cmake options; NOT user source)
+    # Compute config-level hash (CMakeLists.txt + cmake options; NOT user source).
+    # KOCS_USER_MAIN is intentionally excluded so that switching examples does
+    # NOT trigger a deep reconfigure (cache wipe + full dependency rebuild).
     config_hasher = hashlib.sha256()
     try:
         config_hasher.update((project_root / "CMakeLists.txt").read_bytes())
     except FileNotFoundError:
         pass
-    for opt in cmake_opts:
+    for opt in config_hash_opts:
         config_hasher.update(opt.encode())
     if generator:
         config_hasher.update(generator.encode())
@@ -166,7 +178,11 @@ def main() -> None:
             cmake_cmd.extend(["-G", generator])
         cmake_cmd.extend(cmake_opts)
         print(f"Configuring: {' '.join(cmake_cmd)}")
-        subprocess.check_call(cmake_cmd)
+        try:
+            subprocess.check_call(cmake_cmd)
+        except subprocess.CalledProcessError:
+            print(f"\nConfiguration failed", file=sys.stderr)
+            sys.exit(1)
         config_hash_file.write_text(new_config_hash)
         user_main_hash_file.write_text(new_user_hash)
     elif needs_reconfigure:
@@ -177,15 +193,23 @@ def main() -> None:
             cmake_cmd.extend(["-G", generator])
         cmake_cmd.extend(cmake_opts)
         print(f"Reconfiguring (user source changed): {' '.join(cmake_cmd)}")
-        subprocess.check_call(cmake_cmd)
+        try:
+            subprocess.check_call(cmake_cmd)
+        except subprocess.CalledProcessError:
+            print(f"\nReconfiguration failed", file=sys.stderr)
+            sys.exit(1)
         user_main_hash_file.write_text(new_user_hash)
 
     # Build
     print(f"Building target '{target_name}' in {build_dir}")
     parallel_flag = _parallel_build_flag()
-    subprocess.check_call(
-        [cmake, "--build", str(build_dir), "--target", target_name, "--", parallel_flag]
-    )
+    try:
+        subprocess.check_call(
+            [cmake, "--build", str(build_dir), "--target", target_name, "--", parallel_flag]
+        )
+    except subprocess.CalledProcessError:
+        print(f"\nBuild failed", file=sys.stderr)
+        sys.exit(1)
     print(f"Built target {target_name} in {build_dir}")
 
     if do_execute:
@@ -201,7 +225,11 @@ def main() -> None:
         if do_time:
             _exec_with_timing(exe_path)
         else:
-            subprocess.check_call([str(exe_path)])
+            try:
+                subprocess.check_call([str(exe_path)])
+            except subprocess.CalledProcessError:
+                print(f"\nExecution failed for {exe_path}", file=sys.stderr)
+                sys.exit(1)
 
 def _remove_cmake_cache(cache_file: Path) -> None:
     """Remove CMakeCache.txt and the associated CMakeFiles directory to force

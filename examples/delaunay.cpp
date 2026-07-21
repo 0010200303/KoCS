@@ -3,14 +3,11 @@
 #include "../include/kocs.hpp"
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_PAIR_FINDER(pair_finders::NaiveDelaunay)
   CONFIG_INTEGRATOR(integrators::Euler)
   CONFIG_DIMENSIONS(2)
-  CONFIG_FIELDS(
-    (Vector, position)
-  )
-};
+)
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const unsigned int n_cells = 4096;

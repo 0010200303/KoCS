@@ -36,6 +36,7 @@ namespace kocs::initializers {
 
       auto& position = positions_view(i);
 
+      // figure out current ring
       unsigned int remaining = i - 1;
       unsigned int ring = 1;
       while (remaining >= 6 * ring) {

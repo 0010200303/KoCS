@@ -214,7 +214,7 @@ namespace kocs {
  * - `i`   - agent index.
  * - `rng` - Kokkos random generator state.
  */
-#define UPDATE_FUNC_PARAMETERS const bool is_full_step, const unsigned int i, Random& rng
+#define UPDATE_FUNC_PARAMETERS const unsigned int i, Random& rng
 
 /**
  * @brief Parameters passed to a link force lambda.

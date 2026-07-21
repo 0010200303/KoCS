@@ -1,8 +1,6 @@
 #ifndef KOCS_INITIALIZERS_RANDOM_SPHERE_INIT_HPP
 #define KOCS_INITIALIZERS_RANDOM_SPHERE_INIT_HPP
 
-#include <numbers>
-
 #include "../utils/utils.hpp"
 #include "relax_force.hpp"
 
@@ -63,14 +61,10 @@ namespace kocs::initializers {
 
     /// @brief Sample a random point inside the sphere for agent @p i.
     INIT_OP {
-      const Scalar rt = static_cast<Scalar>(generator.drand());
-      const Scalar r = radius * Kokkos::cbrt(rt);
+      const Scalar r = radius * Kokkos::cbrt(static_cast<Scalar>(generator.drand()));
 
-      const Scalar u = static_cast<Scalar>(generator.drand());
-      const Scalar v = static_cast<Scalar>(generator.drand());
-
-      const Scalar z = Scalar(2.0) * u - Scalar(1.0);
-      const Scalar theta = Scalar(2.0) * Scalar(std::numbers::pi) * v;
+      const Scalar z = static_cast<Scalar>(generator.drand(0.0, 2.0)) - Scalar(1.0);
+      const Scalar theta = static_cast<Scalar>(generator.drand(0.0, 2.0 * Kokkos::numbers::pi_v<double>));
       const Scalar rxy = Kokkos::sqrt(Scalar(1.0) - z * z) * r;
 
       positions_view(i)[0] = rxy * Kokkos::cos(theta);

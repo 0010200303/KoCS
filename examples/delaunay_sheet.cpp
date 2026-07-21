@@ -13,9 +13,8 @@
 using namespace kocs;
 CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_PAIR_FINDER(pair_finders::NaiveDelaunay)
-  CONFIG_SCALAR(float)
   CONFIG_DIMENSIONS(2)
-);
+)
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_cells = 100;

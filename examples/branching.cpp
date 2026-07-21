@@ -9,7 +9,7 @@ enum CellType {
 };
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_PAIR_FINDER(pair_finders::BinnedAllPairs)
   CONFIG_FIELDS(
     (Vector, position),
@@ -17,7 +17,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
     (Scalar, u),
     (Scalar, v)
   )
-};
+)
 EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_max = 500'000;

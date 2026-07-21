@@ -10,12 +10,12 @@ enum CellType {
 };
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_FIELDS(
     (Vector, position),
     (Polarity, polarity)
   )
-};
+)
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_cells = 200;

@@ -4,9 +4,9 @@
 #include "../include/kocs.hpp"
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_PAIR_FINDER(pair_finders::BinnedGabriel)
-};
+)
 EXTRACT_ALL_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 // pre allocate enough for the rest of the simulation

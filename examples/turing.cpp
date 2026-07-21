@@ -4,7 +4,7 @@
 #include "../include/kocs.hpp"
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
   CONFIG_FIELDS(
     (Vector, position),
@@ -12,7 +12,7 @@ struct SimulationConfig : public DefaultSimulationConfig {
     (Scalar, u),
     (Scalar, v)
   )
-};
+)
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_cells = 500;

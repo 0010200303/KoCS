@@ -4,13 +4,13 @@
 #include "../include/kocs.hpp"
 
 using namespace kocs;
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_DIMENSIONS(2)
   CONFIG_FIELDS(
     (Vector, position),
     (Scalar, gradient)
   )
-};
+)
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_cells = 61;

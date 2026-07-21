@@ -181,7 +181,7 @@ namespace kocs::integrators {
         agent_count,
         KOKKOS_LAMBDA(const unsigned int i) {
           auto generator = random_pool.get_state();
-          function(is_full_step, i, generator);
+          function(i, generator);
           random_pool.free_state(generator);
         }
       );

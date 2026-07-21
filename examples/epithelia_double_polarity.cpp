@@ -5,14 +5,14 @@
 using namespace kocs;
 
 // Epithelial cells with two polarity vectors,
-struct SimulationConfig : public DefaultSimulationConfig {
+CREATE_SIMULATION_CONFIG(SimulationConfig,
   CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
   CONFIG_FIELDS(
     (Vector, position),
     (Polarity, polarity_a),
     (Polarity, polarity_b)
   )
-};
+)
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
 const int n_cells = 300;

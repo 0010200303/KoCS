@@ -38,7 +38,7 @@ def main():
         if i < start_from:
             continue
         rel = ex.relative_to(SCRIPT_DIR / "examples")
-        cmd = [str(SCRIPT_DIR / "kocs.sh"), str(ex), "-B", backend, "-e"]
+        cmd = ["python3", str(SCRIPT_DIR / "kocs.py"), str(ex), "-B", backend, "-e"]
         print(f"\n[{i}/{len(examples)}] --- {rel} ---")
         result = subprocess.run(cmd, cwd=SCRIPT_DIR)
         if result.returncode != 0:
