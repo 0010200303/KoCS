@@ -30,8 +30,7 @@ namespace kocs::initializers {
       , distance_nb(distance_to_neighbour) { }
 
     /// @brief Compute the hexagonal lattice position for agent @p i.
-    KOKKOS_INLINE_FUNCTION
-    void operator()(const unsigned int i, Random& generator) const {
+    INIT_OP {
       if (i == 0)
         return;
 

@@ -28,8 +28,7 @@ namespace kocs::initializers {
       : positions_view(positions), radius(radius_) { }
 
     /// @brief Sample a random point on the sphere surface for agent @p i.
-    KOKKOS_INLINE_FUNCTION
-    void operator() (const unsigned int i, Random& generator) const {
+    INIT_OP {
       const Scalar u = static_cast<Scalar>(generator.drand());
       const Scalar v = static_cast<Scalar>(generator.drand());
 
@@ -63,8 +62,7 @@ namespace kocs::initializers {
       : positions_view(positions), radius(radius_) { }
 
     /// @brief Sample a random point inside the sphere for agent @p i.
-    KOKKOS_INLINE_FUNCTION
-    void operator() (const unsigned int i, Random& generator) const {
+    INIT_OP {
       const Scalar rt = static_cast<Scalar>(generator.drand());
       const Scalar r = radius * Kokkos::cbrt(rt);
 

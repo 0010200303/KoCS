@@ -42,8 +42,7 @@ namespace kocs::initializers {
       , cuboid_dimensions(maximum - minimum) { }
 
     /// @brief Sample a random position inside the cuboid for agent @p i.
-    KOKKOS_INLINE_FUNCTION
-    void operator()(const unsigned int i, Random& generator) const {
+    INIT_OP {
       for (int j = 0; j < dimensions; ++j)
         positions_view(i)[j] = min[j] + cuboid_dimensions[j] * generator.drand(0.0, 1.0);
     }

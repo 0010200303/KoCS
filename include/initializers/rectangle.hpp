@@ -34,8 +34,7 @@ namespace kocs::initializers {
       , nx(nx_) { }
 
     /// @brief Compute the grid position for agent @p i.
-    KOKKOS_INLINE_FUNCTION
-    void operator()(const unsigned int i, Random& generator) const {
+    INIT_OP {
       const unsigned int row = i / nx;
       const unsigned int col = i % nx;
 
