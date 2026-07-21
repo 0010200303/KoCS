@@ -92,7 +92,6 @@ namespace kocs::pair_finders {
       const int task_count = grid.calc_task_count(side);
       const VectorI bin_extents = grid.get_bin_extents();
 
-      // TODO: try to optimize by using agent_count * task_count and thereby lowering nesting
       Kokkos::parallel_for(
         "binned_gabriel_apply_force",
         Kokkos::TeamPolicy<>(agent_count, Kokkos::AUTO()),

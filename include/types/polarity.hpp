@@ -27,10 +27,6 @@ namespace kocs {
     using Base = VectorN<Scalar, 2, Align>;
     using Base::Base;
 
-    // TODO: use Kokkos epsilon of Scalar
-    /// Small value used to avoid division by zero.
-    static const constexpr Scalar epsilon = Scalar(1e-10);
-
     /// Holds the resulting force vector and updated polarity from a force calculation.
     struct BendingForceResult {
       Vector3<Scalar> vector;  ///< The force vector (3D).
@@ -155,7 +151,7 @@ namespace kocs {
       };
 
       Scalar sin_theta = Kokkos::sin(this->data_[0]);
-      if (Kokkos::abs(sin_theta) > epsilon)
+      if (Kokkos::abs(sin_theta) > Kokkos::Experimental::epsilon_v<Scalar>)
         result[1] = -Kokkos::sin(other[0]) * Kokkos::sin(this->data_[1] - other[1]) / sin_theta;
       return result;
     }
@@ -264,7 +260,9 @@ namespace kocs {
       }
 
       // pushed by other
-      if (other_polarity[0] > epsilon || other_polarity[1] > epsilon) {
+      if (other_polarity[0] > Kokkos::Experimental::epsilon_v<Scalar> ||
+          other_polarity[1] > Kokkos::Experimental::epsilon_v<Scalar>) {
+
         if (other_polarity.dot(displacement_polarity) >= 0.15) {
           Vector3<Scalar> other_vector = to_vector3(other_polarity);
           Vector3<Scalar> other_vector_T = (-displacement).orthonormal(other_vector);

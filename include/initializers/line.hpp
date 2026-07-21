@@ -3,7 +3,6 @@
 
 #include "../utils/utils.hpp"
 
-// TODO: use new sysntax in every Initializer
 namespace kocs::initializers {
 
   /**
