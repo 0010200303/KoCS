@@ -12,11 +12,11 @@ KoCS provides the ``CREATE_SIMULATION_CONFIG`` macro for defining simulation con
     CONFIG_SCALAR(float)
     CONFIG_DIMENSIONS(3)
     CONFIG_PAIR_FINDER(pair_finders::NaiveAllPairs)
-    CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
+    CONFIG_COM_FIXER(com_fixers::NoComFixer)
     CONFIG_INTEGRATOR(integrators::Heun)
-    CONFIG_WRITER(writers::HDF5_Writer)
+    CONFIG_WRITER(io::HDF5_Writer)
     CONFIG_FIELDS(
-      FIELD(Vector, positions)
+      (Vector, positions)
     )
   );
 

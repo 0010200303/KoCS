@@ -11,6 +11,7 @@ docs at: https://0010200303.github.io/KoCS/
 - Kokkos (pulled automatically if not installed)
 
 # TODO
+- use Kokkos::ViewAllocateWithoutInitializing
 - rework some syntax (FIELDS, custom View definitions)
 - implement Bowyer-Watson for delaunay pair finder
 - implement approximate gabriel pair finder (maybe use cones approach)

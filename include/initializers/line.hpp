@@ -3,6 +3,7 @@
 
 #include "../utils/utils.hpp"
 
+// TODO: use new sysntax in every Initializer
 namespace kocs::initializers {
 
   /**
@@ -22,14 +23,12 @@ namespace kocs::initializers {
      * @param positions   View to fill with positions.
      * @param distance_   Distance between agents.
      */
-    template<typename ViewType>
-    Line(ViewType positions, const Scalar distance_) 
+    Line(VectorView positions, const Scalar distance_) 
       : positions_view(positions)
       , distance(distance_) { }
 
     /// @brief Set position of agent @p i along the line.
-    KOKKOS_INLINE_FUNCTION
-    void operator() (const unsigned int i, Random& generator) const {
+    INIT_OP {
       positions_view(i) = Vector(Scalar(i) * distance);
     }
   };

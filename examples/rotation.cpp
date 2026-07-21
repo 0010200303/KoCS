@@ -4,13 +4,16 @@
 
 using namespace kocs;
 CREATE_SIMULATION_CONFIG(SimulationConfig,
-  CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
-  CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
+  CONFIG_SCALAR(double)
+
   CONFIG_FIELDS(
     (Vector, position),
     (Vector, velocity),
     (Polarity, polarity)
   )
+
+  CONFIG_COM_FIXER(com_fixers::GlobalComFixer)
+  CONFIG_PAIR_FINDER(pair_finders::NaiveGabriel)
 )
 EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
@@ -50,7 +53,11 @@ active migration in response to mechanical force F (interaction with neighbourin
 
   const float sqrt_stochastic = Kokkos::sqrt(D) * Kokkos::sqrt(dt);
 
-  Simulation<SimulationConfig> sim(n_cells, output_path, r_max, { }, { }, seed);
+  Simulation<SimulationConfig>::Settings settings(n_cells, output_path);
+  settings.cutoff_distance = r_max;
+  settings.seed = seed;
+
+  Simulation<SimulationConfig> sim(settings);
   auto& positions_view = sim.get_view<FIELD(Vector, position)>();
   auto& velocities_view = sim.get_view<FIELD(Vector, velocity)>();
   auto& polarities_view = sim.get_view<FIELD(Polarity, polarity)>();
@@ -65,7 +72,7 @@ active migration in response to mechanical force F (interaction with neighbourin
 
   auto pairwise_mechanical_interactions = PAIRWISE_FORCE(
     // mechanical interactions
-    ctx.position.delta += forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f);
+    ctx.position.delta += forces::PiecewiseLinear(displacement, distance, Scalar(0.7), Scalar(0.8));
 
     // bending force
     auto bending_force = ctx.polarity.self.bending_force(displacement, ctx.polarity.other, distance);
@@ -98,7 +105,7 @@ active migration in response to mechanical force F (interaction with neighbourin
 
   auto pairwise_interactions = PAIRWISE_FORCE(
     // mechanical interactions
-    Vector F = forces::PiecewiseLinear(displacement, distance, 0.7f, 0.8f);
+    Vector F = forces::PiecewiseLinear(displacement, distance, Scalar(0.7), Scalar(0.8));
     ctx.position.delta += F;
 
     // bending force

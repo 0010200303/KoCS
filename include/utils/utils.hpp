@@ -214,7 +214,7 @@ namespace kocs {
  * - `i`   - agent index.
  * - `rng` - Kokkos random generator state.
  */
-#define UPDATE_FUNC_PARAMETERS const unsigned int i, Random& rng
+#define UPDATE_FUNC_PARAMETERS const bool is_full_step, const unsigned int i, Random& rng
 
 /**
  * @brief Parameters passed to a link force lambda.
@@ -266,22 +266,22 @@ namespace kocs {
  *   };
  * @endcode
  */
-#define GENERIC_FORCE_OP() \
+#define GENERIC_FORCE_OP \
   using tag = kocs::detail::GenericForceTag; \
   KOKKOS_INLINE_FUNCTION void operator()(GENERIC_FORCE_PARAMETERS) const
 
 /// @brief Functor-style pairwise force operator.
-#define PAIRWISE_FORCE_OP() \
+#define PAIRWISE_FORCE_OP \
   using tag = kocs::detail::PairwiseForceTag; \
   KOKKOS_INLINE_FUNCTION void operator()(PAIRWISE_FORCE_PARAMETERS) const
 
 /// @brief Functor-style update function operator.
-#define UPDATE_FUNC_OP() \
+#define UPDATE_FUNC_OP \
   using tag = kocs::detail::UpdateFuncTag; \
   KOKKOS_INLINE_FUNCTION void operator()(UPDATE_FUNC_PARAMETERS) const
 
 /// @brief Functor-style link force operator.
-#define LINK_FORCE_OP() \
+#define LINK_FORCE_OP \
   using tag = kocs::detail::LinkForceTag; \
   KOKKOS_INLINE_FUNCTION void operator()(LINK_FORCE_PARAMETERS) const
 
@@ -294,6 +294,16 @@ namespace kocs {
  * @endcode
  */
 #define INIT_FUNC(...) [&]() { return KOKKOS_LAMBDA(const unsigned int i, Random& rng) { __VA_ARGS__ }; }
+
+/**
+ * @brief Functor-style initilization operator.
+ * @code
+ *   INIT_OP{
+ *     positions_view(i) = Vector(Scalar(i) * distance);
+ *   }
+ * @endcode
+ */
+#define INIT_OP KOKKOS_INLINE_FUNCTION void operator()(const unsigned int i, Random& generator) const
 
 // =========================================================================
 // Type extraction macros - bring simulation config types into scope.

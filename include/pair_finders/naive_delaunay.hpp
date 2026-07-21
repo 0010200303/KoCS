@@ -168,7 +168,8 @@ namespace kocs::pair_finders {
 
             const auto displacement = position_i - position_j;
             const auto distance_squared = displacement.length_squared();
-            if (distance_squared >= cutoff_distance_squared) return;
+            if (distance_squared >= cutoff_distance_squared)
+              return;
 
             const auto position_k = input_positions(k);
 
