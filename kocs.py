@@ -228,7 +228,7 @@ def main() -> None:
             try:
                 subprocess.check_call([str(exe_path)])
             except subprocess.CalledProcessError:
-                print(f"\nExecution failed for {exe_path}", file=sys.stderr)
+                print("\nExecution failed", file=sys.stderr)
                 sys.exit(1)
 
 def _remove_cmake_cache(cache_file: Path) -> None:
