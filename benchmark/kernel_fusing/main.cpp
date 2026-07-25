@@ -83,9 +83,25 @@ void run_benchmark_case(
         Kokkos::fence();
         Kokkos::Timer timer;
         for (int i = 0; i < n_steps; ++i) {
-          sim.take_step(dt_in, force_x());
-          sim.take_step(dt_in, force_y());
-          sim.take_step(dt_in, force_z());
+          // Evaluate each split force into the shared delta buffer,
+          // then apply the Euler update only once.
+          // This is done to skip the kernel fuser
+          sim.integrator.evaluate_forces(
+            true, sim.random_pool,
+            sim.integrator.stage_pack[0],
+            sim.integrator.stage_pack[1],
+            force_x());
+          sim.integrator.evaluate_forces(
+            true, sim.random_pool,
+            sim.integrator.stage_pack[0],
+            sim.integrator.stage_pack[1],
+            force_y());
+          sim.integrator.evaluate_forces(
+            true, sim.random_pool,
+            sim.integrator.stage_pack[0],
+            sim.integrator.stage_pack[1],
+            force_z());
+          sim.integrator.apply_euler(dt_in);
         }
         Kokkos::fence();
         total_time += timer.seconds();
@@ -133,8 +149,7 @@ void run_benchmark_case(
 }
 
 int main() {
-  // const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
-  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384};
+  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
   const int steps = 100;
   const int repetitions = 10;
   const float dt = 0.000001f;
