@@ -107,6 +107,11 @@ namespace kocs {
     /**
      * @brief Read/write access to element `i`, with automatic flag tracking.
      *
+     * When the host and device share the same memory space (UVM, Serial,
+     * OpenMP) the modified flags are skipped entirely — the data is always
+     * accessible from anywhere.
+     *
+     * Otherwise:
      * - On the **device**: sets `device_modified_flag` to `true`, so that
      *   a subsequent `sync_host()` knows data needs copying.
      * - On the **host**: marks the host view as modified for DualView's
@@ -114,14 +119,18 @@ namespace kocs {
      */
     KOKKOS_INLINE_FUNCTION
     T& operator()(const int i) const {
-      KOKKOS_IF_ON_DEVICE((
-        device_modified_flag() = true;
+      if constexpr (Kokkos::SpaceAccessibility<Kokkos::HostSpace, typename Kokkos::DualView<T*>::memory_space>::accessible) {
         return this->view_device()(i);
-      ))
-      KOKKOS_IF_ON_HOST((
-        const_cast<View*>(this)->modify_host();
-        return this->view_host()(i);
-      ))
+      } else {
+        KOKKOS_IF_ON_DEVICE((
+          device_modified_flag() = true;
+          return this->view_device()(i);
+        ))
+        KOKKOS_IF_ON_HOST((
+          const_cast<View*>(this)->modify_host();
+          return this->view_host()(i);
+        ))
+      }
     }
 
     /**

@@ -227,8 +227,13 @@ def main() -> None:
         else:
             try:
                 subprocess.check_call([str(exe_path)])
-            except subprocess.CalledProcessError:
-                print("\nExecution failed", file=sys.stderr)
+            except subprocess.CalledProcessError as e:
+                exit_code = e.returncode
+                if exit_code < 0:
+                    sig = -exit_code
+                    print(f"\nExecution failed — killed by signal {sig} ({_signal_name(sig)})", file=sys.stderr)
+                else:
+                    print(f"\nExecution failed — exit code {exit_code}", file=sys.stderr)
                 sys.exit(1)
 
 def _remove_cmake_cache(cache_file: Path) -> None:
@@ -281,16 +286,43 @@ def _find_executable(build_dir: Path, target_name: str) -> Path | None:
                     return full
     return None
 
+def _signal_name(signum: int) -> str:
+    """Return a human-readable name for a signal number."""
+    import signal as _signal
+    try:
+        return _signal.Signals(signum).name
+    except (ValueError, AttributeError):
+        return f"SIGUNKNOWN({signum})"
+
+
 def _exec_with_timing(exe_path: Path) -> None:
     """Run executable with timing output, cross-platform."""
     if platform.system() == "Windows":
         import time as time_mod
         start = time_mod.perf_counter()
-        subprocess.check_call([str(exe_path)])
+        try:
+            subprocess.check_call([str(exe_path)])
+        except subprocess.CalledProcessError as e:
+            exit_code = e.returncode
+            if exit_code < 0:
+                sig = -exit_code
+                print(f"\nExecution failed — killed by signal {sig} ({_signal_name(sig)})", file=sys.stderr)
+            else:
+                print(f"\nExecution failed — exit code {exit_code}", file=sys.stderr)
+            sys.exit(1)
         elapsed = time_mod.perf_counter() - start
         print(f"\nreal {elapsed:.3f}")
     else:
-        subprocess.check_call(["time", "-p", str(exe_path)])
+        try:
+            subprocess.check_call(["time", "-p", str(exe_path)])
+        except subprocess.CalledProcessError as e:
+            exit_code = e.returncode
+            if exit_code < 0:
+                sig = -exit_code
+                print(f"Killed by signal {sig} ({_signal_name(sig)})", file=sys.stderr)
+            else:
+                print(f"Execution failed — exit code {exit_code}", file=sys.stderr)
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()

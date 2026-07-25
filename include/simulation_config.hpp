@@ -338,10 +338,7 @@ namespace kocs {
   struct DefaultSimulationConfig {
     CONFIG_DIMENSIONS(3)
     CONFIG_SCALAR(float)
-    CONFIG_FIELDS(
-      (Vector, position)
-    )
-    RESOLVE_KOCS_CONFIG()
+
 
     CONFIG_RANDOM_POOL(Kokkos::Random_XorShift64_Pool)
     CONFIG_PAIR_FINDER(kocs::pair_finders::NaiveAllPairs)
@@ -349,6 +346,12 @@ namespace kocs {
     CONFIG_INTEGRATOR(kocs::integrators::Heun)
 
     CONFIG_WRITER(kocs::io::HDF5_Writer)
+
+    CONFIG_FIELDS(
+      (Vector, position)
+    )
+
+    RESOLVE_KOCS_CONFIG()
   };
 
 /**
