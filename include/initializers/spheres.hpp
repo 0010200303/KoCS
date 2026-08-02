@@ -1,6 +1,8 @@
 #ifndef KOCS_INITIALIZERS_RANDOM_SPHERE_INIT_HPP
 #define KOCS_INITIALIZERS_RANDOM_SPHERE_INIT_HPP
 
+#include <Kokkos_MathematicalConstants.hpp>
+
 #include "../utils/utils.hpp"
 #include "relax_force.hpp"
 
@@ -31,7 +33,7 @@ namespace kocs::initializers {
       const Scalar v = static_cast<Scalar>(generator.drand());
 
       const Scalar z = Scalar(2.0) * u - Scalar(1.0);
-      const Scalar theta = Scalar(2.0) * Scalar(std::numbers::pi) * v;
+      const Scalar theta = Scalar(2.0) * Scalar(Kokkos::numbers::pi_v<Scalar>) * v;
       const Scalar rxy = Kokkos::sqrt(Scalar(1.0) - z * z) * radius;
 
       positions_view(i)[0] = rxy * Kokkos::cos(theta);

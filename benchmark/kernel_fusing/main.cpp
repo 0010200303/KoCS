@@ -159,26 +159,26 @@ double benchmark_fusion_kernel(
 
 void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, BenchmarkType bench) {
   const float stiffness = 0.1f;
-  auto control_kernel = PAIRWISE_FORCE(
-    ctx.position.delta += displacement * (stiffness - distance) / distance;
+  auto control_kernel = GENERIC_FORCE(
+    ctx.position.delta += -stiffness * ctx.position.self;
   );
 
-  auto split_kernel_x = PAIRWISE_FORCE(
-    ctx.position.delta.x() += displacement.x() * (stiffness - distance) / distance;
+  auto split_kernel_x = GENERIC_FORCE(
+    ctx.position.delta.x() += -stiffness * ctx.position.self.x();
   );
 
-  auto split_kernel_y = PAIRWISE_FORCE(
-    ctx.position.delta.y() += displacement.y() * (stiffness - distance) / distance;
+  auto split_kernel_y = GENERIC_FORCE(
+    ctx.position.delta.y() += -stiffness * ctx.position.self.y();
   );
 
-  auto split_kernel_z = PAIRWISE_FORCE(
-    ctx.position.delta.z() += displacement.z() * (stiffness - distance) / distance;
+  auto split_kernel_z = GENERIC_FORCE(
+    ctx.position.delta.z() += -stiffness * ctx.position.self.z();
   );
 
-  auto user_fused_kernel = PAIRWISE_FORCE(
-    ctx.position.delta.x() += displacement.x() * (stiffness - distance) / distance;
-    ctx.position.delta.y() += displacement.y() * (stiffness - distance) / distance;
-    ctx.position.delta.z() += displacement.z() * (stiffness - distance) / distance;
+  auto user_fused_kernel = GENERIC_FORCE(
+    ctx.position.delta.x() += -stiffness * ctx.position.self.x();
+    ctx.position.delta.y() += -stiffness * ctx.position.self.y();
+    ctx.position.delta.z() += -stiffness * ctx.position.self.z();
   );
 
   double checksum = 0.0;
@@ -205,7 +205,7 @@ void run_benchmark_case(int n_agents, int n_steps, int n_reps, float dt_in, Benc
 }
 
 int main() {
-  const std::vector<int> agent_counts = {256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144};
+  const std::vector<int> agent_counts = {362144};
   const int steps = 100;
   const int repetitions = 10;
   const float dt = 0.000001;

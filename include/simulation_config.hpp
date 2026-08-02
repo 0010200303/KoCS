@@ -279,6 +279,12 @@ namespace kocs {
 #define KOCS_FIELD_Vector(S, D) kocs::VectorN<S, D>
 #define KOCS_FIELD_Polarity(S, D) kocs::Polarity_<S>
 #define KOCS_FIELD_Scalar(S, D) S
+#define KOCS_FIELD_int(S, D) int
+#define KOCS_FIELD_unsigned(S, D) unsigned int
+#define KOCS_FIELD_long(S, D) long
+#define KOCS_FIELD_float(S, D) float
+#define KOCS_FIELD_double(S, D) double
+#define KOCS_FIELD_bool(S, D) bool
 
 #define KOCS_FIELD_TPL(T, N) kocs::detail::Field<KOCS_FIELD_TYPE(T, __KOCS_SCALAR__, __KOCS_DIMENSIONS__), #N>
 #define KOCS_FORCE_FIELD_MEMBER_TPL(T, N) FieldRefT<KOCS_FIELD_TYPE(T, __KOCS_SCALAR__, __KOCS_DIMENSIONS__)> N

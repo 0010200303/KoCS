@@ -62,6 +62,12 @@ else()
     URL https://github.com/kokkos/kokkos/releases/download/5.1.0/kokkos-5.1.0.tar.gz
     URL_HASH SHA256=7bdbdfc88033ed7d940c7940ed8919e1f2b78a9656c69276beb76ad45c41ec4e
   )
+  # TODO: use this instead
+  # FetchContent_Declare(
+    # kokkos
+    # GIT_REPOSITORY https://github.com/kokkos/kokkos.git
+    # GIT_TAG        5.2.0
+  # )
   FetchContent_MakeAvailable(Kokkos)
 endif()
 

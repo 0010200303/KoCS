@@ -204,9 +204,15 @@ def main() -> None:
     print(f"Building target '{target_name}' in {build_dir}")
     parallel_flag = _parallel_build_flag()
     try:
-        subprocess.check_call(
-            [cmake, "--build", str(build_dir), "--target", target_name, "--", parallel_flag]
-        )
+        subprocess.check_call([
+            cmake,
+            "--build",
+            str(build_dir),
+            "--target",
+            target_name,
+            "--parallel",
+            str(os.cpu_count() or 1),
+        ])
     except subprocess.CalledProcessError:
         print(f"\nBuild failed", file=sys.stderr)
         sys.exit(1)

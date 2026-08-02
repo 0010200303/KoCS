@@ -1,7 +1,7 @@
 #ifndef KOCS_INITIALIZERS_HEXAGON_INIT_HPP
 #define KOCS_INITIALIZERS_HEXAGON_INIT_HPP
 
-#include <numbers>
+#include <Kokkos_MathematicalConstants.hpp>
 
 #include "../utils/utils.hpp"
 
@@ -44,7 +44,7 @@ namespace kocs::initializers {
         ++ring;
       }
 
-      const Scalar beta = Scalar(std::numbers::pi) / Scalar(3);
+      const Scalar beta = Scalar(Kokkos::numbers::pi_v<Scalar>) / Scalar(3);
       const unsigned int side = remaining / ring;
       const unsigned int step = remaining % ring;
 
