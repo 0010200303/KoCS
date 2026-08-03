@@ -141,9 +141,13 @@ target_sources(KoCS_core INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/initializers/heart.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/naive_all_pairs.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/naive_all_pairs_symmetric.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/binned_all_pairs.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/binned_all_pairs_symmetric.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/naive_gabriel.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/naive_gabriel_symmetric.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/binned_gabriel.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/binned_gabriel_symmetric.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/pair_finders/naive_delaunay.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/integrators/base.hpp
