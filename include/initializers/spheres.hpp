@@ -14,7 +14,7 @@ namespace kocs::initializers {
   template<typename SimulationConfig>
   struct RandomHollowSphere {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
-    static_assert(dimensions >= 3, "RandomHollowSphere requires 3-dimensional vectors");
+    static_assert(dimensions >= 3, "RandomHollowSphere requires at least 3-dimensional vectors");
 
     /// Radius of the sphere.
     Scalar radius;
@@ -48,7 +48,7 @@ namespace kocs::initializers {
   template<typename SimulationConfig>
   struct RandomFilledSphere {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
-    static_assert(dimensions >= 3, "RandomFilledSphere requires 3-dimensional vectors");
+    static_assert(dimensions >= 3, "RandomFilledSphere requires at least 3-dimensional vectors");
 
     /// Radius of the sphere.
     Scalar radius;

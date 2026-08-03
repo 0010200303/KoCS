@@ -15,6 +15,8 @@ namespace kocs::initializers {
   struct RandomDisk {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
+    static_assert(dimensions >= 2, "RandomDisk at least requires 2-dimensional vectors");
+
     VectorView positions_view;
     /// Desired distance between neighbouring agents.
     Scalar distance_nb;

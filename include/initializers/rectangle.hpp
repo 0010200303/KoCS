@@ -16,6 +16,8 @@ namespace kocs::initializers {
   struct RegularRectangle {
     EXTRACT_TYPES_FROM_SIMULATION_CONFIG(SimulationConfig)
 
+    static_assert(dimensions >= 2, "RegularRectangle at least requires 2-dimensional vectors");
+
     VectorView positions_view;
     /// Distance between neighbouring agents.
     Scalar distance_nb;

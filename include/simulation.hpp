@@ -23,6 +23,7 @@
 #include "initializers/cuboid.hpp"
 #include "initializers/rectangle.hpp"
 #include "initializers/disk.hpp"
+#include "initializers/heart.hpp"
 
 namespace kocs {
 
@@ -501,6 +502,13 @@ namespace kocs {
       ) {
         init_relaxed_cuboid(min, max, 2000u);
         init(init_functions...);
+      }
+
+      /// @brief Place agents randomly inside a 3D heart.
+      template<typename... InitFuncs>
+      inline void init_random_heart(const Scalar scale, InitFuncs&&... init_functions) {
+        initializers::RandomHeart<SimulationConfig> initializer(get_positions_view(), scale);
+        init(initializer, init_functions...);
       }
 
       /**

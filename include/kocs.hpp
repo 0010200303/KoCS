@@ -22,6 +22,7 @@
 #include "initializers/cuboid.hpp"
 #include "initializers/rectangle.hpp"
 #include "initializers/disk.hpp"
+#include "initializers/heart.hpp"
 
 #include "pair_finders/naive_all_pairs.hpp"
 #include "pair_finders/binned_all_pairs.hpp"
