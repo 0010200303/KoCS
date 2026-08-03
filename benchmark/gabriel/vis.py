@@ -22,25 +22,118 @@ marker_for_benchmark = {
 }
 
 style_for_benchmark = {
-    "NaiveFor":                             {"linestyle": "-",  "color": "tab:blue",   "alpha": 0.5, "linewidth": 1.5},
-    "NaiveForDouble":                       {"linestyle": "--", "color": "tab:blue",   "alpha": 0.7, "linewidth": 2.0},
-    "NaiveForSymmetric":                    {"linestyle": ":",  "color": "tab:blue",   "alpha": 1.0, "linewidth": 2.5},
-    "NaiveParallelReduce":                  {"linestyle": "-",  "color": "tab:orange", "alpha": 0.5, "linewidth": 1.5},
-    "NaiveParallelReduceDouble":            {"linestyle": "--", "color": "tab:orange", "alpha": 0.7, "linewidth": 2.0},
-    "NaiveParallelReduceSymmetric":         {"linestyle": ":",  "color": "tab:orange", "alpha": 1.0, "linewidth": 2.5},
-    "NaiveSpread":                          {"linestyle": "-",  "color": "tab:green",  "alpha": 0.5, "linewidth": 1.5},
-    "BinnedGabrielReduceFor":               {"linestyle": "-",  "color": "tab:purple", "alpha": 0.5, "linewidth": 1.5},
-    "BinnedGabrielReduceForDouble":         {"linestyle": "--", "color": "tab:purple", "alpha": 0.7, "linewidth": 2.0},
-    "BinnedGabrielReduceForSymmetric":      {"linestyle": ":",  "color": "tab:purple", "alpha": 1.0, "linewidth": 2.5},
-    "BinnedGabrielReduceParallel":          {"linestyle": "-",  "color": "tab:brown", "alpha": 0.5, "linewidth": 1.5},
-    "BinnedGabrielReduceParallelDouble":    {"linestyle": "--", "color": "tab:brown", "alpha": 0.7, "linewidth": 2.0},
-    "BinnedGabrielReduceParallelSymmetric": {"linestyle": ":",  "color": "tab:brown", "alpha": 1.0, "linewidth": 2.5},
+    # Colourblind-safe palette (Okabe-Ito derived). Naive family = cool
+    # (blue/sky/teal), Binned family = warm (vermillion/orange/pink/purple)
+    # so the families stay distinct without relying on red-vs-green.
+    "NaiveFor":                             {"linestyle": "-",  "color": "#0072B2", "alpha": 0.7, "linewidth": 1.5},
+    "NaiveForDouble":                       {"linestyle": "--", "color": "#56B4E9", "alpha": 0.8, "linewidth": 2.0},
+    "NaiveForSymmetric":                    {"linestyle": ":",  "color": "#00B0C8", "alpha": 0.9, "linewidth": 2.5},
+    "NaiveParallelReduce":                  {"linestyle": "-",  "color": "#009E73", "alpha": 0.7, "linewidth": 1.5},
+    "NaiveParallelReduceDouble":            {"linestyle": "--", "color": "#49C1A0", "alpha": 0.8, "linewidth": 2.0},
+    "NaiveParallelReduceSymmetric":         {"linestyle": ":",  "color": "#117A65", "alpha": 0.9, "linewidth": 2.5},
+    "NaiveSpread":                          {"linestyle": "-",  "color": "#006D77", "alpha": 0.7, "linewidth": 1.5},
+    "BinnedGabrielReduceFor":               {"linestyle": "-",  "color": "#D55E00", "alpha": 0.7, "linewidth": 1.5},
+    "BinnedGabrielReduceForDouble":         {"linestyle": "--", "color": "#E69F00", "alpha": 0.8, "linewidth": 2.0},
+    "BinnedGabrielReduceForSymmetric":      {"linestyle": ":",  "color": "#F0A500", "alpha": 0.9, "linewidth": 2.5},
+    "BinnedGabrielReduceParallel":          {"linestyle": "-",  "color": "#CC79A7", "alpha": 0.7, "linewidth": 1.5},
+    "BinnedGabrielReduceParallelDouble":    {"linestyle": "--", "color": "#8C5BA6", "alpha": 0.8, "linewidth": 2.0},
+    "BinnedGabrielReduceParallelSymmetric": {"linestyle": ":",  "color": "#A44A4A", "alpha": 0.9, "linewidth": 2.5},
 }
 
 def load_rows(csv_path: Path):
     with csv_path.open(newline="") as f:
         reader = csv.DictReader(f)
         return list(reader)
+
+
+def _geomean(pairs):
+    """Geometric mean of the times in ``[(agents, time), ...]`` (scale-invariant
+    overall performance score; lower = better)."""
+    if not pairs:
+        return float("nan")
+    logsum = sum(__import__("math").log(t) for _, t in pairs)
+    return __import__("math").exp(logsum / len(pairs))
+
+
+def _best_and_symmetric(data, prefix):
+    """Return (best, best_symmetric) for a family, based on geometric mean.
+
+    ``best`` is the fastest benchmark of the family; ``best_symmetric`` is the
+    symmetric counterpart of ``best`` when it exists, otherwise ``best`` itself.
+    ``data`` is ``{benchmark: [(agents, time), ...]}``.
+    """
+    benches = [b for b in data if b.startswith(prefix)]
+    if not benches:
+        return None, None
+    best = min(benches, key=lambda b: _geomean(data[b]))
+
+    # the symmetric sibling shares everything but the trailing "Symmetric"
+    if best.endswith("Symmetric"):
+        sibling = best[: -len("Symmetric")]
+    else:
+        sibling = best + "Symmetric"
+    if sibling in data:
+        return best, sibling
+    return best, best
+
+
+def plot_benchmarks(ax, data, title):
+    """Single plot with ALL benchmarks drawn faint, then the best-of-family and
+    its symmetric counterpart highlighted for both families.
+    `data` is {benchmark: [(agents, time), ...]}."""
+
+    # which benchmarks will be redrawn highlighted below (avoid duplicate legend)
+    highlighted = set()
+    for prefix in ("Naive", "Binned"):
+        best, sym = _best_and_symmetric(data, prefix)
+        if best is not None:
+            highlighted.add(best)
+            highlighted.add(sym)
+
+    # every benchmark faintly, so the full picture stays present
+    for bench, pairs in sorted(data.items()):
+        pairs = sorted(pairs)
+        sty = style_for_benchmark.get(bench, {})
+        ax.plot([p[0] for p in pairs], [p[1] for p in pairs],
+                marker=marker_for_benchmark.get(bench, "."), markersize=3,
+                linewidth=1.0, linestyle=sty.get("linestyle", "--"),
+                color=sty.get("color", None), alpha=0.45, zorder=2,
+                label=None if bench in highlighted else bench)
+
+    # family colours for the highlighted lines (colourblind-safe)
+    hi_colors = {"Naive": "#0072B2", "Binned": "#D55E00"}
+    for prefix in ("Naive", "Binned"):
+        best, sym = _best_and_symmetric(data, prefix)
+        if best is None:
+            continue
+        color = hi_colors.get(prefix, "gray")
+        # best = solid + strong; symmetric sibling = dashed + slightly dimmer
+        for bench, lw, ls, mks, al, lbl in (
+            (best, 2.6, "-", 6, 0.95, f"{best} (best)"),
+            (sym, 1.7, "--", 4, 0.6, f"{sym} (symmetric)"),
+        ):
+            if sym == best:
+                break  # best is its own symmetric sibling -> draw only once
+            if bench is None:
+                continue
+            pairs = sorted(data.get(bench, []))
+            if not pairs:
+                continue
+            ax.plot([p[0] for p in pairs], [p[1] for p in pairs],
+                    marker=marker_for_benchmark.get(bench, "o"), markersize=mks,
+                    linewidth=lw, linestyle=ls, color=color, alpha=al,
+                    zorder=5, label=lbl)
+
+    ax.set_xscale("log", base=2)
+    ax.set_yscale("log")
+    ax.set_title(title + "\n"
+                 + "best + its symmetric sibling per family emphasized\n"
+                 + " (solid = best, dashed = symmetric)")
+    ax.set_xlabel("agents")
+    ax.set_ylabel("time_per_step_ms")
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+
 
 def main():
     base_dir = Path(__file__).resolve().parent
@@ -77,31 +170,6 @@ def main():
     for (bench, agents), vals in avg_acc.items():
         avg_by_benchmark[bench].append((agents, mean(vals)))
 
-    def plot_benchmarks(ax, data, title):
-        """Plot benchmark data onto an axis.  `data` is {benchmark: [(agents, time), ...]}."""
-        for benchmark, pairs in sorted(data.items()):
-            pairs.sort(key=lambda p: p[0])
-            agents = [p[0] for p in pairs]
-            times = [p[1] for p in pairs]
-            marker = marker_for_benchmark.get(benchmark, "o")
-            sty = style_for_benchmark.get(benchmark, {})
-            ax.plot(
-                agents, times,
-                marker=marker, markersize=7,
-                linewidth=sty.get("linewidth", 2),
-                linestyle=sty.get("linestyle", "--"),
-                color=sty.get("color", None),
-                alpha=sty.get("alpha", 0.8),
-                label=benchmark,
-            )
-        ax.set_xscale("log", base=2)
-        ax.set_yscale("log")
-        ax.set_title(title)
-        ax.set_xlabel("agents")
-        ax.set_ylabel("time_per_step_ms")
-        ax.grid(True, alpha=0.3)
-        ax.legend()
-
     # --- per-machine plots ---
     by_machine = defaultdict(list)
     for row in rows:
@@ -109,20 +177,20 @@ def main():
             continue
         by_machine[row["machine"]].append(row)
 
+    # All benchmarks drawn faint, then best-of-family and its symmetric
+    # counterpart highlighted, for every machine and for the average.
     for machine, machine_rows in by_machine.items():
-        by_benchmark = defaultdict(list)
+        m_bm = defaultdict(list)
         for row in machine_rows:
-            by_benchmark[row["benchmark"]].append((row["_agents_int"], row["_time"]))
-
+            m_bm[row["benchmark"]].append((row["_agents_int"], row["_time"]))
         fig, ax = plt.subplots(figsize=(10, 6))
-        plot_benchmarks(ax, by_benchmark, machine)
+        plot_benchmarks(ax, m_bm, machine)
         fig.tight_layout()
         out_path = out_dir / f"{machine}.png"
         fig.savefig(out_path, dpi=150)
         plt.close(fig)
         print(f"saved {out_path}")
 
-    # --- average plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
     plot_benchmarks(ax, avg_by_benchmark, "Average across machines")
     fig.tight_layout()
