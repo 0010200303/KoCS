@@ -47,7 +47,7 @@ namespace kocs::pair_finders {
       Kokkos::View<Vector*> total_velocity_view("naive_delaunay_apply_force_total_velocity", agent_count);
 
       if constexpr (dimensions == 2) {
-        const unsigned long long block = (agent_count - 1) * (agent_count - 2);
+        const unsigned long long block = static_cast<unsigned long long>(agent_count - 1) * (agent_count - 2);
         Kokkos::parallel_for(
           "naive_delaunay_apply_force",
           Kokkos::RangePolicy<Kokkos::IndexType<unsigned long long>>(0, static_cast<unsigned long long>(agent_count) * block),
@@ -157,11 +157,22 @@ namespace kocs::pair_finders {
       else if constexpr (dimensions == 3) {
         Kokkos::parallel_for(
           "naive_delaunay_apply_force",
-          Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {agent_count, agent_count - 1, agent_count - 2}),
+          Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {agent_count, agent_count - 1, agent_count}),
           KOKKOS_CLASS_LAMBDA(const unsigned int i, unsigned int j, unsigned int k) {
             j += j >= i;
-            k += k >= ((i < j) ? i : j);
-            k += k >= ((i < j) ? j : i);
+
+            // Skip i and j so that k is distinct from both.  We shift k past
+            // the lower excluded index first, then past the higher, which
+            // guarantees the final k is in [0, agent_count) and k != i, k != j.
+            const unsigned int lo = (i < j) ? i : j;
+            const unsigned int hi = (i < j) ? j : i;
+            k += k >= lo;
+            k += k >= hi;
+
+            // k may now equal agent_count (when i,j are the two smallest
+            // indices); the inner l-loop won't find a valid l for such k, so
+            // it's harmless but wastes a tiny amount of work.
+            if (k >= agent_count) return;
 
             const auto position_i = input_positions(i);
             const auto position_j = input_positions(j);
@@ -264,6 +275,8 @@ namespace kocs::pair_finders {
               Kokkos::atomic_add(&total_drag_view(i), pairwise_drag);
               Kokkos::atomic_add(&total_velocity_view(i), pairwise_drag * old_velocities(j));
 
+              // Edge (i,j) is Delaunay as soon as ANY l forms a valid
+              // circumsphere.  Short-circuit the l-loop after the first hit.
               return;
             }
           }
