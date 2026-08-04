@@ -46,6 +46,74 @@ def load_rows(csv_path: Path):
         return list(reader)
 
 
+def fmt_typst_number(value: float, precision: int = 5) -> str:
+    """Format a number for Typst. Uses a fixed number of decimals.
+
+    A trivially small value is clamped to 0 to keep the table clean.
+    """
+    if abs(value) < 10 ** (-precision):
+        return "0"
+    return f"{value:.{precision}f}"
+
+
+def render_typst_table(avg_by_benchmark, benchmark_order, precision: int = 5) -> str:
+    """Return a complete, standalone Typst #table[...] code block.
+
+    Columns are the benchmarks, rows are the agent counts, and each cell
+    contains the time_per_step_ms (ms) averaged over all machines.
+    """
+    # Restrict to the benchmarks explicitly requested for this table, in the
+    # provided order. (avg_by_benchmark may contain other families.)
+    data = {b: avg_by_benchmark[b] for b in benchmark_order if b in avg_by_benchmark}
+    available = list(data.keys())
+
+    # Deterministic row order: all agent counts that the selected benchmarks report.
+    all_agents = sorted({a for pairs in data.values() for a, _ in pairs})
+
+    value_by = {}
+    for benchmark, pairs in data.items():
+        for agents, val in pairs:
+            value_by[(benchmark, agents)] = val
+
+    lines = []
+    lines.append("#table(")
+    lines.append("  columns: (auto, " + ", ".join("auto" for _ in available) + "),")
+    lines.append("  align: (left, " + ", ".join("right" for _ in available) + "),")
+    lines.append("  stroke: 0.5pt + gray,")
+    lines.append("  inset: 6pt,")
+    lines.append("  table.header(")
+    lines.append("    [*Agents*], " + ", ".join(f"[*{b}*]" for b in available) + ",")
+    lines.append("  ),")
+    for agents in all_agents:
+        cells = []
+        for benchmark in available:
+            val = value_by.get((benchmark, agents))
+            text = fmt_typst_number(val, precision) if val is not None else "--"
+            cells.append(f"[{text}]")
+        lines.append(f"  [*{agents}*], " + ", ".join(cells) + ",")
+        lines.append("  table.hline(),")
+    lines.append(")")
+    return "\n".join(lines) + "\n"
+
+
+def write_typst_tables(avg_by_benchmark, out_dir: Path):
+    """Write copy-pasteable Typst tables, split into a Naive and a Binned family."""
+    naive_order = [
+        "NaiveFor", "NaiveForDouble", "NaiveForSymmetric",
+        "NaiveParallelReduce", "NaiveParallelReduceDouble", "NaiveParallelReduceSymmetric",
+        "NaiveSpread",
+    ]
+    binned_order = [
+        "BinnedGabrielReduceFor", "BinnedGabrielReduceForDouble", "BinnedGabrielReduceForSymmetric",
+        "BinnedGabrielReduceParallel", "BinnedGabrielReduceParallelDouble", "BinnedGabrielReduceParallelSymmetric",
+    ]
+    for name, order in (("naive", naive_order), ("binned", binned_order)):
+        typst = render_typst_table(avg_by_benchmark, order)
+        out_path = out_dir / f"table_{name}.typ"
+        out_path.write_text(typst)
+        print(f"saved {out_path}")
+
+
 def _geomean(pairs):
     """Geometric mean of the times in ``[(agents, time), ...]`` (scale-invariant
     overall performance score; lower = better)."""
@@ -169,6 +237,9 @@ def main():
     avg_by_benchmark = defaultdict(list)
     for (bench, agents), vals in avg_acc.items():
         avg_by_benchmark[bench].append((agents, mean(vals)))
+
+    # Write a copy-pasteable Typst table of the averaged results.
+    write_typst_tables(avg_by_benchmark, out_dir)
 
     # --- per-machine plots ---
     by_machine = defaultdict(list)

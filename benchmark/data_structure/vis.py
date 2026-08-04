@@ -5,6 +5,65 @@ from statistics import mean
 
 import matplotlib.pyplot as plt
 
+def fmt_typst_number(value: float, precision: int = 5) -> str:
+    """Format a number for Typst. Uses a fixed number of decimals.
+
+    A trivially small value is clamped to 0 to keep the table clean.
+    """
+    if abs(value) < 10 ** (-precision):
+        return "0"
+    return f"{value:.{precision}f}"
+
+def render_typst_table(avg_by_benchmark, benchmark_order, precision: int = 5) -> str:
+    """Return a complete, standalone Typst #table[...] code block.
+
+    Columns are the benchmarks, rows are the agent counts, and each cell
+    contains the time_per_step_ms (ms) averaged over all machines.
+    """
+    # Deterministic order: all agent counts that any benchmark reports.
+    agents_per_bench = defaultdict(list)
+    for benchmark, pairs in avg_by_benchmark.items():
+        for agents, _ in pairs:
+            agents_per_bench[benchmark].append(agents)
+    all_agents = sorted({a for vals in agents_per_bench.values() for a in vals})
+
+    value_by = {}
+    for benchmark, pairs in avg_by_benchmark.items():
+        for agents, val in pairs:
+            value_by[(benchmark, agents)] = val
+
+    # Select benchmarks present in the data, in a stable order.
+    available = [b for b in benchmark_order if b in avg_by_benchmark]
+    available += sorted(b for b in avg_by_benchmark if b not in benchmark_order)
+
+    lines = []
+    lines.append("#table(")
+    lines.append("  columns: (auto, " + ", ".join("auto" for _ in available) + "),")
+    lines.append("  align: (left, " + ", ".join("right" for _ in available) + "),")
+    lines.append("  stroke: 0.5pt + gray,")
+    lines.append("  inset: 6pt,")
+    lines.append("  table.header(")
+    lines.append("    [*Agents*], " + ", ".join(f"[*{b}*]" for b in available) + ",")
+    lines.append("  ),")
+    for agents in all_agents:
+        cells = []
+        for benchmark in available:
+            val = value_by.get((benchmark, agents))
+            text = fmt_typst_number(val, precision) if val is not None else "--"
+            cells.append(f"[{text}]")
+        lines.append(f"  [*{agents}*], " + ", ".join(cells) + ",")
+        lines.append("  table.hline(),")
+    lines.append(")")
+    return "\n".join(lines) + "\n"
+
+
+def write_typst_table(avg_by_benchmark, out_path: Path):
+    """Write a copy-pasteable Typst table next to the CSV."""
+    benchmark_order = ["ViewOfVectors", "ViewOfArrays", "ViewOfArraysRaw", "ViewOfScalars"]
+    typst = render_typst_table(avg_by_benchmark, benchmark_order)
+    out_path.write_text(typst)
+    print(f"saved {out_path}")
+
 def load_rows(csv_path: Path):
     with csv_path.open(newline="") as f:
         reader = csv.DictReader(f)
@@ -44,6 +103,9 @@ def main():
     avg_by_benchmark = defaultdict(list)
     for (bench, agents), vals in avg_acc.items():
         avg_by_benchmark[bench].append((agents, mean(vals)))
+
+    # Write a copy-pasteable Typst table of the averaged results.
+    write_typst_table(avg_by_benchmark, out_dir / "table.typ")
 
     by_machine = defaultdict(list)
     for row in rows:
