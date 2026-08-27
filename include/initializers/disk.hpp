@@ -32,7 +32,7 @@ namespace kocs::initializers {
 
     /// @brief Sample a random position inside the disk for agent @p i.
     INIT_OP {
-      const Scalar r_max = Kokkos::sqrt(Scalar(positions_view.extent(0)) / Scalar(0.9069)) * distance_nb / Scalar(2.0);
+      const Scalar r_max = Kokkos::sqrt(static_cast<Scalar>(positions_view.extent(0))) * distance_nb / Scalar(2.0);
       const Scalar r  = r_max * Kokkos::sqrt(static_cast<Scalar>(generator.drand()));
       const Scalar phi = static_cast<Scalar>(generator.drand()) * Scalar(2.0) * Kokkos::numbers::pi_v<Scalar>;
 

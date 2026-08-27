@@ -3,7 +3,16 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import mean
 
+import numpy as np
 import matplotlib.pyplot as plt
+
+import cblind.cblind as cb
+
+
+def _solstice_palette(fractions):
+    """Sample cblind's colorblind-safe solstice colormap at the given 0..1 fractions."""
+    cmap = cb.cbmap("cb.solstice")
+    return [cmap(f) for f in fractions]
 
 marker_for_benchmark = {
     "NaiveFor":                             "o",
@@ -21,23 +30,26 @@ marker_for_benchmark = {
     "BinnedGabrielReduceParallelSymmetric": "*",
 }
 
+# Colourblind-safe colours sampled from cblind's solstice colormap.
+# Naive family = cool (blue) end, Binned family = warm (yellow/red) end, so the
+# two families stay distinct without relying on red-vs-green.
+_NAIVE_COLORS = _solstice_palette(np.linspace(0.0, 0.42, 7))
+_BINNED_COLORS = _solstice_palette(np.linspace(0.55, 1.0, 6))
+
 style_for_benchmark = {
-    # Colourblind-safe palette (Okabe-Ito derived). Naive family = cool
-    # (blue/sky/teal), Binned family = warm (vermillion/orange/pink/purple)
-    # so the families stay distinct without relying on red-vs-green.
-    "NaiveFor":                             {"linestyle": "-",  "color": "#0072B2", "alpha": 0.7, "linewidth": 1.5},
-    "NaiveForDouble":                       {"linestyle": "--", "color": "#56B4E9", "alpha": 0.8, "linewidth": 2.0},
-    "NaiveForSymmetric":                    {"linestyle": ":",  "color": "#00B0C8", "alpha": 0.9, "linewidth": 2.5},
-    "NaiveParallelReduce":                  {"linestyle": "-",  "color": "#009E73", "alpha": 0.7, "linewidth": 1.5},
-    "NaiveParallelReduceDouble":            {"linestyle": "--", "color": "#49C1A0", "alpha": 0.8, "linewidth": 2.0},
-    "NaiveParallelReduceSymmetric":         {"linestyle": ":",  "color": "#117A65", "alpha": 0.9, "linewidth": 2.5},
-    "NaiveSpread":                          {"linestyle": "-",  "color": "#006D77", "alpha": 0.7, "linewidth": 1.5},
-    "BinnedGabrielReduceFor":               {"linestyle": "-",  "color": "#D55E00", "alpha": 0.7, "linewidth": 1.5},
-    "BinnedGabrielReduceForDouble":         {"linestyle": "--", "color": "#E69F00", "alpha": 0.8, "linewidth": 2.0},
-    "BinnedGabrielReduceForSymmetric":      {"linestyle": ":",  "color": "#F0A500", "alpha": 0.9, "linewidth": 2.5},
-    "BinnedGabrielReduceParallel":          {"linestyle": "-",  "color": "#CC79A7", "alpha": 0.7, "linewidth": 1.5},
-    "BinnedGabrielReduceParallelDouble":    {"linestyle": "--", "color": "#8C5BA6", "alpha": 0.8, "linewidth": 2.0},
-    "BinnedGabrielReduceParallelSymmetric": {"linestyle": ":",  "color": "#A44A4A", "alpha": 0.9, "linewidth": 2.5},
+    "NaiveFor":                             {"linestyle": "-",  "color": _NAIVE_COLORS[0], "alpha": 0.7, "linewidth": 1.5},
+    "NaiveForDouble":                       {"linestyle": "--", "color": _NAIVE_COLORS[1], "alpha": 0.8, "linewidth": 2.0},
+    "NaiveForSymmetric":                    {"linestyle": ":",  "color": _NAIVE_COLORS[2], "alpha": 0.9, "linewidth": 2.5},
+    "NaiveParallelReduce":                  {"linestyle": "-",  "color": _NAIVE_COLORS[3], "alpha": 0.7, "linewidth": 1.5},
+    "NaiveParallelReduceDouble":            {"linestyle": "--", "color": _NAIVE_COLORS[4], "alpha": 0.8, "linewidth": 2.0},
+    "NaiveParallelReduceSymmetric":         {"linestyle": ":",  "color": _NAIVE_COLORS[5], "alpha": 0.9, "linewidth": 2.5},
+    "NaiveSpread":                          {"linestyle": "-",  "color": _NAIVE_COLORS[6], "alpha": 0.7, "linewidth": 1.5},
+    "BinnedGabrielReduceFor":               {"linestyle": "-",  "color": _BINNED_COLORS[0], "alpha": 0.7, "linewidth": 1.5},
+    "BinnedGabrielReduceForDouble":         {"linestyle": "--", "color": _BINNED_COLORS[1], "alpha": 0.8, "linewidth": 2.0},
+    "BinnedGabrielReduceForSymmetric":      {"linestyle": ":",  "color": _BINNED_COLORS[2], "alpha": 0.9, "linewidth": 2.5},
+    "BinnedGabrielReduceParallel":          {"linestyle": "-",  "color": _BINNED_COLORS[3], "alpha": 0.7, "linewidth": 1.5},
+    "BinnedGabrielReduceParallelDouble":    {"linestyle": "--", "color": _BINNED_COLORS[4], "alpha": 0.8, "linewidth": 2.0},
+    "BinnedGabrielReduceParallelSymmetric": {"linestyle": ":",  "color": _BINNED_COLORS[5], "alpha": 0.9, "linewidth": 2.5},
 }
 
 def load_rows(csv_path: Path):
@@ -150,26 +162,23 @@ def plot_benchmarks(ax, data, title):
     its symmetric counterpart highlighted for both families.
     `data` is {benchmark: [(agents, time), ...]}."""
 
-    # which benchmarks will be redrawn highlighted below (avoid duplicate legend)
-    highlighted = set()
-    for prefix in ("Naive", "Binned"):
-        best, sym = _best_and_symmetric(data, prefix)
-        if best is not None:
-            highlighted.add(best)
-            highlighted.add(sym)
-
-    # every benchmark faintly, so the full picture stays present
+    # every benchmark faintly, so the full picture stays present.
+    # These background lines go into the SECOND legend (bottom right).
+    faint_lines, faint_labels = [], []
     for bench, pairs in sorted(data.items()):
         pairs = sorted(pairs)
         sty = style_for_benchmark.get(bench, {})
-        ax.plot([p[0] for p in pairs], [p[1] for p in pairs],
-                marker=marker_for_benchmark.get(bench, "."), markersize=3,
-                linewidth=1.0, linestyle=sty.get("linestyle", "--"),
-                color=sty.get("color", None), alpha=0.45, zorder=2,
-                label=None if bench in highlighted else bench)
+        line, = ax.plot([p[0] for p in pairs], [p[1] for p in pairs],
+                        marker=marker_for_benchmark.get(bench, "."), markersize=3,
+                        linewidth=1.0, linestyle=sty.get("linestyle", "--"),
+                        color=sty.get("color", None), alpha=0.45, zorder=2)
+        faint_lines.append(line)
+        faint_labels.append(bench)
 
-    # family colours for the highlighted lines (colourblind-safe)
-    hi_colors = {"Naive": "#0072B2", "Binned": "#D55E00"}
+    # family colours for the highlighted lines (colorblind-safe, solstice)
+    # These emphasized lines go into the FIRST legend (top left).
+    hi_colors = {"Naive": _NAIVE_COLORS[0], "Binned": _BINNED_COLORS[-1]}
+    hi_lines, hi_labels = [], []
     for prefix in ("Naive", "Binned"):
         best, sym = _best_and_symmetric(data, prefix)
         if best is None:
@@ -187,20 +196,28 @@ def plot_benchmarks(ax, data, title):
             pairs = sorted(data.get(bench, []))
             if not pairs:
                 continue
-            ax.plot([p[0] for p in pairs], [p[1] for p in pairs],
-                    marker=marker_for_benchmark.get(bench, "o"), markersize=mks,
-                    linewidth=lw, linestyle=ls, color=color, alpha=al,
-                    zorder=5, label=lbl)
+            line, = ax.plot([p[0] for p in pairs], [p[1] for p in pairs],
+                            marker=marker_for_benchmark.get(bench, "o"), markersize=mks,
+                            linewidth=lw, linestyle=ls, color=color, alpha=al,
+                            zorder=5)
+            hi_lines.append(line)
+            hi_labels.append(lbl)
 
     ax.set_xscale("log", base=2)
     ax.set_yscale("log")
     ax.set_title(title + "\n"
                  + "best + its symmetric sibling per family emphasized\n"
-                 + " (solid = best, dashed = symmetric)")
-    ax.set_xlabel("agents")
-    ax.set_ylabel("time_per_step_ms")
+                 + " (solid = best, dashed = symmetric)", fontsize=14)
+    ax.set_xlabel("agents", fontsize=14)
+    ax.set_ylabel("time_per_step_ms", fontsize=14)
     ax.grid(True, alpha=0.3)
-    ax.legend(fontsize=8)
+    # Split into two legends so each stays compact and readable.
+    # NOTE: each ax.legend() call replaces the previous legend, so the first is
+    # re-added as a separate artist (ax.add_artist) to keep both visible.
+    if hi_lines:
+        ax.add_artist(ax.legend(handles=hi_lines, labels=hi_labels, loc="upper left", fontsize=10))
+    if faint_lines:
+        ax.legend(handles=faint_lines, labels=faint_labels, loc="lower right", fontsize=8)
 
 
 def main():
@@ -208,6 +225,12 @@ def main():
     csv_path = base_dir / "results.csv"
     out_dir = base_dir / "plots"
     out_dir.mkdir(exist_ok=True)
+
+    # Increased tick label sizes (title/label sizes set in plot_benchmarks).
+    plt.rcParams.update({
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+    })
 
     rows = load_rows(csv_path)
 

@@ -1,5 +1,5 @@
 #table(
-  columns: (auto, 1.8cm, 1.8cm, 1.8cm, 1.8cm, 1.8cm, 1.8cm),
+  columns: (auto, auto, auto, auto, auto, auto, auto),
   align: (left, right, right, right, right, right, right),
   stroke: 0.5pt + gray,
   inset: 6pt,

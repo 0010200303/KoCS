@@ -5,6 +5,16 @@ from statistics import mean
 
 import matplotlib.pyplot as plt
 
+import cblind.cblind as cb
+
+
+def solstice_colors(n: int):
+    """Return ``n`` colorblind-safe colours sampled from cblind's solstice cmap."""
+    cmap = cb.cbmap("cb.solstice")
+    if n <= 1:
+        return [cmap(0.5)]
+    return [cmap(i / (n - 1)) for i in range(n)]
+
 def fmt_typst_number(value: float, precision: int = 5) -> str:
     """Format a number for Typst. Uses a fixed number of decimals.
 
@@ -75,6 +85,16 @@ def main():
     out_dir = base_dir / "plots"
     out_dir.mkdir(exist_ok=True)
 
+    # Increased font sizes for all plot text.
+    plt.rcParams.update({
+        "font.size": 13,
+        "axes.titlesize": 15,
+        "axes.labelsize": 14,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "legend.fontsize": 12,
+    })
+
     rows = load_rows(csv_path)
 
     cleaned = []
@@ -119,11 +139,13 @@ def main():
         "ViewOfArraysRaw": None,
         "ViewOfScalars": "^",
     }
+    # Colourblind-safe colours sampled from cblind's solstice colormap.
+    _solstice = solstice_colors(4)
     color_by_benchmark = {
-        "ViewOfVectors": "red",
-        "ViewOfArrays": "blue",
-        "ViewOfArraysRaw": "orange",
-        "ViewOfScalars": "green",
+        "ViewOfVectors": _solstice[0],
+        "ViewOfArrays": _solstice[1],
+        "ViewOfArraysRaw": _solstice[2],
+        "ViewOfScalars": _solstice[3],
     }
 
     for machine, machine_rows in by_machine.items():
